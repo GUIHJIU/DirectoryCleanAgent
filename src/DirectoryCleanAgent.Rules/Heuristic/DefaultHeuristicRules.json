@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "name": "large_old_log_files",
+      "priority": 5,
+      "semanticCategory": "日志/转储",
+      "reason": "大于100MB且90天未访问的日志文件",
+      "enabled": true,
+      "conditions": {
+        "extensions": [".log"],
+        "minSizeBytes": 104857600,
+        "minAgeDays": 90
+      }
+    },
+    {
+      "name": "dump_files",
+      "priority": 5,
+      "semanticCategory": "日志/转储",
+      "reason": "超过30天的内存转储文件(.dmp)",
+      "enabled": true,
+      "conditions": {
+        "extensions": [".dmp", ".mdmp", ".hdmp"],
+        "minAgeDays": 30
+      }
+    },
+    {
+      "name": "old_temp_files",
+      "priority": 5,
+      "semanticCategory": "系统临时文件",
+      "reason": "超过30天的临时文件(.tmp/.temp)",
+      "enabled": true,
+      "conditions": {
+        "extensions": [".tmp", ".temp", ".cache"],
+        "minAgeDays": 30
+      }
+    },
+    {
+      "name": "large_old_downloads",
+      "priority": 5,
+      "semanticCategory": "下载旧文件",
+      "reason": "下载目录中大于1GB且90天未访问的文件",
+      "enabled": true,
+      "conditions": {
+        "pathPatterns": ["**\\Downloads\\**", "**\\下载\\**"],
+        "minSizeBytes": 1073741824,
+        "minAgeDays": 90
+      }
+    },
+    {
+      "name": "archive_in_temp",
+      "priority": 5,
+      "semanticCategory": "系统临时文件",
+      "reason": "位于临时目录中的压缩文件",
+      "enabled": true,
+      "conditions": {
+        "extensions": [".zip", ".rar", ".7z", ".tar", ".gz"],
+        "pathPatterns": ["**\\Temp\\**", "**\\tmp\\**"]
+      }
+    },
+    {
+      "name": "old_crash_reports",
+      "priority": 5,
+      "semanticCategory": "系统临时文件",
+      "reason": "超过90天的崩溃报告",
+      "enabled": true,
+      "conditions": {
+        "extensions": [".crash", ".wer"],
+        "minAgeDays": 90
+      }
+    },
+    {
+      "name": "nuget_npm_cache",
+      "priority": 5,
+      "semanticCategory": "应用缓存",
+      "reason": "超过60天的包管理器缓存文件",
+      "enabled": true,
+      "conditions": {
+        "pathPatterns": [
+          "**\\.nuget\\**",
+          "**\\node_modules\\.cache\\**",
+          "**\\pip-cache\\**"
+        ],
+        "minAgeDays": 60
+      }
+    },
+    {
+      "name": "protect_documents",
+      "priority": 6,
+      "semanticCategory": "保护内容",
+      "reason": "文档目录下的Office文件，不建议删除",
+      "enabled": true,
+      "conditions": {
+        "extensions": [".docx", ".xlsx", ".pptx", ".pdf"],
+        "pathPatterns": ["**\\Documents\\**", "**\\文档\\**"]
+      }
+    },
+    {
+      "name": "protect_recent_backup",
+      "priority": 6,
+      "semanticCategory": "保护内容",
+      "reason": "最近30天内的备份文件(.bak)，建议保留",
+      "enabled": true,
+      "conditions": {
+        "extensions": [".bak", ".backup"],
+        "maxAgeDays": 30
+      }
+    },
+    {
+      "name": "protect_design_files",
+      "priority": 6,
+      "semanticCategory": "保护内容",
+      "reason": "设计文件，建议手动确认后再删除",
+      "enabled": true,
+      "conditions": {
+        "extensions": [".psd", ".ai", ".sketch", ".xd", ".fig"]
+      }
+    },
+    {
+      "name": "old_user_large_files",
+      "priority": 5,
+      "semanticCategory": "用户旧文件",
+      "reason": "用户目录下大于500MB且超过180天未访问的文件",
+      "enabled": true,
+      "conditions": {
+        "pathPatterns": ["**\\Users\\**"],
+        "minSizeBytes": 524288000,
+        "minAgeDays": 180
+      }
+    }
+  ]
+}

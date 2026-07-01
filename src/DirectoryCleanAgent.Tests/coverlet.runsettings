@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura,json</Format>
+          <ExcludeByAttribute>GeneratedCode,DebuggerNonUserCode</ExcludeByAttribute>
+          <Include>
+            [DirectoryCleanAgent.Core]*,
+            [DirectoryCleanAgent.Everything]*,
+            [DirectoryCleanAgent.Rules]*,
+            [DirectoryCleanAgent.Decision]*,
+            [DirectoryCleanAgent.Operations]*,
+            [DirectoryCleanAgent.AI]*,
+            [DirectoryCleanAgent.Data]*
+          </Include>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

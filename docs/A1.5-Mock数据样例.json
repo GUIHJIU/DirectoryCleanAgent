@@ -1,0 +1,238 @@
+{
+  "说明": "A1.5 核心服务契约 — Mock 数据样例。供 UI 团队在 B1~B5 实现期间使用 Mock 数据进行并行开发。",
+  "版本": "V3.7",
+  "生成日期": "2026-06-20",
+
+  "仪表板数据": {
+    "summary": {
+      "auto_delete_size_bytes": 19520256000,
+      "auto_delete_count": 113,
+      "suggest_delete_size_bytes": 13421772800,
+      "suggest_delete_count": 89,
+      "manual_review_size_bytes": 3321888768,
+      "manual_review_count": 6,
+      "protected_size_bytes": 53794488320,
+      "protected_count": 42
+    }
+  },
+
+  "文件列表": [
+    {
+      "file_path": "\\\\?\\C:\\Windows\\Temp\\tmp1234.tmp",
+      "size_bytes": 524288000,
+      "last_write_time": "2025-12-15T08:30:00Z",
+      "extension": ".tmp",
+      "volume_guid": "\\\\?\\Volume{abc123-def456}",
+      "file_reference_number": 281474976710656,
+      "final_action": "AutoDelete",
+      "rule_verdict": "AutoDelete",
+      "semantic_category": "系统临时文件",
+      "ai_label": null,
+      "ai_confidence": null,
+      "ai_explanation": null
+    },
+    {
+      "file_path": "\\\\?\\C:\\Users\\TestUser\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cache\\f_000001",
+      "size_bytes": 104857600,
+      "last_write_time": "2026-06-18T12:00:00Z",
+      "extension": null,
+      "volume_guid": "\\\\?\\Volume{abc123-def456}",
+      "file_reference_number": 281474976710800,
+      "final_action": "SuggestDelete",
+      "rule_verdict": "SuggestDelete",
+      "semantic_category": "应用缓存",
+      "ai_label": null,
+      "ai_confidence": null,
+      "ai_explanation": null
+    },
+    {
+      "file_path": "\\\\?\\C:\\Users\\TestUser\\Downloads\\old-installer.exe",
+      "size_bytes": 2147483648,
+      "last_write_time": "2025-08-01T10:15:00Z",
+      "extension": ".exe",
+      "volume_guid": "\\\\?\\Volume{abc123-def456}",
+      "file_reference_number": 281474976711000,
+      "final_action": "SuggestDelete",
+      "rule_verdict": "SuggestDelete",
+      "semantic_category": "下载旧文件",
+      "ai_label": "safe",
+      "ai_confidence": 0.85,
+      "ai_explanation": "该文件是超过180天未访问的安装包，可以安全删除"
+    },
+    {
+      "file_path": "\\\\?\\C:\\Windows\\System32\\ntoskrnl.exe",
+      "size_bytes": 10485760,
+      "last_write_time": "2026-05-01T00:00:00Z",
+      "extension": ".exe",
+      "volume_guid": "\\\\?\\Volume{abc123-def456}",
+      "file_reference_number": 281474976711200,
+      "final_action": "Protected",
+      "rule_verdict": "Forbid",
+      "semantic_category": "保护内容",
+      "ai_label": null,
+      "ai_confidence": null,
+      "ai_explanation": null
+    },
+    {
+      "file_path": "\\\\?\\C:\\Users\\TestUser\\Documents\\项目报告.docx",
+      "size_bytes": 5242880,
+      "last_write_time": "2026-06-19T09:00:00Z",
+      "extension": ".docx",
+      "volume_guid": "\\\\?\\Volume{abc123-def456}",
+      "file_reference_number": 281474976711400,
+      "final_action": "ManualReview",
+      "rule_verdict": "Keep",
+      "semantic_category": "未分类",
+      "ai_label": "risky",
+      "ai_confidence": 0.75,
+      "ai_explanation": "位于文档目录下的近期文件，可能包含重要内容"
+    },
+    {
+      "file_path": "\\\\?\\C:\\Program Files\\Docker\\docker-desktop-data\\data\\DockerDesktop.vhdx",
+      "size_bytes": 32212254720,
+      "last_write_time": "2026-06-20T08:00:00Z",
+      "extension": ".vhdx",
+      "volume_guid": "\\\\?\\Volume{abc123-def456}",
+      "file_reference_number": 281474976711600,
+      "final_action": "Protected",
+      "rule_verdict": "Protect",
+      "semantic_category": "保护内容",
+      "ai_label": null,
+      "ai_confidence": null,
+      "ai_explanation": null
+    }
+  ],
+
+  "分组树": {
+    "按语义标签分组": [
+      {
+        "label": "系统临时文件",
+        "icon": "🗑️",
+        "item_count": 45,
+        "total_size_bytes": 8289920000,
+        "children": []
+      },
+      {
+        "label": "应用缓存",
+        "icon": "🧹",
+        "item_count": 32,
+        "total_size_bytes": 3764980000,
+        "children": []
+      },
+      {
+        "label": "下载旧文件",
+        "icon": "📥",
+        "item_count": 18,
+        "total_size_bytes": 12414800000,
+        "children": []
+      },
+      {
+        "label": "日志/转储",
+        "icon": "📋",
+        "item_count": 24,
+        "total_size_bytes": 5128837120,
+        "children": []
+      },
+      {
+        "label": "保护内容",
+        "icon": "🛡️",
+        "item_count": 42,
+        "total_size_bytes": 53794488320,
+        "children": []
+      }
+    ],
+    "按路径分组": [
+      {
+        "label": "C:\\Windows\\Temp",
+        "item_count": 45,
+        "total_size_bytes": 8289920000
+      },
+      {
+        "label": "C:\\Users\\<用户名>\\AppData",
+        "item_count": 56,
+        "total_size_bytes": 8891789120
+      },
+      {
+        "label": "C:\\Users\\<用户名>\\Downloads",
+        "item_count": 18,
+        "total_size_bytes": 12414800000
+      },
+      {
+        "label": "C:\\ProgramData",
+        "item_count": 12,
+        "total_size_bytes": 2147483648
+      }
+    ]
+  },
+
+  "删除操作预览": {
+    "operation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "frozen_at": "2026-06-20T14:30:00Z",
+    "total_file_count": 95,
+    "total_size_bytes": 26214400000,
+    "action_breakdown": {
+      "auto_delete": { "count": 45, "size_bytes": 8289920000 },
+      "suggest_delete": { "count": 50, "size_bytes": 17924480000 }
+    },
+    "entries_sample": [
+      {
+        "file_path": "\\\\?\\C:\\Windows\\Temp\\tmp1234.tmp",
+        "file_size": 524288000,
+        "sha256_hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+        "final_action": "AutoDelete",
+        "operation_id": "550e8400-e29b-41d4-a716-446655440000"
+      }
+    ]
+  },
+
+  "回收站容量": {
+    "total_bytes": 42949672960,
+    "used_bytes": 10737418240,
+    "available_bytes": 32212254720
+  },
+
+  "操作结果示例": {
+    "operation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "success_count": 90,
+    "failed_count": 2,
+    "manual_review_count": 3,
+    "cancelled_count": 0,
+    "is_fully_successful": false,
+    "is_cancelled": false,
+    "freed_bytes": 25000000000,
+    "elapsed": "00:01:35.400",
+    "failed_files": [
+      {
+        "file_path": "\\\\?\\C:\\Users\\TestUser\\AppData\\Local\\locked_file.db",
+        "error_code": "0x80070020",
+        "error_message": "文件被其他进程占用，无法删除"
+      }
+    ],
+    "manual_review_files": [
+      {
+        "file_path": "\\\\?\\C:\\ProgramData\\Config\\settings.dat",
+        "error_code": "0x80070020",
+        "error_message": "文件锁定，已降级为人工审核"
+      }
+    ]
+  },
+
+  "回滚批次历史": [
+    {
+      "operation_id": "550e8400-e29b-41d4-a716-446655440000",
+      "executed_at": "2026-06-20T14:32:00Z",
+      "file_count": 95,
+      "total_size_bytes": 26214400000,
+      "method": "RecycleBin",
+      "is_rollbackable": true
+    },
+    {
+      "operation_id": "660e8400-e29b-41d4-a716-446655441111",
+      "executed_at": "2026-06-18T10:15:00Z",
+      "file_count": 30,
+      "total_size_bytes": 5368709120,
+      "method": "RecycleBin",
+      "is_rollbackable": true
+    }
+  ]
+}

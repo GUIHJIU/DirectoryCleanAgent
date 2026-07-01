@@ -1,0 +1,598 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Microsoft ResX Schema
+
+    Version 2.0
+
+    中文（简体）— 默认语言资源文件
+    所有键均在此文件中有默认值，英文资源文件仅需覆盖翻译。
+
+    键命名规范：
+    - Dashboard.*   → 仪表板卡片
+    - ActionBar.*   → 操作栏按钮
+    - Common.*      → 通用 UI 文本
+    - Status.*      → 状态栏/状态提示
+    - Error.*       → 错误消息
+    - Warning.*     → 警告消息
+    - Settings.*    → 设置页面
+    - Wizard.*      → 首次启动向导
+    - Semantic.*    → 语义标签（由 SemanticLabelLocalizer 管理，此处保留备用）
+    - View.*        → 视图相关
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ================================================================ -->
+  <!-- 仪表板卡片 -->
+  <!-- ================================================================ -->
+  <data name="Dashboard.SafeClean" xml:space="preserve">
+    <value>安全可自动清理</value>
+    <comment>仪表板绿色卡片标题</comment>
+  </data>
+  <data name="Dashboard.SuggestedClean" xml:space="preserve">
+    <value>建议清理</value>
+    <comment>仪表板蓝色卡片标题</comment>
+  </data>
+  <data name="Dashboard.ManualReview" xml:space="preserve">
+    <value>需人工确认</value>
+    <comment>仪表板橙色卡片标题</comment>
+  </data>
+  <data name="Dashboard.Protected" xml:space="preserve">
+    <value>已保护</value>
+    <comment>仪表板灰色卡片标题（Docker/WSL等受保护内容）</comment>
+  </data>
+  <data name="Dashboard.TotalSpace" xml:space="preserve">
+    <value>可释放空间</value>
+    <comment>仪表板空间统计标签</comment>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 操作栏 -->
+  <!-- ================================================================ -->
+  <data name="ActionBar.OneClickClean" xml:space="preserve">
+    <value>一键清理安全项</value>
+    <comment>操作栏主按钮 — 删除所有 auto_delete 文件</comment>
+  </data>
+  <data name="ActionBar.SmartSelect" xml:space="preserve">
+    <value>智能选择建议项</value>
+    <comment>操作栏按钮 — 自动勾选 suggest_delete 文件</comment>
+  </data>
+  <data name="ActionBar.DryRun" xml:space="preserve">
+    <value>模拟运行</value>
+    <comment>操作栏按钮 — 预览删除效果</comment>
+  </data>
+  <data name="ActionBar.ExportReport" xml:space="preserve">
+    <value>导出报告</value>
+    <comment>操作栏按钮 — 导出 HTML/CSV</comment>
+  </data>
+  <data name="ActionBar.Refresh" xml:space="preserve">
+    <value>刷新</value>
+    <comment>操作栏按钮 — 重新扫描</comment>
+  </data>
+  <data name="ActionBar.GroupBy" xml:space="preserve">
+    <value>分组依据</value>
+    <comment>操作栏下拉菜单标签</comment>
+  </data>
+  <data name="ActionBar.ShowAllFiles" xml:space="preserve">
+    <value>显示所有文件</value>
+    <comment>切换开关 — 显示全部文件或仅可操作文件</comment>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 通用 UI -->
+  <!-- ================================================================ -->
+  <data name="Common.OK" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Common.Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Common.Confirm" xml:space="preserve">
+    <value>确认</value>
+  </data>
+  <data name="Common.Yes" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="Common.No" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="Common.Retry" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="Common.Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="Common.Skip" xml:space="preserve">
+    <value>跳过</value>
+  </data>
+  <data name="Common.Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Common.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Common.Details" xml:space="preserve">
+    <value>详情</value>
+  </data>
+  <data name="Common.Exclude" xml:space="preserve">
+    <value>排除</value>
+  </data>
+  <data name="Common.Restore" xml:space="preserve">
+    <value>恢复</value>
+  </data>
+  <data name="Common.Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Common.Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 状态信息 -->
+  <!-- ================================================================ -->
+  <data name="Status.Ready" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="Status.Scanning" xml:space="preserve">
+    <value>正在扫描...</value>
+  </data>
+  <data name="Status.Analyzing" xml:space="preserve">
+    <value>正在分析...</value>
+  </data>
+  <data name="Status.Cleaning" xml:space="preserve">
+    <value>正在清理...</value>
+  </data>
+  <data name="Status.Completed" xml:space="preserve">
+    <value>已完成</value>
+  </data>
+  <data name="Status.Cancelled" xml:space="preserve">
+    <value>已取消</value>
+  </data>
+  <data name="Status.ReadOnlyMode" xml:space="preserve">
+    <value>只读模式 — 请以管理员身份重新运行以启用清理功能</value>
+  </data>
+  <data name="Status.LastScan" xml:space="preserve">
+    <value>上次扫描</value>
+  </data>
+  <data name="Status.FreedSpace" xml:space="preserve">
+    <value>本次释放空间</value>
+  </data>
+  <data name="Status.TotalFreed" xml:space="preserve">
+    <value>历史累计清理</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 错误消息 -->
+  <!-- ================================================================ -->
+  <data name="Error.EverythingNotRunning" xml:space="preserve">
+    <value>Everything 服务未运行。请启动 Everything 后重试。</value>
+  </data>
+  <data name="Error.EverythingVersionTooLow" xml:space="preserve">
+    <value>需要 Everything 1.4.1.1000 或更高版本。请升级后重试。</value>
+  </data>
+  <data name="Error.EverythingIpcFailed" xml:space="preserve">
+    <value>无法与 Everything 建立 IPC 通信。请检查防火墙设置。</value>
+  </data>
+  <data name="Error.NonNTFSVolume" xml:space="preserve">
+    <value>不支持的文件系统。本工具仅支持 NTFS 卷。</value>
+  </data>
+  <data name="Error.ConfigLoadFailed" xml:space="preserve">
+    <value>配置文件加载失败，已使用默认配置。</value>
+  </data>
+  <data name="Error.OperationFailed" xml:space="preserve">
+    <value>操作执行失败</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 警告消息 -->
+  <!-- ================================================================ -->
+  <data name="Warning.IndexingIncomplete" xml:space="preserve">
+    <value>索引构建中，结果不完整，建议稍后刷新</value>
+    <comment>Everything 索引未完成时界面横幅</comment>
+  </data>
+  <data name="Warning.RecycleBinFull" xml:space="preserve">
+    <value>回收站空间不足，超出部分需永久删除。是否继续？</value>
+  </data>
+  <data name="Warning.PermanentDeleteConfirm" xml:space="preserve">
+    <value>我明白永久删除不可恢复</value>
+  </data>
+  <data name="Warning.FileLocked" xml:space="preserve">
+    <value>文件被占用，无法删除</value>
+  </data>
+  <data name="Warning.AdminRequired" xml:space="preserve">
+    <value>此操作需要管理员权限</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置页面标签页 -->
+  <!-- ================================================================ -->
+  <data name="Settings.Tab.General" xml:space="preserve">
+    <value>通用</value>
+  </data>
+  <data name="Settings.Tab.ScanAndClean" xml:space="preserve">
+    <value>扫描与清理</value>
+  </data>
+  <data name="Settings.Tab.AIAdvisor" xml:space="preserve">
+    <value>AI 顾问</value>
+  </data>
+  <data name="Settings.Tab.Automation" xml:space="preserve">
+    <value>自动化清理</value>
+  </data>
+  <data name="Settings.Tab.Exclusions" xml:space="preserve">
+    <value>排除与保护</value>
+  </data>
+  <data name="Settings.Title" xml:space="preserve">
+    <value>设置</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — 通用标签页 -->
+  <!-- ================================================================ -->
+  <data name="Settings.General.StartupBehavior" xml:space="preserve">
+    <value>启动时行为</value>
+  </data>
+  <data name="Settings.General.Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Settings.General.Language" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="Settings.General.DataStorage" xml:space="preserve">
+    <value>数据存储位置</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — 启动行为选项 -->
+  <!-- ================================================================ -->
+  <data name="Settings.Startup.AutoScan" xml:space="preserve">
+    <value>自动扫描</value>
+  </data>
+  <data name="Settings.Startup.ShowHome" xml:space="preserve">
+    <value>显示首页</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — 主题选项 -->
+  <!-- ================================================================ -->
+  <data name="Settings.Theme.Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Settings.Theme.Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="Settings.Theme.FollowSystem" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — 扫描与清理标签页 -->
+  <!-- ================================================================ -->
+  <data name="Settings.Scan.ScanMode" xml:space="preserve">
+    <value>扫描模式</value>
+  </data>
+  <data name="Settings.Scan.DeleteMethod" xml:space="preserve">
+    <value>安全删除方式</value>
+  </data>
+  <data name="Settings.Scan.ConfirmBeforeClean" xml:space="preserve">
+    <value>一键清理前二次确认</value>
+  </data>
+  <data name="Settings.Scan.ShowManualReview" xml:space="preserve">
+    <value>显示"需人工确认"文件</value>
+  </data>
+  <data name="Settings.Scan.AutoRefresh" xml:space="preserve">
+    <value>自动刷新扫描结果</value>
+  </data>
+  <data name="Settings.Scan.IncludedVolumes" xml:space="preserve">
+    <value>包含的卷</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — 删除方式选项 -->
+  <!-- ================================================================ -->
+  <data name="Settings.DeleteMethod.RecycleBin" xml:space="preserve">
+    <value>放入回收站</value>
+  </data>
+  <data name="Settings.DeleteMethod.Permanent" xml:space="preserve">
+    <value>永久删除（危险）</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — 扫描模式选项 -->
+  <!-- ================================================================ -->
+  <data name="Settings.ScanMode.Smart" xml:space="preserve">
+    <value>智能扫描C盘热点</value>
+  </data>
+  <data name="Settings.ScanMode.AskDirectory" xml:space="preserve">
+    <value>每次询问目录</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — AI 顾问标签页 -->
+  <!-- ================================================================ -->
+  <data name="Settings.AI.Enable" xml:space="preserve">
+    <value>启用 AI 顾问</value>
+  </data>
+  <data name="Settings.AI.ServiceType" xml:space="preserve">
+    <value>AI 服务类型</value>
+  </data>
+  <data name="Settings.AI.ApiUrl" xml:space="preserve">
+    <value>API 地址</value>
+  </data>
+  <data name="Settings.AI.ApiKey" xml:space="preserve">
+    <value>API Key</value>
+  </data>
+  <data name="Settings.AI.Model" xml:space="preserve">
+    <value>模型名称</value>
+  </data>
+  <data name="Settings.AI.TrustLevel" xml:space="preserve">
+    <value>AI 信任度</value>
+  </data>
+  <data name="Settings.AI.DailyLimit" xml:space="preserve">
+    <value>每日调用限额</value>
+  </data>
+  <data name="Settings.AI.AutoAnalyze" xml:space="preserve">
+    <value>自动为未分类文件请求 AI</value>
+  </data>
+  <data name="Settings.AI.TestConnection" xml:space="preserve">
+    <value>测试连接</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — 排除与保护标签页 -->
+  <!-- ================================================================ -->
+  <data name="Settings.Exclusions.ProtectedDirs" xml:space="preserve">
+    <value>自动保护目录</value>
+  </data>
+  <data name="Settings.Exclusions.UserExcludedDirs" xml:space="preserve">
+    <value>用户排除目录</value>
+  </data>
+  <data name="Settings.Exclusions.ExcludedExtensions" xml:space="preserve">
+    <value>排除文件扩展名</value>
+  </data>
+  <data name="Settings.Exclusions.QuarantineMaxSize" xml:space="preserve">
+    <value>隔离区大小上限</value>
+  </data>
+  <data name="Settings.Exclusions.QuarantineRetention" xml:space="preserve">
+    <value>隔离区保留天数</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 首次启动向导 -->
+  <!-- ================================================================ -->
+  <data name="Wizard.Welcome.Title" xml:space="preserve">
+    <value>欢迎使用智能磁盘清理工具</value>
+  </data>
+  <data name="Wizard.Welcome.Description" xml:space="preserve">
+    <value>本工具将帮助您智能、安全地清理磁盘空间。让我们快速完成基本设置。</value>
+  </data>
+  <data name="Wizard.Step.Checking" xml:space="preserve">
+    <value>正在检测 Everything 服务...</value>
+  </data>
+  <data name="Wizard.Step.ModeSelect" xml:space="preserve">
+    <value>选择使用模式</value>
+  </data>
+  <data name="Wizard.Step.Mode.Simple" xml:space="preserve">
+    <value>简单模式（推荐）</value>
+  </data>
+  <data name="Wizard.Step.Mode.Expert" xml:space="preserve">
+    <value>专家模式</value>
+  </data>
+  <data name="Wizard.Step.Profile" xml:space="preserve">
+    <value>用户画像</value>
+  </data>
+  <data name="Wizard.Step.Protection" xml:space="preserve">
+    <value>保护与排除</value>
+  </data>
+  <data name="Wizard.Step.AIConfig" xml:space="preserve">
+    <value>AI 配置</value>
+  </data>
+  <data name="Wizard.Step.Complete" xml:space="preserve">
+    <value>设置完成</value>
+  </data>
+  <data name="Wizard.Button.Next" xml:space="preserve">
+    <value>下一步</value>
+  </data>
+  <data name="Wizard.Button.Back" xml:space="preserve">
+    <value>上一步</value>
+  </data>
+  <data name="Wizard.Button.Finish" xml:space="preserve">
+    <value>开始使用</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 视图 — 文件列表与分组 -->
+  <!-- ================================================================ -->
+  <data name="View.FilesOnlyHint" xml:space="preserve">
+    <value>当前视图仅包含可操作文件（建议清理 / 需确认 / 自动清理）。点击"显示所有文件"切换为全量浏览模式。</value>
+  </data>
+  <data name="View.Column.Name" xml:space="preserve">
+    <value>文件名</value>
+  </data>
+  <data name="View.Column.Size" xml:space="preserve">
+    <value>大小</value>
+  </data>
+  <data name="View.Column.LastAccess" xml:space="preserve">
+    <value>最后访问时间</value>
+  </data>
+  <data name="View.Column.Label" xml:space="preserve">
+    <value>语义标签</value>
+  </data>
+  <data name="View.Column.AIStatus" xml:space="preserve">
+    <value>AI 状态</value>
+  </data>
+  <data name="View.Column.Action" xml:space="preserve">
+    <value>操作</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 隔离区 -->
+  <!-- ================================================================ -->
+  <data name="Quarantine.Title" xml:space="preserve">
+    <value>隔离区管理</value>
+  </data>
+  <data name="Quarantine.Usage" xml:space="preserve">
+    <value>容量使用情况</value>
+  </data>
+  <data name="Quarantine.BatchRestore" xml:space="preserve">
+    <value>批量恢复</value>
+  </data>
+  <data name="Quarantine.BatchDelete" xml:space="preserve">
+    <value>批量删除</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 审计日志 / 历史记录 -->
+  <!-- ================================================================ -->
+  <data name="Audit.Title" xml:space="preserve">
+    <value>审计日志</value>
+  </data>
+  <data name="Audit.History" xml:space="preserve">
+    <value>删除历史</value>
+  </data>
+  <data name="Audit.Rollback" xml:space="preserve">
+    <value>回滚</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 进度与取消 -->
+  <!-- ================================================================ -->
+  <data name="Progress.CalculatingHash" xml:space="preserve">
+    <value>正在计算文件哈希...</value>
+  </data>
+  <data name="Progress.Deleting" xml:space="preserve">
+    <value>正在删除文件...</value>
+  </data>
+  <data name="Progress.Restoring" xml:space="preserve">
+    <value>正在恢复文件...</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 语义标签（在 SemanticLabelLocalizer 中有专用映射，此处提供默认键值备用） -->
+  <!-- ================================================================ -->
+  <data name="Semantic.SystemTempFiles" xml:space="preserve">
+    <value>系统临时文件</value>
+  </data>
+  <data name="Semantic.AppCache" xml:space="preserve">
+    <value>应用缓存</value>
+  </data>
+  <data name="Semantic.OldDownloads" xml:space="preserve">
+    <value>下载旧文件</value>
+  </data>
+  <data name="Semantic.RecycleBin" xml:space="preserve">
+    <value>回收站</value>
+  </data>
+  <data name="Semantic.LogsAndDumps" xml:space="preserve">
+    <value>日志/转储</value>
+  </data>
+  <data name="Semantic.OldUserFiles" xml:space="preserve">
+    <value>用户旧文件</value>
+  </data>
+  <data name="Semantic.Protected" xml:space="preserve">
+    <value>保护内容</value>
+  </data>
+  <data name="Semantic.Uncategorized" xml:space="preserve">
+    <value>未分类</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- C5: 模拟运行 -->
+  <!-- ================================================================ -->
+  <data name="Simulate.Title" xml:space="preserve">
+    <value>模拟运行结果</value>
+  </data>
+  <data name="Simulate.CapacityCheck" xml:space="preserve">
+    <value>正在检查回收站容量...</value>
+  </data>
+  <data name="Simulate.Enumerating" xml:space="preserve">
+    <value>正在枚举文件...</value>
+  </data>
+  <data name="Simulate.Analyzing" xml:space="preserve">
+    <value>正在分析文件...</value>
+  </data>
+  <data name="Simulate.NoData" xml:space="preserve">
+    <value>未找到可清理的文件</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- C5: 报告导出 -->
+  <!-- ================================================================ -->
+  <data name="Export.Title" xml:space="preserve">
+    <value>导出分析报告</value>
+  </data>
+  <data name="Export.SelectPath" xml:space="preserve">
+    <value>选择导出路径</value>
+  </data>
+  <data name="Export.Success" xml:space="preserve">
+    <value>报告已导出到: {0}</value>
+  </data>
+  <data name="Export.NoSimulationData" xml:space="preserve">
+    <value>请先执行模拟运行</value>
+  </data>
+  <data name="Export.HtmlFilter" xml:space="preserve">
+    <value>HTML 报告 (*.html)|*.html</value>
+  </data>
+  <data name="Export.CsvFilter" xml:space="preserve">
+    <value>CSV 报告 (*.csv)|*.csv</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- C5: 报告内容标签 -->
+  <!-- ================================================================ -->
+  <data name="Report.Summary" xml:space="preserve">
+    <value>汇总统计</value>
+  </data>
+  <data name="Report.GeneratedAt" xml:space="preserve">
+    <value>生成时间</value>
+  </data>
+  <data name="Report.OperationId" xml:space="preserve">
+    <value>操作批次</value>
+  </data>
+  <data name="Report.Category" xml:space="preserve">
+    <value>分类</value>
+  </data>
+  <data name="Report.Action" xml:space="preserve">
+    <value>操作建议</value>
+  </data>
+  <data name="Report.Count" xml:space="preserve">
+    <value>数量</value>
+  </data>
+  <data name="Report.Size" xml:space="preserve">
+    <value>大小</value>
+  </data>
+  <data name="Report.SampleFiles" xml:space="preserve">
+    <value>样本文件</value>
+  </data>
+  <data name="Report.Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="Report.LastModified" xml:space="preserve">
+    <value>最后修改</value>
+  </data>
+  <data name="Report.AiLabel" xml:space="preserve">
+    <value>AI 标签</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 应用标题 -->
+  <!-- ================================================================ -->
+  <data name="App.Title" xml:space="preserve">
+    <value>智能磁盘清理</value>
+  </data>
+  <data name="App.ComingSoon" xml:space="preserve">
+    <value>即将推出</value>
+  </data>
+</root>

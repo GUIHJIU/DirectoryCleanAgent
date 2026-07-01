@@ -1,0 +1,14 @@
+<Application x:Class="DirectoryCleanAgent.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- 公共样式（按钮、进度条等） -->
+                <ResourceDictionary Source="Themes/CommonStyles.xaml" />
+                <!-- 默认浅色主题（启动时根据 UserConfig 动态替换） -->
+                <ResourceDictionary Source="Themes/LightTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    English resource file.
+    Keys must exactly match Strings.resx.
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Dashboard -->
+  <data name="Dashboard.SafeClean" xml:space="preserve">
+    <value>Safe to Auto-Clean</value>
+  </data>
+  <data name="Dashboard.SuggestedClean" xml:space="preserve">
+    <value>Suggested to Clean</value>
+  </data>
+  <data name="Dashboard.ManualReview" xml:space="preserve">
+    <value>Needs Manual Review</value>
+  </data>
+  <data name="Dashboard.Protected" xml:space="preserve">
+    <value>Protected</value>
+  </data>
+  <data name="Dashboard.TotalSpace" xml:space="preserve">
+    <value>Freeable Space</value>
+  </data>
+
+  <!-- Action Bar -->
+  <data name="ActionBar.OneClickClean" xml:space="preserve">
+    <value>One-Click Safe Clean</value>
+  </data>
+  <data name="ActionBar.SmartSelect" xml:space="preserve">
+    <value>Smart Select Suggestions</value>
+  </data>
+  <data name="ActionBar.DryRun" xml:space="preserve">
+    <value>Dry Run</value>
+  </data>
+  <data name="ActionBar.ExportReport" xml:space="preserve">
+    <value>Export Report</value>
+  </data>
+  <data name="ActionBar.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="ActionBar.GroupBy" xml:space="preserve">
+    <value>Group By</value>
+  </data>
+  <data name="ActionBar.ShowAllFiles" xml:space="preserve">
+    <value>Show All Files</value>
+  </data>
+
+  <!-- Common UI -->
+  <data name="Common.OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Common.Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Common.Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Common.No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Common.Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Common.Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Common.Skip" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="Common.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Common.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Common.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Common.Exclude" xml:space="preserve">
+    <value>Exclude</value>
+  </data>
+  <data name="Common.Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="Common.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Common.Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+
+  <!-- Status -->
+  <data name="Status.Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Status.Scanning" xml:space="preserve">
+    <value>Scanning...</value>
+  </data>
+  <data name="Status.Analyzing" xml:space="preserve">
+    <value>Analyzing...</value>
+  </data>
+  <data name="Status.Cleaning" xml:space="preserve">
+    <value>Cleaning...</value>
+  </data>
+  <data name="Status.Completed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Status.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Status.ReadOnlyMode" xml:space="preserve">
+    <value>Read-only mode — Run as administrator to enable cleanup features</value>
+  </data>
+  <data name="Status.LastScan" xml:space="preserve">
+    <value>Last Scan</value>
+  </data>
+  <data name="Status.FreedSpace" xml:space="preserve">
+    <value>Space Freed This Session</value>
+  </data>
+  <data name="Status.TotalFreed" xml:space="preserve">
+    <value>Total Freed Historically</value>
+  </data>
+
+  <!-- Error Messages -->
+  <data name="Error.EverythingNotRunning" xml:space="preserve">
+    <value>Everything service is not running. Please start Everything and retry.</value>
+  </data>
+  <data name="Error.EverythingVersionTooLow" xml:space="preserve">
+    <value>Everything 1.4.1.1000 or higher is required. Please upgrade and retry.</value>
+  </data>
+  <data name="Error.EverythingIpcFailed" xml:space="preserve">
+    <value>Cannot establish IPC communication with Everything. Please check firewall settings.</value>
+  </data>
+  <data name="Error.NonNTFSVolume" xml:space="preserve">
+    <value>Unsupported file system. This tool only supports NTFS volumes.</value>
+  </data>
+  <data name="Error.ConfigLoadFailed" xml:space="preserve">
+    <value>Failed to load configuration. Default settings have been applied.</value>
+  </data>
+  <data name="Error.OperationFailed" xml:space="preserve">
+    <value>Operation failed</value>
+  </data>
+
+  <!-- Warning Messages -->
+  <data name="Warning.IndexingIncomplete" xml:space="preserve">
+    <value>Index building in progress. Results may be incomplete. Consider refreshing later.</value>
+  </data>
+  <data name="Warning.RecycleBinFull" xml:space="preserve">
+    <value>Recycle bin space is insufficient. Excess files will be permanently deleted. Continue?</value>
+  </data>
+  <data name="Warning.PermanentDeleteConfirm" xml:space="preserve">
+    <value>I understand permanent deletion cannot be undone</value>
+  </data>
+  <data name="Warning.FileLocked" xml:space="preserve">
+    <value>File is in use and cannot be deleted</value>
+  </data>
+  <data name="Warning.AdminRequired" xml:space="preserve">
+    <value>Administrator privileges required for this operation</value>
+  </data>
+
+  <!-- Settings Tabs -->
+  <data name="Settings.Tab.General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Settings.Tab.ScanAndClean" xml:space="preserve">
+    <value>Scan &amp; Clean</value>
+  </data>
+  <data name="Settings.Tab.AIAdvisor" xml:space="preserve">
+    <value>AI Advisor</value>
+  </data>
+  <data name="Settings.Tab.Automation" xml:space="preserve">
+    <value>Automation</value>
+  </data>
+  <data name="Settings.Tab.Exclusions" xml:space="preserve">
+    <value>Exclusions &amp; Protection</value>
+  </data>
+  <data name="Settings.Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+
+  <!-- Settings - General -->
+  <data name="Settings.General.StartupBehavior" xml:space="preserve">
+    <value>Startup Behavior</value>
+  </data>
+  <data name="Settings.General.Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Settings.General.Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings.General.DataStorage" xml:space="preserve">
+    <value>Data Storage Location</value>
+  </data>
+
+  <!-- Settings - Startup Options -->
+  <data name="Settings.Startup.AutoScan" xml:space="preserve">
+    <value>Auto Scan</value>
+  </data>
+  <data name="Settings.Startup.ShowHome" xml:space="preserve">
+    <value>Show Home</value>
+  </data>
+
+  <!-- Settings - Theme Options -->
+  <data name="Settings.Theme.Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Settings.Theme.Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Settings.Theme.FollowSystem" xml:space="preserve">
+    <value>Follow System</value>
+  </data>
+
+  <!-- Settings - Scan & Clean -->
+  <data name="Settings.Scan.ScanMode" xml:space="preserve">
+    <value>Scan Mode</value>
+  </data>
+  <data name="Settings.Scan.DeleteMethod" xml:space="preserve">
+    <value>Safe Delete Method</value>
+  </data>
+  <data name="Settings.Scan.ConfirmBeforeClean" xml:space="preserve">
+    <value>Confirm Before One-Click Clean</value>
+  </data>
+  <data name="Settings.Scan.ShowManualReview" xml:space="preserve">
+    <value>Show "Manual Review" Files</value>
+  </data>
+  <data name="Settings.Scan.AutoRefresh" xml:space="preserve">
+    <value>Auto-Refresh Scan Results</value>
+  </data>
+  <data name="Settings.Scan.IncludedVolumes" xml:space="preserve">
+    <value>Included Volumes</value>
+  </data>
+
+  <!-- Settings - Delete Method Options -->
+  <data name="Settings.DeleteMethod.RecycleBin" xml:space="preserve">
+    <value>Move to Recycle Bin</value>
+  </data>
+  <data name="Settings.DeleteMethod.Permanent" xml:space="preserve">
+    <value>Permanently Delete (Dangerous)</value>
+  </data>
+
+  <!-- Settings - Scan Mode Options -->
+  <data name="Settings.ScanMode.Smart" xml:space="preserve">
+    <value>Smart Scan System Drive Hotspots</value>
+  </data>
+  <data name="Settings.ScanMode.AskDirectory" xml:space="preserve">
+    <value>Ask for Directory Each Time</value>
+  </data>
+
+  <!-- Settings - AI Advisor -->
+  <data name="Settings.AI.Enable" xml:space="preserve">
+    <value>Enable AI Advisor</value>
+  </data>
+  <data name="Settings.AI.ServiceType" xml:space="preserve">
+    <value>AI Service Type</value>
+  </data>
+  <data name="Settings.AI.ApiUrl" xml:space="preserve">
+    <value>API URL</value>
+  </data>
+  <data name="Settings.AI.ApiKey" xml:space="preserve">
+    <value>API Key</value>
+  </data>
+  <data name="Settings.AI.Model" xml:space="preserve">
+    <value>Model Name</value>
+  </data>
+  <data name="Settings.AI.TrustLevel" xml:space="preserve">
+    <value>AI Trust Level</value>
+  </data>
+  <data name="Settings.AI.DailyLimit" xml:space="preserve">
+    <value>Daily Call Limit</value>
+  </data>
+  <data name="Settings.AI.AutoAnalyze" xml:space="preserve">
+    <value>Auto-Request AI for Uncategorized Files</value>
+  </data>
+  <data name="Settings.AI.TestConnection" xml:space="preserve">
+    <value>Test Connection</value>
+  </data>
+
+  <!-- Settings - Exclusions & Protection -->
+  <data name="Settings.Exclusions.ProtectedDirs" xml:space="preserve">
+    <value>Auto-Detected Protected Directories</value>
+  </data>
+  <data name="Settings.Exclusions.UserExcludedDirs" xml:space="preserve">
+    <value>User-Excluded Directories</value>
+  </data>
+  <data name="Settings.Exclusions.ExcludedExtensions" xml:space="preserve">
+    <value>Excluded File Extensions</value>
+  </data>
+  <data name="Settings.Exclusions.QuarantineMaxSize" xml:space="preserve">
+    <value>Quarantine Max Size</value>
+  </data>
+  <data name="Settings.Exclusions.QuarantineRetention" xml:space="preserve">
+    <value>Quarantine Retention (Days)</value>
+  </data>
+
+  <!-- Wizard -->
+  <data name="Wizard.Welcome.Title" xml:space="preserve">
+    <value>Welcome to Smart Disk Cleanup Tool</value>
+  </data>
+  <data name="Wizard.Welcome.Description" xml:space="preserve">
+    <value>This tool helps you intelligently and safely free up disk space. Letʼs quickly set up the basics.</value>
+  </data>
+  <data name="Wizard.Step.Checking" xml:space="preserve">
+    <value>Checking Everything service...</value>
+  </data>
+  <data name="Wizard.Step.ModeSelect" xml:space="preserve">
+    <value>Choose Mode</value>
+  </data>
+  <data name="Wizard.Step.Mode.Simple" xml:space="preserve">
+    <value>Simple Mode (Recommended)</value>
+  </data>
+  <data name="Wizard.Step.Mode.Expert" xml:space="preserve">
+    <value>Expert Mode</value>
+  </data>
+  <data name="Wizard.Step.Profile" xml:space="preserve">
+    <value>User Profile</value>
+  </data>
+  <data name="Wizard.Step.Protection" xml:space="preserve">
+    <value>Protection &amp; Exclusions</value>
+  </data>
+  <data name="Wizard.Step.AIConfig" xml:space="preserve">
+    <value>AI Configuration</value>
+  </data>
+  <data name="Wizard.Step.Complete" xml:space="preserve">
+    <value>Setup Complete</value>
+  </data>
+  <data name="Wizard.Button.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Wizard.Button.Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Wizard.Button.Finish" xml:space="preserve">
+    <value>Get Started</value>
+  </data>
+
+  <!-- View - File List & Grouping -->
+  <data name="View.FilesOnlyHint" xml:space="preserve">
+    <value>Current view shows actionable files only (Suggested / Manual Review / Auto-Clean). Click "Show All Files" to browse all files.</value>
+  </data>
+  <data name="View.Column.Name" xml:space="preserve">
+    <value>File Name</value>
+  </data>
+  <data name="View.Column.Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="View.Column.LastAccess" xml:space="preserve">
+    <value>Last Access Time</value>
+  </data>
+  <data name="View.Column.Label" xml:space="preserve">
+    <value>Semantic Label</value>
+  </data>
+  <data name="View.Column.AIStatus" xml:space="preserve">
+    <value>AI Status</value>
+  </data>
+  <data name="View.Column.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+
+  <!-- Quarantine -->
+  <data name="Quarantine.Title" xml:space="preserve">
+    <value>Quarantine Management</value>
+  </data>
+  <data name="Quarantine.Usage" xml:space="preserve">
+    <value>Capacity Usage</value>
+  </data>
+  <data name="Quarantine.BatchRestore" xml:space="preserve">
+    <value>Batch Restore</value>
+  </data>
+  <data name="Quarantine.BatchDelete" xml:space="preserve">
+    <value>Batch Delete</value>
+  </data>
+
+  <!-- Audit Log / History -->
+  <data name="Audit.Title" xml:space="preserve">
+    <value>Audit Log</value>
+  </data>
+  <data name="Audit.History" xml:space="preserve">
+    <value>Deletion History</value>
+  </data>
+  <data name="Audit.Rollback" xml:space="preserve">
+    <value>Rollback</value>
+  </data>
+
+  <!-- Progress -->
+  <data name="Progress.CalculatingHash" xml:space="preserve">
+    <value>Calculating file hashes...</value>
+  </data>
+  <data name="Progress.Deleting" xml:space="preserve">
+    <value>Deleting files...</value>
+  </data>
+  <data name="Progress.Restoring" xml:space="preserve">
+    <value>Restoring files...</value>
+  </data>
+
+  <!-- Semantic Labels -->
+  <data name="Semantic.SystemTempFiles" xml:space="preserve">
+    <value>System Temporary Files</value>
+  </data>
+  <data name="Semantic.AppCache" xml:space="preserve">
+    <value>Application Cache</value>
+  </data>
+  <data name="Semantic.OldDownloads" xml:space="preserve">
+    <value>Old Downloads</value>
+  </data>
+  <data name="Semantic.RecycleBin" xml:space="preserve">
+    <value>Recycle Bin</value>
+  </data>
+  <data name="Semantic.LogsAndDumps" xml:space="preserve">
+    <value>Logs / Dumps</value>
+  </data>
+  <data name="Semantic.OldUserFiles" xml:space="preserve">
+    <value>Old User Files</value>
+  </data>
+  <data name="Semantic.Protected" xml:space="preserve">
+    <value>Protected Content</value>
+  </data>
+  <data name="Semantic.Uncategorized" xml:space="preserve">
+    <value>Uncategorized</value>
+  </data>
+
+  <!-- App -->
+  <data name="App.Title" xml:space="preserve">
+    <value>Smart Disk Cleanup</value>
+  </data>
+  <data name="App.ComingSoon" xml:space="preserve">
+    <value>Coming Soon</value>
+  </data>
+</root>

@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>DirectoryCleanAgent</RootNamespace>
+    <AssemblyName>DirectoryCleanAgent</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryCleanAgent.Core\DirectoryCleanAgent.Core.csproj" />
+    <ProjectReference Include="..\DirectoryCleanAgent.Data\DirectoryCleanAgent.Data.csproj" />
+    <ProjectReference Include="..\DirectoryCleanAgent.Everything\DirectoryCleanAgent.Everything.csproj" />
+    <ProjectReference Include="..\DirectoryCleanAgent.Rules\DirectoryCleanAgent.Rules.csproj" />
+    <ProjectReference Include="..\DirectoryCleanAgent.Decision\DirectoryCleanAgent.Decision.csproj" />
+    <ProjectReference Include="..\DirectoryCleanAgent.AI\DirectoryCleanAgent.AI.csproj" />
+    <ProjectReference Include="..\DirectoryCleanAgent.Operations\DirectoryCleanAgent.Operations.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+  </ItemGroup>
+
+  <!-- Everything SDK DLL: 构建时复制到输出目录 -->
+  <ItemGroup>
+    <Content Include="..\..\lib\Everything-SDK\dll\Everything64.dll">
+      <Link>Everything64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>DirectoryCleanAgent.AI</RootNamespace>
+    <AssemblyName>DirectoryCleanAgent.AI</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryCleanAgent.Core\DirectoryCleanAgent.Core.csproj" />
+    <ProjectReference Include="..\DirectoryCleanAgent.Data\DirectoryCleanAgent.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DirectoryCleanAgent.Tests" />
+  </ItemGroup>
+
+</Project>

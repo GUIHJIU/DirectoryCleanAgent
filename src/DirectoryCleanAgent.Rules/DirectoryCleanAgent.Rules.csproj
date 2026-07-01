@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>DirectoryCleanAgent.Rules</RootNamespace>
+    <AssemblyName>DirectoryCleanAgent.Rules</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryCleanAgent.Core\DirectoryCleanAgent.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DirectoryCleanAgent.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 内嵌默认启发式规则 JSON — 首次运行时自动提取到规则目录 -->
+    <EmbeddedResource Include="Heuristic\DefaultHeuristicRules.json" />
+  </ItemGroup>
+
+</Project>

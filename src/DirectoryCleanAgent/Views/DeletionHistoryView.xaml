@@ -1,0 +1,362 @@
+<UserControl x:Class="DirectoryCleanAgent.Views.DeletionHistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:DirectoryCleanAgent.Converters"
+             xmlns:models="clr-namespace:DirectoryCleanAgent.Models"
+             Loaded="DeletionHistoryView_Loaded">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <!-- ============================================================
+         删除历史视图布局：左侧批次列表 | 分隔线 | 右侧详情面板
+    ============================================================ -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" MinWidth="200" />  <!-- 左侧批次列表 -->
+            <ColumnDefinition Width="4" />                     <!-- 分隔线 -->
+            <ColumnDefinition Width="*" MinWidth="300" />     <!-- 右侧详情面板 -->
+        </Grid.ColumnDefinitions>
+
+        <!-- ============================================================
+             左侧：删除批次列表
+        ============================================================ -->
+        <Border Grid.Column="0"
+                Background="{StaticResource ContentBackgroundBrush}"
+                BorderBrush="{StaticResource ActionBarBorderBrush}"
+                BorderThickness="0,0,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />  <!-- 标题栏 + 刷新 -->
+                    <RowDefinition Height="*" />     <!-- 批次列表 -->
+                </Grid.RowDefinitions>
+
+                <!-- 标题栏 -->
+                <Border Grid.Row="0" Padding="12,10"
+                        Background="{StaticResource ActionBarBackgroundBrush}"
+                        BorderBrush="{StaticResource ActionBarBorderBrush}"
+                        BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="删除批次" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource CardTextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="🔄" Height="26" Width="28"
+                                FontSize="12" Cursor="Hand"
+                                Background="Transparent" BorderThickness="0"
+                                Command="{Binding RefreshBatchesCommand}"
+                                ToolTip="刷新批次列表" />
+                    </Grid>
+                </Border>
+
+                <!-- 批次列表（ListBox + ItemTemplate） -->
+                <ListBox Grid.Row="1"
+                         ItemsSource="{Binding Batches}"
+                         SelectedItem="{Binding SelectedBatch, Mode=TwoWay}"
+                         VirtualizingStackPanel.IsVirtualizing="True"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Background="Transparent"
+                         BorderThickness="0">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border Padding="12,10"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{StaticResource ActionBarBorderBrush}"
+                                                BorderThickness="0,0,0,1"
+                                                Cursor="Hand">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource DataGridRowSelectedBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource DataGridRowHoverBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:DeletionBatchDisplayItem}">
+                            <StackPanel>
+                                <!-- 批次时间 -->
+                                <TextBlock Text="{Binding ExecutedAtText}" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{StaticResource CardTextPrimaryBrush}" />
+                                <!-- 文件数 + 大小 -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding FileCountText}" FontSize="12"
+                                               Foreground="{StaticResource CardTextSecondaryBrush}" />
+                                    <TextBlock Text=" · " FontSize="12"
+                                               Foreground="{StaticResource CardTextSecondaryBrush}" />
+                                    <TextBlock Text="{Binding TotalSizeText}" FontSize="12"
+                                               Foreground="{StaticResource CardTextSecondaryBrush}" />
+                                </StackPanel>
+                                <!-- 删除方式 + 回滚状态 -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding MethodText}" FontSize="11"
+                                               Foreground="{StaticResource CardTextSecondaryBrush}" />
+                                    <TextBlock Text=" · " FontSize="11"
+                                               Foreground="{StaticResource CardTextSecondaryBrush}" />
+                                    <TextBlock Text="{Binding RollbackStatusText}" FontSize="11"
+                                               Foreground="{Binding IsRollbackable, Converter={x:Static converters:BooleanToForegroundConverter.Instance}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- 空状态 -->
+                <TextBlock Grid.Row="1"
+                           Text="{Binding BatchesEmptyMessage}"
+                           FontSize="14" Foreground="{StaticResource CardTextSecondaryBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Margin="16"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding IsBatchesEmpty, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                <!-- 加载中 -->
+                <TextBlock Grid.Row="1"
+                           Text="正在加载..."
+                           FontSize="14" Foreground="{StaticResource CardTextSecondaryBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Visibility="{Binding IsLoadingBatches, Converter={StaticResource BoolToVisibilityConverter}}" />
+            </Grid>
+        </Border>
+
+        <!-- ============================================================
+             分隔线
+        ============================================================ -->
+        <Border Grid.Column="1" Background="{StaticResource ActionBarBorderBrush}" Width="2"
+                HorizontalAlignment="Center" />
+
+        <!-- ============================================================
+             右侧：批次详情面板
+        ============================================================ -->
+        <Border Grid.Column="2"
+                Background="{StaticResource ContentBackgroundBrush}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />  <!-- 详情标题 & 摘要 -->
+                    <RowDefinition Height="Auto" />  <!-- 哈希校验状态 -->
+                    <RowDefinition Height="*" />     <!-- 文件列表 DataGrid -->
+                    <RowDefinition Height="Auto" />  <!-- 回滚操作区 -->
+                </Grid.RowDefinitions>
+
+                <!-- 提示文本（未选中批次时显示） -->
+                <TextBlock Grid.Row="0" Grid.RowSpan="4"
+                           Text="{Binding DetailStatusText}"
+                           FontSize="15" Foreground="{StaticResource CardTextSecondaryBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Visibility="{Binding HasSelectedBatch, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+
+                <!-- Row 0: 详情标题 -->
+                <Border Grid.Row="0" Padding="16,14"
+                        Background="{StaticResource ActionBarBackgroundBrush}"
+                        BorderBrush="{StaticResource ActionBarBorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        Visibility="{Binding HasSelectedBatch, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource CardTextPrimaryBrush}">
+                            <Run Text="操作批次: " />
+                            <Run Text="{Binding SelectedBatch.OperationId}" FontFamily="Consolas" FontSize="13" />
+                        </TextBlock>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="{Binding SelectedBatch.ExecutedAtText}" FontSize="12"
+                                       Foreground="{StaticResource CardTextSecondaryBrush}" />
+                            <TextBlock Text=" · " FontSize="12"
+                                       Foreground="{StaticResource CardTextSecondaryBrush}" />
+                            <TextBlock Text="{Binding BatchFileCountText}" FontSize="12"
+                                       Foreground="{StaticResource CardTextSecondaryBrush}" />
+                            <TextBlock Text=" · " FontSize="12"
+                                       Foreground="{StaticResource CardTextSecondaryBrush}" />
+                            <TextBlock Text="{Binding BatchTotalSizeText}" FontSize="12"
+                                       Foreground="{StaticResource CardTextSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Row 1: 哈希校验状态 -->
+                <Border Grid.Row="1" Padding="16,8"
+                        Background="{StaticResource ContentBackgroundBrush}"
+                        BorderBrush="{StaticResource ActionBarBorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        Visibility="{Binding HasSelectedBatch, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="{Binding HashCheckSummaryText}" FontSize="12"
+                               Foreground="{StaticResource CardTextPrimaryBrush}"
+                               TextWrapping="Wrap" />
+                </Border>
+
+                <!-- Row 2: 文件列表 DataGrid -->
+                <DataGrid Grid.Row="2"
+                          ItemsSource="{Binding BatchFiles}"
+                          IsReadOnly="True"
+                          AutoGenerateColumns="False"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          RowHeaderWidth="0"
+                          VirtualizingStackPanel.IsVirtualizing="True"
+                          VirtualizingStackPanel.VirtualizationMode="Recycling"
+                          EnableRowVirtualization="True"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          BorderThickness="0"
+                          RowHeight="26"
+                          Background="{StaticResource ContentBackgroundBrush}"
+                          Visibility="{Binding HasSelectedBatch, Converter={StaticResource BoolToVisibilityConverter}}">
+
+                    <DataGrid.Columns>
+                        <!-- 文件路径 -->
+                        <DataGridTemplateColumn Header="文件路径" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock FontSize="11" Margin="6,0"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding FilePath}"
+                                               Text="{Binding FilePath}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- 文件大小 -->
+                        <DataGridTemplateColumn Header="大小" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding FileSize, StringFormat={}{0:N0}}"
+                                               FontSize="11" Margin="4,0"
+                                               TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- SHA-256 哈希（截断16字符） -->
+                        <DataGridTemplateColumn Header="SHA-256" Width="150">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock FontSize="10" Margin="4,0"
+                                               FontFamily="Consolas"
+                                               Text="{Binding FileHash, StringFormat={}{0}...}"
+                                               ToolTip="{Binding FileHash}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- 删除方式 -->
+                        <DataGridTemplateColumn Header="删除方式" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DeletionMethod}" FontSize="11" Margin="4,0" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- 加载详情指示 -->
+                <TextBlock Grid.Row="2"
+                           Text="正在加载详情..."
+                           FontSize="14" Foreground="{StaticResource CardTextSecondaryBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Visibility="{Binding IsLoadingDetail, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                <!-- Row 3: 回滚操作区 -->
+                <Border Grid.Row="3" Padding="16,12"
+                        Background="{StaticResource ActionBarBackgroundBrush}"
+                        BorderBrush="{StaticResource ActionBarBorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Visibility="{Binding HasSelectedBatch, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- 回滚进度（仅回滚进行中显示） -->
+                        <StackPanel Grid.Row="0"
+                                    Visibility="{Binding IsRollingBack, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Margin="0,0,0,8">
+                            <!-- 进度文本 -->
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding RollbackProgressText}" FontSize="13"
+                                           Foreground="{StaticResource CardTextPrimaryBrush}" />
+                                <TextBlock Text=" · " FontSize="13"
+                                           Foreground="{StaticResource CardTextSecondaryBrush}" />
+                                <TextBlock Text="{Binding RollbackFilePath}" FontSize="12"
+                                           Foreground="{StaticResource CardTextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <!-- 进度条 -->
+                            <ProgressBar Height="6" Margin="0,6,0,0"
+                                         Minimum="0" Maximum="100"
+                                         Value="{Binding RollbackProgress}" />
+                        </StackPanel>
+
+                        <!-- 操作按钮组 -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                            <!-- 执行回滚（主要操作，红色强调） -->
+                            <Button Content="🔄 执行回滚" Height="34" Width="120"
+                                    FontSize="13" FontWeight="SemiBold" Cursor="Hand"
+                                    Command="{Binding RollbackCommand}"
+                                    IsEnabled="{Binding CanRollback}"
+                                    Margin="0,0,8,0">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="{StaticResource DangerButtonBackgroundBrush}" />
+                                        <Setter Property="Foreground" Value="{StaticResource DangerButtonForegroundBrush}" />
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource DangerButtonBackgroundBrush}" />
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border CornerRadius="4" Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                            Padding="12,6">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsEnabled" Value="False">
+                                                            <Setter Property="Background" Value="{StaticResource DisabledButtonBackgroundBrush}" />
+                                                            <Setter Property="Foreground" Value="{StaticResource DisabledButtonForegroundBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{StaticResource DisabledButtonBackgroundBrush}" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <!-- 取消回滚按钮 -->
+                            <Button Content="✕ 取消" Height="34" Width="80"
+                                    FontSize="13" Cursor="Hand"
+                                    Command="{Binding CancelRollbackCommand}"
+                                    IsEnabled="{Binding CanCancelRollback}"
+                                    Visibility="{Binding IsRollingBack, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Background="{StaticResource ActionButtonBackgroundBrush}"
+                                    Foreground="{StaticResource ActionButtonForegroundBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

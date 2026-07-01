@@ -1,0 +1,415 @@
+{
+  "task": "B1 - Everything 流式适配器（扫描+排序下推）",
+  "testSuite": "B1 结构化测试用例集合",
+  "description": "由于本项目为 WPF 桌面应用（非 REST API），此处提供结构化 JSON 测试用例文档，等效于 Postman Collection。每个 case 描述输入参数、Mock 配置和预期行为。",
+  "date": "2026-06-21",
+  "testCases": [
+    {
+      "id": "B1-TC-001",
+      "name": "正常枚举流程 — 3 条结果完整产出",
+      "category": "EnumerateFilesAsync",
+      "input": {
+        "queryParams": {
+          "searchExpression": null,
+          "sortType": null,
+          "sortDescending": false,
+          "volumes": null,
+          "pathFilter": null,
+          "maxResults": null
+        }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getLastError": { "returns": 0 },
+          "getNumResults": { "returns": 3 },
+          "results": [
+            { "index": 0, "path": "C:\\file1.tmp", "size": 100, "frn": 1001, "dateModified": 133458240000000000, "volumeSerial": 2829827149 },
+            { "index": 1, "path": "C:\\file2.tmp", "size": 200, "frn": 1002, "dateModified": 133458240000000000, "volumeSerial": 2829827149 },
+            { "index": 2, "path": "C:\\file3.log", "size": 300, "frn": 1003, "dateModified": 133458240000000000, "volumeSerial": 2829827149 }
+          ]
+        },
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": { "isTombstoned": false }
+      },
+      "expected": {
+        "resultCount": 3,
+        "items": [
+          { "filePath": "\\\\?\\C:\\file1.tmp", "sizeBytes": 100, "extension": ".tmp", "fileReferenceNumber": 1001 },
+          { "filePath": "\\\\?\\C:\\file2.tmp", "sizeBytes": 200, "extension": ".tmp", "fileReferenceNumber": 1002 },
+          { "filePath": "\\\\?\\C:\\file3.log", "sizeBytes": 300, "extension": ".log", "fileReferenceNumber": 1003 }
+        ]
+      }
+    },
+    {
+      "id": "B1-TC-002",
+      "name": "跳过目录 — size < 0 的条目被过滤",
+      "category": "EnumerateFilesAsync",
+      "input": {
+        "queryParams": { "searchExpression": null }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 3 },
+          "results": [
+            { "index": 0, "path": "C:\\file.tmp", "size": 100 },
+            { "index": 1, "path": "C:\\folder", "size": -1 },
+            { "index": 2, "path": "C:\\file2.tmp", "size": 300 }
+          ]
+        },
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": { "isTombstoned": false }
+      },
+      "expected": {
+        "resultCount": 2,
+        "skippedDirectoryCount": 1
+      }
+    },
+    {
+      "id": "B1-TC-003",
+      "name": "墓碑过滤 — FRN 精确匹配命中后跳过",
+      "category": "EnumerateFilesAsync",
+      "input": {
+        "queryParams": { "searchExpression": null }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 3 },
+          "results": [
+            { "index": 0, "path": "C:\\file1.tmp", "size": 100, "frn": 1001, "volumeSerial": 2829827149 },
+            { "index": 1, "path": "C:\\file2.tmp", "size": 200, "frn": 1002, "volumeSerial": 2829827149 },
+            { "index": 2, "path": "C:\\file3.tmp", "size": 300, "frn": 1003, "volumeSerial": 2829827149 }
+          ]
+        },
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": {
+          "isTombstoned": [
+            { "frnKey": "A8B3-1C4D:1002", "returns": true },
+            { "frnKey": "*", "returns": false }
+          ]
+        }
+      },
+      "expected": {
+        "resultCount": 2,
+        "skippedTombstoneCount": 1,
+        "containsFile1": true,
+        "containsFile2": false,
+        "containsFile3": true
+      }
+    },
+    {
+      "id": "B1-TC-004",
+      "name": "PathFilter — 仅返回指定路径下的文件",
+      "category": "EnumerateFilesAsync",
+      "input": {
+        "queryParams": {
+          "searchExpression": null,
+          "pathFilter": "\\\\?\\C:\\Temp\\"
+        }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 3 },
+          "results": [
+            { "index": 0, "path": "C:\\Temp\\file1.tmp", "size": 100 },
+            { "index": 1, "path": "C:\\Windows\\file2.tmp", "size": 200 },
+            { "index": 2, "path": "C:\\Temp\\sub\\file3.tmp", "size": 300 }
+          ]
+        },
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": { "isTombstoned": false }
+      },
+      "expected": {
+        "resultCount": 2,
+        "allStartWith": "\\\\?\\C:\\Temp\\"
+      }
+    },
+    {
+      "id": "B1-TC-005",
+      "name": "Volumes 过滤 — 仅返回指定卷的文件",
+      "category": "EnumerateFilesAsync",
+      "input": {
+        "queryParams": {
+          "searchExpression": null,
+          "volumes": ["C:"]
+        }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 3 },
+          "results": [
+            { "index": 0, "path": "C:\\file1.tmp", "size": 100 },
+            { "index": 1, "path": "D:\\file2.tmp", "size": 200 },
+            { "index": 2, "path": "C:\\file3.tmp", "size": 300 }
+          ]
+        },
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": { "isTombstoned": false }
+      },
+      "expected": {
+        "resultCount": 2,
+        "allStartWith": "\\\\?\\C:\\"
+      }
+    },
+    {
+      "id": "B1-TC-006",
+      "name": "MaxResults 上限 — 仅返回前 N 条",
+      "category": "EnumerateFilesAsync",
+      "input": {
+        "queryParams": {
+          "searchExpression": null,
+          "maxResults": 10
+        }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 100 }
+        },
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": { "isTombstoned": false }
+      },
+      "expected": {
+        "resultCount": 10
+      }
+    },
+    {
+      "id": "B1-TC-007",
+      "name": "CancellationToken 中断 — 枚举中途取消",
+      "category": "EnumerateFilesAsync",
+      "input": {
+        "queryParams": { "searchExpression": null },
+        "cancelAfterItems": 5
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 100 }
+        },
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": { "isTombstoned": false }
+      },
+      "expected": {
+        "throws": "OperationCanceledException",
+        "maxItemsBeforeCancel": 5
+      }
+    },
+    {
+      "id": "B1-TC-008",
+      "name": "Everything IPC 故障 — 抛出 EverythingSdkException",
+      "category": "EnumerateFilesAsync — 异常路径",
+      "input": {
+        "queryParams": { "searchExpression": null }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": false },
+          "getLastError": { "returns": 8 }
+        }
+      },
+      "expected": {
+        "throws": "EverythingSdkException",
+        "messageContains": "IPC"
+      }
+    },
+    {
+      "id": "B1-TC-009",
+      "name": "Everything 索引未就绪 — 抛出 EverythingSdkException",
+      "category": "EnumerateFilesAsync — 异常路径",
+      "input": {
+        "queryParams": { "searchExpression": null }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": false },
+          "getLastError": { "returns": 9 }
+        }
+      },
+      "expected": {
+        "throws": "EverythingSdkException",
+        "messageContains": "索引"
+      }
+    },
+    {
+      "id": "B1-TC-010",
+      "name": "空路径跳过 — 不抛异常",
+      "category": "EnumerateFilesAsync — 降级处理",
+      "input": {
+        "queryParams": { "searchExpression": null }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 3 },
+          "results": [
+            { "index": 0, "path": "C:\\file1.tmp", "size": 100 },
+            { "index": 1, "path": "", "size": 200 },
+            { "index": 2, "path": "C:\\file3.tmp", "size": 300 }
+          ]
+        },
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": { "isTombstoned": false }
+      },
+      "expected": {
+        "resultCount": 2
+      }
+    },
+    {
+      "id": "B1-TC-011",
+      "name": "排序下推 — Size Descending 传递至 Everything SDK",
+      "category": "EnumerateFilesAsync — 排序下推",
+      "input": {
+        "queryParams": {
+          "searchExpression": null,
+          "sortType": "Size",
+          "sortDescending": true
+        }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 0 }
+        }
+      },
+      "expected": {
+        "sdkSetSortCalledWith": 6,
+        "note": "SORT_SIZE_DESCENDING = 6"
+      }
+    },
+    {
+      "id": "B1-TC-012",
+      "name": "FRN 不可用 — 使用指纹键匹配",
+      "category": "EnumerateFilesAsync — 墓碑策略降级",
+      "input": {
+        "queryParams": { "searchExpression": null }
+      },
+      "mock": {
+        "everythingSdk": {
+          "query": { "returns": true },
+          "getNumResults": { "returns": 1 },
+          "results": [
+            { "index": 0, "path": "C:\\file1.tmp", "size": 100, "frn": 1001, "dateModified": 133458240000000000, "volumeSerial": 2829827149 }
+          ]
+        },
+        "configService": { "frnAvailable": false },
+        "tombstoneCache": { "isTombstoned": false }
+      },
+      "expected": {
+        "tombstoneCheckCalledWith": {
+          "frnKey": null,
+          "fingerprintKeyPattern": "100:2026-06-20T12:00:00.0000000"
+        }
+      }
+    },
+    {
+      "id": "B1-TC-013",
+      "name": "IsIndexingAsync — 委托检测器静态方法",
+      "category": "IsIndexingAsync",
+      "input": {},
+      "mock": {},
+      "expected": {
+        "returnType": "bool",
+        "note": "具体值取决于 Everything 是否正在运行"
+      }
+    },
+    {
+      "id": "B1-TC-014",
+      "name": "Dispose 多次调用 — 不抛异常",
+      "category": "Dispose",
+      "input": {},
+      "mock": {
+        "everythingSdk": {},
+        "configService": { "frnAvailable": true },
+        "tombstoneCache": {}
+      },
+      "expected": {
+        "noExceptionOnMultipleDispose": true
+      }
+    },
+    {
+      "id": "B1-TC-015",
+      "name": "排序映射 — 全部 5×2 组合映射正确",
+      "category": "EverythingSortMapper",
+      "input": {
+        "mappings": [
+          { "sortType": "Name", "descending": false, "expectedNativeConstant": 1 },
+          { "sortType": "Name", "descending": true, "expectedNativeConstant": 2 },
+          { "sortType": "Path", "descending": false, "expectedNativeConstant": 3 },
+          { "sortType": "Path", "descending": true, "expectedNativeConstant": 4 },
+          { "sortType": "Size", "descending": false, "expectedNativeConstant": 5 },
+          { "sortType": "Size", "descending": true, "expectedNativeConstant": 6 },
+          { "sortType": "Extension", "descending": false, "expectedNativeConstant": 7 },
+          { "sortType": "Extension", "descending": true, "expectedNativeConstant": 8 },
+          { "sortType": "DateModified", "descending": false, "expectedNativeConstant": 11 },
+          { "sortType": "DateModified", "descending": true, "expectedNativeConstant": 12 }
+        ]
+      },
+      "expected": {
+        "nullSortType": 0,
+        "note": "null → 0 表示使用 Everything 默认排序"
+      }
+    },
+    {
+      "id": "B1-TC-016",
+      "name": "墓碑缓存 — FRN 键精确匹配命中",
+      "category": "TombstoneCache",
+      "input": {
+        "operation": "IsTombstoned",
+        "frnKey": "A8B3-1C4D:12345",
+        "fingerprintKey": null
+      },
+      "mock": {
+        "repository": {
+          "getAllAsync": [
+            { "fileIdentityKey": "A8B3-1C4D:12345", "operationId": "op-001" }
+          ]
+        }
+      },
+      "expected": {
+        "result": true
+      }
+    },
+    {
+      "id": "B1-TC-017",
+      "name": "墓碑缓存 — RemoveByOperationId 精确清除",
+      "category": "TombstoneCache",
+      "input": {
+        "operation": "RemoveByOperationId",
+        "operationId": "op-001"
+      },
+      "mock": {
+        "repository": {
+          "getAllAsync": [
+            { "fileIdentityKey": "A:B", "operationId": "op-001" },
+            { "fileIdentityKey": "C:D", "operationId": "op-001" },
+            { "fileIdentityKey": "E:F", "operationId": "op-002" }
+          ]
+        }
+      },
+      "expected": {
+        "remainingCount": 1,
+        "remainingKey": "E:F"
+      }
+    },
+    {
+      "id": "B1-TC-018",
+      "name": "墓碑缓存 — 并发写入不抛异常",
+      "category": "TombstoneCache — 线程安全",
+      "input": {
+        "operation": "concurrentAccess",
+        "concurrency": 100
+      },
+      "mock": {
+        "repository": { "getAllAsync": [] }
+      },
+      "expected": {
+        "noException": true,
+        "finalCountGreaterThan": 0
+      }
+    }
+  ]
+}

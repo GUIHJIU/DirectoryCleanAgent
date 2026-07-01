@@ -1,0 +1,146 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============================================================
+         公共样式定义：按钮、进度条、状态栏、操作栏等共用样式。
+         与主题无关的样式集中在此，LightTheme/DarkTheme 仅覆盖颜色。
+    ============================================================ -->
+
+    <!-- 操作栏按钮样式 -->
+    <Style x:Key="ActionBarButtonStyle" TargetType="Button">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinWidth" Value="80" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="Margin" Value="4,0" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border CornerRadius="4" Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 操作栏主要按钮（一键清理、智能选择）样式 -->
+    <Style x:Key="ActionBarPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionBarButtonStyle}">
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- 顶部栏按钮样式（设置/帮助） -->
+    <Style x:Key="TopBarButtonStyle" TargetType="Button">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Width" Value="30" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border CornerRadius="4" Background="Transparent" Padding="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#20000000" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 进度条样式 -->
+    <Style x:Key="StatusBarProgressBarStyle" TargetType="ProgressBar">
+        <Setter Property="Height" Value="8" />
+        <Setter Property="Margin" Value="12,0,8,0" />
+        <Setter Property="Minimum" Value="0" />
+        <Setter Property="Maximum" Value="100" />
+    </Style>
+
+    <!-- 状态栏分隔符 -->
+    <Style x:Key="StatusBarSeparatorStyle" TargetType="TextBlock">
+        <Setter Property="Text" Value="|" />
+        <Setter Property="Foreground" Value="#888888" />
+        <Setter Property="Margin" Value="10,0" />
+    </Style>
+
+    <!-- 分组依据 ComboBox 样式 -->
+    <Style x:Key="GroupByComboBoxStyle" TargetType="ComboBox">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="Width" Value="120" />
+        <Setter Property="Margin" Value="12,0,4,0" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <!-- "显示所有文件" ToggleButton 样式 -->
+    <Style x:Key="ShowAllToggleStyle" TargetType="CheckBox">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="16,0,4,0" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <!-- ============================================================
+         C2 新增样式: DataGrid / TreeView / GridSplitter
+    ============================================================ -->
+
+    <!-- DataGrid 全局样式 -->
+    <Style x:Key="FileListDataGridStyle" TargetType="DataGrid">
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="CanUserSortColumns" Value="True" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="RowHeaderWidth" Value="0" />
+        <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True" />
+        <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling" />
+        <Setter Property="EnableRowVirtualization" Value="True" />
+        <Setter Property="ScrollViewer.IsDeferredScrollingEnabled" Value="True" />
+        <Setter Property="SelectionMode" Value="Extended" />
+        <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="RowHeight" Value="32" />
+    </Style>
+
+    <!-- ============================================================
+         C7 新增: 状态栏链接按钮样式
+    ============================================================ -->
+
+    <!-- 状态栏隔离区链接按钮（外观类似 TextBlock，点击时高亮） -->
+    <Style x:Key="LinkButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{StaticResource StatusBarForegroundBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="TextElement.Foreground" Value="#1976D2" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- TreeView 分组树全局样式 -->
+    <Style x:Key="GroupTreeViewStyle" TargetType="TreeView">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
+
+</ResourceDictionary>

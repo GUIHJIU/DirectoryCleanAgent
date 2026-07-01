@@ -1,0 +1,804 @@
+{
+  "info": {
+    "name": "D2 集成测试用例集合",
+    "description": "智能磁盘清理工具 — 端到端流程集成测试用例 (Postman 风格文档)",
+    "version": "1.0.0",
+    "totalCases": 68,
+    "categories": [
+      "启动流程 (StartupFlow)",
+      "扫描评估 (ScanAndEvaluate)",
+      "执行回滚 (ExecuteAndRollback)",
+      "非管理员模式 (NonAdminMode)",
+      "取消操作 (Cancellation)"
+    ]
+  },
+  "testCases": [
+    {
+      "id": "IT-START-01",
+      "name": "StartupFlow_SerilogConfig_LogsToFileAndDebug",
+      "category": "启动流程",
+      "method": "GET (验证)",
+      "description": "验证 Serilog 配置能将日志同时输出到 Debug 和滚动文件",
+      "expectedResult": "ILogger 可正常创建并写入日志，无异常抛出",
+      "requires": "无",
+      "testFile": "AppStartupIntegrationTests.cs"
+    },
+    {
+      "id": "IT-START-02",
+      "name": "StartupFlow_DIContainer_ResolvesAllServices",
+      "category": "启动流程",
+      "method": "GET (验证)",
+      "description": "DI 容器构建后所有核心服务可解析（IFileListProvider, IRuleEngine 等 8 个接口）",
+      "expectedResult": "8 个核心接口全部解析成功",
+      "requires": "无",
+      "testFile": "AppStartupIntegrationTests.cs"
+    },
+    {
+      "id": "IT-START-03",
+      "name": "StartupFlow_DatabaseInit_CreatesTables",
+      "category": "启动流程",
+      "method": "POST (验证)",
+      "description": "SQLite 数据库初始化能建表（FileDecisionCache, LocalTombstone, DeletionRecord, AuditLog）",
+      "expectedResult": "4 张核心表全部存在",
+      "requires": "无",
+      "testFile": "AppStartupIntegrationTests.cs"
+    },
+    {
+      "id": "IT-START-04",
+      "name": "StartupFlow_FirstRun_IsTrueByDefault",
+      "category": "启动流程",
+      "method": "GET",
+      "description": "首次运行默认配置 IsFirstRun=true",
+      "expectedResult": "IsFirstRun 为 true",
+      "requires": "无",
+      "testFile": "AppStartupIntegrationTests.cs"
+    },
+    {
+      "id": "IT-START-05",
+      "name": "StartupFlow_ThemeApply_LightThemeFileExists",
+      "category": "启动流程",
+      "method": "GET (验证)",
+      "description": "浅色主题 LightTheme.xaml 文件存在",
+      "expectedResult": "文件存在",
+      "requires": "无",
+      "testFile": "AppStartupIntegrationTests.cs"
+    },
+    {
+      "id": "IT-START-06",
+      "name": "StartupFlow_ThemeApply_DarkThemeFileExists",
+      "category": "启动流程",
+      "method": "GET (验证)",
+      "description": "深色主题 DarkTheme.xaml 文件存在",
+      "expectedResult": "文件存在",
+      "requires": "无",
+      "testFile": "AppStartupIntegrationTests.cs"
+    },
+    {
+      "id": "IT-START-07",
+      "name": "StartupFlow_LoadConfig_Failure_ReturnsDefaults",
+      "category": "启动流程",
+      "method": "GET",
+      "description": "配置加载失败时优雅使用默认值",
+      "expectedResult": "返回可用的默认配置，无异常",
+      "requires": "无",
+      "testFile": "AppStartupIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-01",
+      "name": "DetectAsync_AllStepsPass_ReturnsSuccess",
+      "category": "Everything 检测",
+      "method": "GET",
+      "description": "完整 5 步检测全部通过（进程→版本→IPC→FRN→索引）",
+      "expectedResult": "IsSuccess=true, Version 非空",
+      "requires": "Everything",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-02",
+      "name": "DetectAsync_Step1ProcessNotRunning_ReturnsFailure",
+      "category": "Everything 检测",
+      "method": "GET",
+      "description": "步骤1：进程未运行时应返回阻断失败",
+      "expectedResult": "包含错误信息",
+      "requires": "Everything",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-03",
+      "name": "DetectAsync_Step2VersionCheck_ReturnsVersionString",
+      "category": "Everything 检测",
+      "method": "GET",
+      "description": "步骤2：版本检查返回版本字符串",
+      "expectedResult": "Version 非空字符串",
+      "requires": "Everything",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-04",
+      "name": "DetectAsync_Step3IpcPing_VerifiedBySuccess",
+      "category": "Everything 检测",
+      "method": "GET",
+      "description": "步骤3：IPC Ping 验证通过",
+      "expectedResult": "IsSuccess=true 时 IPC Ping 通过",
+      "requires": "Everything",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-05",
+      "name": "DetectAsync_Step4FrnCapability_ResultReflectsState",
+      "category": "Everything 检测",
+      "method": "GET",
+      "description": "步骤4：FRN 不可用时设置 FRN_AVAILABLE=false，不阻断",
+      "expectedResult": "IsFrnAvailable 正确反映状态",
+      "requires": "Everything",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-06",
+      "name": "DetectAsync_Step5IsIndexing_ResultContainsIndexState",
+      "category": "Everything 检测",
+      "method": "GET",
+      "description": "步骤5：索引构建中 IsIndexing 标志正确",
+      "expectedResult": "IsIndexing 为明确的布尔值",
+      "requires": "Everything",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-07",
+      "name": "DetectAsync_CancelledDuringDetection_ThrowsOperationCanceled",
+      "category": "Everything 检测",
+      "method": "DELETE (取消)",
+      "description": "检测过程中取消 → OperationCanceledException",
+      "expectedResult": "抛出 OperationCanceledException",
+      "requires": "Everything",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-08",
+      "name": "CheckProcessAlive_WithRunningProcess_ReturnsTrue",
+      "category": "Everything 检测",
+      "method": "GET",
+      "description": "CheckProcessAlive 检测到运行中的 Everything 进程",
+      "expectedResult": "进程列表非空",
+      "requires": "Everything",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-DETECT-09",
+      "name": "EverythingTestHelper_Cache_ReturnsSameResultAfterFirstCall",
+      "category": "Everything 检测",
+      "method": "GET",
+      "description": "EverythingTestHelper 缓存两次调用返回一致结果",
+      "expectedResult": "两次调用返回值相同",
+      "requires": "无",
+      "testFile": "EverythingDetectionIntegrationTests.cs"
+    },
+    {
+      "id": "IT-INDEX-01",
+      "name": "WaitForIndex_Polling2sInterval_ReturnsSuccess",
+      "category": "索引未就绪",
+      "method": "GET (轮询)",
+      "description": "策略1：2秒轮询，120秒超时，索引就绪返回 true",
+      "expectedResult": "索引就绪或超时，不崩溃",
+      "requires": "Everything",
+      "testFile": "IndexNotReadyIntegrationTests.cs"
+    },
+    {
+      "id": "IT-INDEX-02",
+      "name": "WaitForIndex_Timeout_ReturnsFalse",
+      "category": "索引未就绪",
+      "method": "GET (轮询)",
+      "description": "策略1：超时后抛出 OperationCanceledException",
+      "expectedResult": "OperationCanceledException",
+      "requires": "无",
+      "testFile": "IndexNotReadyIntegrationTests.cs"
+    },
+    {
+      "id": "IT-INDEX-03",
+      "name": "WaitForIndex_CancelledDuringWait_ThrowsOperationCanceled",
+      "category": "索引未就绪",
+      "method": "DELETE (取消)",
+      "description": "等待中用户取消 → OperationCanceledException",
+      "expectedResult": "抛出 OperationCanceledException",
+      "requires": "无",
+      "testFile": "IndexNotReadyIntegrationTests.cs"
+    },
+    {
+      "id": "IT-INDEX-04",
+      "name": "StartupFlow_IndexNotReady_YellowBannerState",
+      "category": "索引未就绪",
+      "method": "GET (状态)",
+      "description": "策略3：跳过进入警告模式，AppState/AppMode 枚举完整",
+      "expectedResult": "枚举包含 Initializing, Ready, Scanning, ReadOnly",
+      "requires": "无",
+      "testFile": "IndexNotReadyIntegrationTests.cs"
+    },
+    {
+      "id": "IT-INDEX-05",
+      "name": "WaitForIndex_Progress_ReportsCorrectly",
+      "category": "索引未就绪",
+      "method": "GET (进度)",
+      "description": "等待过程中 IProgress<int> 正确上报已等待秒数",
+      "expectedResult": "进度值列表非空",
+      "requires": "无",
+      "testFile": "IndexNotReadyIntegrationTests.cs"
+    },
+    {
+      "id": "IT-INDEX-06",
+      "name": "IsIndexingAsync_DelegatesToNative_ReturnsBool",
+      "category": "索引未就绪",
+      "method": "GET",
+      "description": "IsIndexingAsync 委托到 Everything 原生 API 返回布尔值",
+      "expectedResult": "返回明确的布尔值",
+      "requires": "Everything",
+      "testFile": "IndexNotReadyIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SCAN-01",
+      "name": "EnumerateFilesAsync_RealEverything_ReturnsFiles",
+      "category": "Everything 扫描",
+      "method": "GET (流式)",
+      "description": "真实 Everything 查询返回非空文件列表，路径含 \\\\?\\ 前缀",
+      "expectedResult": "文件列表非空，路径格式正确",
+      "requires": "Everything",
+      "testFile": "EverythingScanIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SCAN-02",
+      "name": "EnumerateFilesAsync_RealEverything_PathFilterWorks",
+      "category": "Everything 扫描",
+      "method": "GET (过滤)",
+      "description": "PathFilter 参数正确过滤结果到指定目录",
+      "expectedResult": "所有结果路径包含过滤目录",
+      "requires": "Everything",
+      "testFile": "EverythingScanIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SCAN-03",
+      "name": "EnumerateFilesAsync_RealEverything_MaxResultsWorks",
+      "category": "Everything 扫描",
+      "method": "GET (限制)",
+      "description": "MaxResults 参数限制返回数量 ≤ 25",
+      "expectedResult": "返回数 ≤ 25",
+      "requires": "Everything",
+      "testFile": "EverythingScanIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SCAN-04",
+      "name": "EnumerateFilesAsync_RealEverything_CancellationStopsStream",
+      "category": "Everything 扫描",
+      "method": "DELETE (取消)",
+      "description": "流式枚举中取消停止产出，OperationCanceledException",
+      "expectedResult": "抛出 OperationCanceledException",
+      "requires": "Everything",
+      "testFile": "EverythingScanIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SCAN-05",
+      "name": "EnumerateFilesAsync_RealEverything_FileItemFieldsPopulated",
+      "category": "Everything 扫描",
+      "method": "GET (验证)",
+      "description": "FileItem 的 SizeBytes、LastWriteTime、EverythingSortKey 等字段均有值",
+      "expectedResult": "所有字段非默认值",
+      "requires": "Everything",
+      "testFile": "EverythingScanIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SCAN-06",
+      "name": "EnumerateFilesAsync_RealEverything_NoDuplicatePaths",
+      "category": "Everything 扫描",
+      "method": "GET (验证)",
+      "description": "枚举结果中无重复文件路径",
+      "expectedResult": "重复计数为 0",
+      "requires": "Everything",
+      "testFile": "EverythingScanIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SCAN-07",
+      "name": "EnumerateFilesAsync_ConcurrentAccess_NoDeadlock",
+      "category": "Everything 扫描",
+      "method": "GET (并发)",
+      "description": "单例提供器并发调用 5 秒内完成，不产生死锁",
+      "expectedResult": "5 秒内完成",
+      "requires": "Everything",
+      "testFile": "EverythingScanIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SCAN-08",
+      "name": "EnumerateFilesAsync_WithSearchExpression_FiltersResults",
+      "category": "Everything 扫描",
+      "method": "GET (搜索)",
+      "description": "SearchExpression=\"ext:log\" 正确过滤为 .log 文件",
+      "expectedResult": "所有结果扩展名为 .log",
+      "requires": "Everything",
+      "testFile": "EverythingScanIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-01",
+      "name": "ScanEvaluateDecide_RealFiles_ThroughPipeline",
+      "category": "扫描评估",
+      "method": "POST (管道)",
+      "description": "测试文件 → RuleEngine.Evaluate → DecisionEngine.Arbitrate → FinalAction",
+      "expectedResult": "400 个文件通过管道，决策分布有非 Protected 项",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-02",
+      "name": "RuleEngine_Evaluate_TempFileInWindowsTemp_ReturnsAutoDelete",
+      "category": "扫描评估",
+      "method": "POST",
+      "description": "Windows\\Temp 中 .tmp 文件命中硬规则 AutoDelete",
+      "expectedResult": "SemanticCategory 非\"未分类\"",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-03",
+      "name": "RuleEngine_Evaluate_System32Dll_ReturnsForbid",
+      "category": "扫描评估",
+      "method": "POST",
+      "description": "System32 中 .dll 文件命中 Forbid 规则 → Protected",
+      "expectedResult": "FinalAction=Protected",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-04",
+      "name": "RuleEngine_Evaluate_WithExcludedDir_ReturnsExclude",
+      "category": "扫描评估",
+      "method": "POST",
+      "description": "排除目录下文件返回 Exclude",
+      "expectedResult": "Verdict 为 Exclude 或 Keep",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-05",
+      "name": "DecisionEngine_Arbitrate_WithAI_SuggestDelete_Risky_MediumTrust_DowngradesToManualReview",
+      "category": "扫描评估",
+      "method": "POST",
+      "description": "AI标记risky + 中等信任度 → ManualReview",
+      "expectedResult": "FinalAction=ManualReview",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-06",
+      "name": "DecisionEngine_Arbitrate_WithAI_Forbid_AnyTrust_ReturnsProtected",
+      "category": "扫描评估",
+      "method": "POST",
+      "description": "Forbid 规则不可被 AI 覆盖，必须 Protected",
+      "expectedResult": "FinalAction=Protected",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-07",
+      "name": "DecisionEngine_Arbitrate_WithoutAI_SuggestDelete_ReturnsManualReview",
+      "category": "扫描评估",
+      "method": "POST",
+      "description": "AI 关闭时 SuggestDelete → ManualReview",
+      "expectedResult": "FinalAction=ManualReview",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-08",
+      "name": "DecisionEngine_Arbitrate_UserDecision_OverridesAll",
+      "category": "扫描评估",
+      "method": "POST",
+      "description": "UserDecision 优先级最高，覆盖规则和 AI",
+      "expectedResult": "FinalAction=SuggestDelete (UserDecision)",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EVAL-09",
+      "name": "DecideAndSnapshotAsync_WithProgress_ReportsCorrectly",
+      "category": "扫描评估",
+      "method": "GET (进度)",
+      "description": "决策快照生成进度从 0 到 N",
+      "expectedResult": "进度值列表非空",
+      "requires": "无",
+      "testFile": "ScanRuleEvaluateIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SNAP-01",
+      "name": "DecideAndSnapshotAsync_RealFiles_GeneratesSnapshot",
+      "category": "决策快照",
+      "method": "POST",
+      "description": "真实文件 → SHA-256 → DecisionSnapshot，条目有哈希",
+      "expectedResult": "30 个条目，哈希 64 位",
+      "requires": "无",
+      "testFile": "DecisionSnapshotIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SNAP-02",
+      "name": "DecideAndSnapshotAsync_AllProtected_EmptyEntries",
+      "category": "决策快照",
+      "method": "POST",
+      "description": "全部 Forbid → Entries 为空",
+      "expectedResult": "Entries 为空，TotalSizeBytes=0",
+      "requires": "无",
+      "testFile": "DecisionSnapshotIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SNAP-03",
+      "name": "DecideAndSnapshotAsync_Sha256Hash_MatchesExpected",
+      "category": "决策快照",
+      "method": "POST",
+      "description": "已知内容文件 → 哈希与预期一致",
+      "expectedResult": "哈希完全一致",
+      "requires": "无",
+      "testFile": "DecisionSnapshotIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SNAP-04",
+      "name": "DecisionSnapshot_IsImmutable_AfterCreation",
+      "category": "决策快照",
+      "method": "GET (验证)",
+      "description": "快照生成后不可变，修改原始缓存不影响快照",
+      "expectedResult": "快照值不变",
+      "requires": "无",
+      "testFile": "DecisionSnapshotIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SNAP-05",
+      "name": "DecideAndSnapshotAsync_CancelledDuringHash_Throws",
+      "category": "决策快照",
+      "method": "DELETE (取消)",
+      "description": "哈希计算中取消 → OperationCanceledException",
+      "expectedResult": "抛出 OperationCanceledException",
+      "requires": "无",
+      "testFile": "DecisionSnapshotIntegrationTests.cs"
+    },
+    {
+      "id": "IT-SNAP-06",
+      "name": "DecisionSnapshot_ToCompactJson_ValidFormat",
+      "category": "决策快照",
+      "method": "GET (序列化)",
+      "description": "ToCompactJson 输出有效 JSON，含 path/size/hash/action/op",
+      "expectedResult": "JSON 可反序列化，字段完整",
+      "requires": "无",
+      "testFile": "DecisionSnapshotIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-01",
+      "name": "ExecuteAsync_RealFiles_RecycleBin_DeletesSuccessfully",
+      "category": "删除执行",
+      "method": "DELETE",
+      "description": "回收站删除 10 个文件 → 原路径文件不存在",
+      "expectedResult": "全部成功，File.Exists 为 false",
+      "requires": "无（文件系统）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-02",
+      "name": "ExecuteAsync_RealFiles_PermanentDelete_DeletesSuccessfully",
+      "category": "删除执行",
+      "method": "DELETE",
+      "description": "永久删除 5 个文件 → 直接移除",
+      "expectedResult": "全部成功，文件不存在",
+      "requires": "无（文件系统）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-03",
+      "name": "ExecuteAsync_RealFiles_Quarantine_BackupCreated",
+      "category": "删除执行",
+      "method": "POST (隔离区)",
+      "description": "隔离区模式 → 文件移入隔离区",
+      "expectedResult": "原路径文件不存在",
+      "requires": "无（文件系统）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-04",
+      "name": "ExecuteAsync_WithProgress_ReportsDeletionProgress",
+      "category": "删除执行",
+      "method": "GET (进度)",
+      "description": "删除过程进度回调包含 Completed 阶段",
+      "expectedResult": "进度列表含 Completed",
+      "requires": "无（文件系统）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-05",
+      "name": "ExecuteAsync_RealFiles_TombstoneInserted",
+      "category": "删除执行",
+      "method": "POST (验证)",
+      "description": "删除后 SQLite LocalTombstone 表有记录",
+      "expectedResult": "COUNT > 0",
+      "requires": "无（SQLite）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-06",
+      "name": "ExecuteAsync_RealFiles_DeletionRecordInserted",
+      "category": "删除执行",
+      "method": "POST (验证)",
+      "description": "删除后 DeletionRecord 表有记录",
+      "expectedResult": "COUNT = 1",
+      "requires": "无（SQLite）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-07",
+      "name": "ExecuteAsync_RealFiles_AuditLogWritten",
+      "category": "删除执行",
+      "method": "POST (验证)",
+      "description": "删除后 AuditLog 表有 Delete 类型记录",
+      "expectedResult": "COUNT > 0",
+      "requires": "无（SQLite）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-08",
+      "name": "ExecuteAsync_RecycleBinCapacity_PreCheck",
+      "category": "删除执行",
+      "method": "GET",
+      "description": "QueryRecycleBinCapacityAsync 返回非负容量值",
+      "expectedResult": "TotalCapacityBytes >= 0, UsedBytes >= 0",
+      "requires": "无（Windows API）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-EXEC-09",
+      "name": "ExecuteAsync_FileLocked_DowngradedToManualReview",
+      "category": "删除执行",
+      "method": "PATCH (降级)",
+      "description": "文件被占用 → 降级为 manual_review",
+      "expectedResult": "ManualReviewCount=1",
+      "requires": "无（文件系统）",
+      "testFile": "DeleteExecuteIntegrationTests.cs"
+    },
+    {
+      "id": "IT-ROLL-01",
+      "name": "RollbackAsync_Quarantine_RestoresFileToOriginalPath",
+      "category": "回滚",
+      "method": "POST (回滚)",
+      "description": "隔离区回滚文件到原路径",
+      "expectedResult": "回滚操作完成",
+      "requires": "无（文件系统）",
+      "testFile": "RollbackIntegrationTests.cs"
+    },
+    {
+      "id": "IT-ROLL-02",
+      "name": "RollbackAsync_RecycleBin_RestoresFromRecycleBin",
+      "category": "回滚",
+      "method": "POST (回滚)",
+      "description": "使用 RecycleBinSimulator 模拟回收站回滚",
+      "expectedResult": "回滚结果非空",
+      "requires": "无（文件系统）",
+      "testFile": "RollbackIntegrationTests.cs"
+    },
+    {
+      "id": "IT-ROLL-03",
+      "name": "RollbackAsync_HashMismatch_RejectsRestore",
+      "category": "回滚",
+      "method": "POST (验证)",
+      "description": "哈希不匹配 → 拒绝恢复",
+      "expectedResult": "哈希校验检测到不匹配",
+      "requires": "无（SQLite）",
+      "testFile": "RollbackIntegrationTests.cs"
+    },
+    {
+      "id": "IT-ROLL-04",
+      "name": "RollbackAsync_PathConflict_AddsRestoredSuffix",
+      "category": "回滚",
+      "method": "GET (逻辑)",
+      "description": "路径冲突 → 添加 _restored_N 后缀",
+      "expectedResult": "路径格式正确",
+      "requires": "无",
+      "testFile": "RollbackIntegrationTests.cs"
+    },
+    {
+      "id": "IT-ROLL-05",
+      "name": "RollbackAsync_AfterRollback_TombstoneCleared",
+      "category": "回滚",
+      "method": "DELETE (验证)",
+      "description": "回滚后墓碑记录被清除",
+      "expectedResult": "COUNT = 0",
+      "requires": "无（SQLite）",
+      "testFile": "RollbackIntegrationTests.cs"
+    },
+    {
+      "id": "IT-ROLL-06",
+      "name": "GetRollbackHistory_AfterDelete_ReturnsBatchInfo",
+      "category": "回滚",
+      "method": "GET",
+      "description": "删除后 GetRollbackHistoryAsync 返回批次信息",
+      "expectedResult": "历史列表非空",
+      "requires": "无（SQLite）",
+      "testFile": "RollbackIntegrationTests.cs"
+    },
+    {
+      "id": "IT-ROLL-07",
+      "name": "VerifyHashes_AfterDelete_ReportsCorrectCounts",
+      "category": "回滚",
+      "method": "GET (验证)",
+      "description": "VerifyHashesAsync 返回正确的 Pass/Fail/NotFound 计数",
+      "expectedResult": "报告各计数",
+      "requires": "无（SQLite）",
+      "testFile": "RollbackIntegrationTests.cs"
+    },
+    {
+      "id": "IT-QRTN-01",
+      "name": "QuarantineManager_GetStats_ReturnsCorrectCount",
+      "category": "隔离区",
+      "method": "GET",
+      "description": "隔离区统计返回正确文件数",
+      "expectedResult": "FileCount >= 30, TotalSizeBytes > 0",
+      "requires": "无（文件系统）",
+      "testFile": "QuarantineIntegrationTests.cs"
+    },
+    {
+      "id": "IT-QRTN-02",
+      "name": "QuarantineManager_ExpiredCleanup_RemovesExpiredFiles",
+      "category": "隔离区",
+      "method": "DELETE",
+      "description": "过期文件（超过保留天数）被清理",
+      "expectedResult": "清理结果非空",
+      "requires": "无（文件系统）",
+      "testFile": "QuarantineIntegrationTests.cs"
+    },
+    {
+      "id": "IT-QRTN-03",
+      "name": "QuarantineManager_FileName_RoundTrip",
+      "category": "隔离区",
+      "method": "GET (逻辑)",
+      "description": "文件名构造→解析往返无损",
+      "expectedResult": "原始文件名和哈希前缀一致",
+      "requires": "无",
+      "testFile": "QuarantineIntegrationTests.cs"
+    },
+    {
+      "id": "IT-QRTN-04",
+      "name": "QuarantineManager_BypassLargeFile_ReturnsTrue",
+      "category": "隔离区",
+      "method": "GET",
+      "description": "超大文件（>20%剩余空间）绕过隔离区",
+      "expectedResult": "shouldBypass=true",
+      "requires": "无",
+      "testFile": "QuarantineIntegrationTests.cs"
+    },
+    {
+      "id": "IT-QRTN-05",
+      "name": "QuarantineManager_ListFiles_ReturnsSortedEntries",
+      "category": "隔离区",
+      "method": "GET",
+      "description": "隔离区文件列表返回有效条目",
+      "expectedResult": "列表非空，条目有 FileName/FileSize/CreatedAt",
+      "requires": "无（文件系统）",
+      "testFile": "QuarantineIntegrationTests.cs"
+    },
+    {
+      "id": "IT-QRTN-06",
+      "name": "QuarantineManager_DeleteSingleFile_RemovesFromDisk",
+      "category": "隔离区",
+      "method": "DELETE",
+      "description": "删除单个隔离区文件 → 文件从磁盘消失",
+      "expectedResult": "文件不存在",
+      "requires": "无（文件系统）",
+      "testFile": "QuarantineIntegrationTests.cs"
+    },
+    {
+      "id": "IT-NADMIN-01",
+      "name": "NonAdminMode_AppMode_ReadOnly_WhenNotAdmin",
+      "category": "非管理员模式",
+      "method": "GET",
+      "description": "非管理员时 AppMode.ReadOnly",
+      "expectedResult": "AppMode=ReadOnly",
+      "requires": "无",
+      "testFile": "NonAdminModeIntegrationTests.cs"
+    },
+    {
+      "id": "IT-NADMIN-02",
+      "name": "NonAdminMode_DeleteOperation_Disabled",
+      "category": "非管理员模式",
+      "method": "GET",
+      "description": "只读模式下删除/清理操作禁用",
+      "expectedResult": "CanClean=false, CanDelete=false",
+      "requires": "无",
+      "testFile": "NonAdminModeIntegrationTests.cs"
+    },
+    {
+      "id": "IT-NADMIN-03",
+      "name": "NonAdminMode_WarningBanner_Displayed",
+      "category": "非管理员模式",
+      "method": "GET",
+      "description": "只读模式下显示警告横幅",
+      "expectedResult": "shouldShowWarning=true",
+      "requires": "无",
+      "testFile": "NonAdminModeIntegrationTests.cs"
+    },
+    {
+      "id": "IT-CANCEL-SCAN-01",
+      "name": "EnumerateFilesAsync_CancelDuringStream_StopsMidway",
+      "category": "取消操作",
+      "method": "DELETE (取消)",
+      "description": "扫描中取消 → 停止产出，收集 < 100 个文件",
+      "expectedResult": "文件数 ≤ 100",
+      "requires": "Everything",
+      "testFile": "ScanCancellationTests.cs"
+    },
+    {
+      "id": "IT-CANCEL-SCAN-02",
+      "name": "EnumerateFilesAsync_CancelBeforeStart_ReturnsEmpty",
+      "category": "取消操作",
+      "method": "DELETE (取消)",
+      "description": "扫描前取消 → 立即抛出 OperationCanceledException",
+      "expectedResult": "立即抛出",
+      "requires": "无",
+      "testFile": "ScanCancellationTests.cs"
+    },
+    {
+      "id": "IT-CANCEL-DEC-01",
+      "name": "DecideAndSnapshotAsync_CancelDuringHash_StopsAndThrows",
+      "category": "取消操作",
+      "method": "DELETE (取消)",
+      "description": "哈希计算中取消 → OperationCanceledException",
+      "expectedResult": "抛出 OperationCanceledException",
+      "requires": "无",
+      "testFile": "DecisionCancellationTests.cs"
+    },
+    {
+      "id": "IT-CANCEL-DEC-02",
+      "name": "DecideAndSnapshotAsync_CancelBeforeStart_NoHashing",
+      "category": "取消操作",
+      "method": "DELETE (取消)",
+      "description": "决策前取消 → 不执行哈希，原文件完好",
+      "expectedResult": "文件存在",
+      "requires": "无",
+      "testFile": "DecisionCancellationTests.cs"
+    },
+    {
+      "id": "IT-CANCEL-EXEC-01",
+      "name": "ExecuteAsync_CancelDuringDelete_ReturnsPartialResult",
+      "category": "取消操作",
+      "method": "DELETE (取消)",
+      "description": "删除中取消 → 返回部分结果，IsCancelled=true",
+      "expectedResult": "OperationCanceledException 或 IsCancelled=true",
+      "requires": "无（文件系统）",
+      "testFile": "ExecutionCancellationTests.cs"
+    },
+    {
+      "id": "IT-CANCEL-EXEC-02",
+      "name": "ExecuteAsync_CancelBeforeStart_NoFilesDeleted",
+      "category": "取消操作",
+      "method": "DELETE (取消)",
+      "description": "删除前取消 → 所有文件完好",
+      "expectedResult": "所有文件 File.Exists=true",
+      "requires": "无（文件系统）",
+      "testFile": "ExecutionCancellationTests.cs"
+    },
+    {
+      "id": "IT-CANCEL-EXEC-03",
+      "name": "RollbackAsync_CancelDuringRestore_ReturnsPartialResult",
+      "category": "取消操作",
+      "method": "DELETE (取消)",
+      "description": "回滚中取消 → 返回部分结果",
+      "expectedResult": "OperationCanceledException 或 IsCancelled=true",
+      "requires": "无（SQLite）",
+      "testFile": "ExecutionCancellationTests.cs"
+    },
+    {
+      "id": "IT-CANCEL-EXEC-04",
+      "name": "WaitForIndexAsync_CancelDuringPolling_Throws",
+      "category": "取消操作",
+      "method": "DELETE (取消)",
+      "description": "索引等待轮询中取消 → OperationCanceledException",
+      "expectedResult": "抛出 OperationCanceledException",
+      "requires": "无",
+      "testFile": "ExecutionCancellationTests.cs"
+    }
+  ],
+  "executionNotes": {
+    "runAll": "dotnet test --filter \"Category=Integration\"",
+    "runWithoutEverything": "dotnet test --filter \"Category=Integration&Requires!=Everything\"",
+    "runEverythingOnly": "dotnet test --filter \"Requires=Everything\"",
+    "runByCategory": "dotnet test --filter \"FullyQualifiedName~Integration.{Category}\"",
+    "skipIfUnavailable": "所有 Requires=Everything 的测试使用 EverythingTestHelper.SkipIfUnavailable() 自动跳过"
+  }
+}

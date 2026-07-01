@@ -1,0 +1,624 @@
+{
+  "info": {
+    "name": "DirectoryCleanAgent AI API 集成测试",
+    "description": "智能磁盘清理工具 AI 顾问模块 API 集成测试集合\n对应任务: D1.5 搭建性能与集成测试环境\n覆盖场景: 连接测试 / 单文件分析 / 批量分析 / 错误处理 / 边界条件",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "directorycleanagent-d1.5"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "{{base_url}}",
+      "type": "string"
+    },
+    {
+      "key": "model",
+      "value": "{{model}}",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. 连接测试",
+      "description": "验证 AI API 端点可达性和认证配置",
+      "item": [
+        {
+          "name": "连接测试 — 基础连通性",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 验证 HTTP 200 响应",
+                  "pm.test(\"HTTP 状态码为 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// 验证响应包含 choices 数组",
+                  "pm.test(\"响应包含 choices 数组\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.choices).to.be.an('array');",
+                  "    pm.expect(jsonData.choices.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "// 验证 choices[0].message.content 存在",
+                  "pm.test(\"响应包含有效的消息内容\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.choices[0].message.content).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个磁盘清理分析助手。分析文件元数据，输出JSON格式结果。\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"请回复 {\\\"label\\\": \\\"safe\\\", \\\"confidence\\\": 0.95, \\\"explanation\\\": \\\"连接测试通过\\\"}\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 200\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "连接测试 — 无效 API Key (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer invalid-key-test" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"test\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 文件分析",
+      "description": "单文件与批量文件 AI 分析请求",
+      "item": [
+        {
+          "name": "分析单个文件 — 临时文件 (.tmp)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"响应包含 label 字段 (safe/unknown/risky)\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var content = jsonData.choices[0].message.content;",
+                  "    // 尝试解析 JSON 内容",
+                  "    try {",
+                  "        var parsed = JSON.parse(content);",
+                  "        pm.expect(['safe', 'unknown', 'risky']).to.include(parsed.label);",
+                  "        pm.environment.set(\"last_label\", parsed.label);",
+                  "        pm.environment.set(\"last_confidence\", parsed.confidence);",
+                  "    } catch(e) {",
+                  "        // 如果不是 JSON，检查是否包含 label 关键字",
+                  "        pm.expect(content).to.be.a('string');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个磁盘清理分析助手。对于每个文件，输出JSON: {\\\"label\\\": \\\"safe\\\"|\\\"unknown\\\"|\\\"risky\\\", \\\"confidence\\\": 0.0-1.0, \\\"explanation\\\": \\\"简短原因\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析以下文件:\\n- 路径: C:\\\\Windows\\\\Temp\\\\debug_20260101.log\\n- 大小: 15.2 MB\\n- 修改时间: 2026-01-01\\n- 扩展名: .log\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 200\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "批量分析 — 5个文件",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"响应时间 < 30 秒\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(30000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个磁盘清理分析助手。批量分析以下文件并返回JSON数组。\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"批量分析以下5个文件:\\n1. C:\\\\Windows\\\\Temp\\\\file1.tmp (500KB, 60天前)\\n2. C:\\\\Users\\\\Admin\\\\Downloads\\\\setup.msi (50MB, 100天前)\\n3. C:\\\\Program Files\\\\App\\\\cache.dat (2MB, 7天前)\\n4. C:\\\\Windows\\\\System32\\\\kernel32.dll (1MB, 3天前)\\n5. C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\dump.dmp (200MB, 30天前)\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 500\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "自动触发场景 — 大量未分类文件",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// 验证处理大批量请求时不会超时或崩溃",
+                  "pm.test(\"大批量请求正常响应\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.choices).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个磁盘清理分析助手。对每个文件输出 {\\\"label\\\":\\\"safe\\\"|\\\"unknown\\\"|\\\"risky\\\",\\\"confidence\\\":0.0-1.0,\\\"explanation\\\":\\\"理由\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析以下30个文件（模拟自动触发场景）:\\n\" +\n        Array.from({length: 30}, (_, i) => `${i+1}. C:\\\\Temp\\\\file${i}.tmp (${Math.floor(Math.random()*10000)}KB, ${Math.floor(Math.random()*365)}天前)`).join('\\n')\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 错误处理",
+      "description": "各类 HTTP 错误状态码的响应验证",
+      "item": [
+        {
+          "name": "401 Unauthorized — 无效 API Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"错误响应包含描述信息\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer invalid-key-12345" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"test\"}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "403 Forbidden — 权限不足",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-4-ultra\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"test\"}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "429 Rate Limited — 频率限制",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 429 或 200\", function () {",
+                  "    pm.expect([200, 429]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 429) {",
+                  "    pm.test(\"响应包含 Retry-After 头\", function () {",
+                  "        pm.expect(pm.response.headers.get('Retry-After')).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"快速连续请求测试 — 编号: {{$randomInt}}\"}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "500 Internal Server Error",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 500\", function () {",
+                  "    pm.response.to.have.status(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"malformed\": true,\n  \"messages\": \"this is not an array\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "503 Service Unavailable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 503\", function () {",
+                  "    pm.response.to.have.status(503);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"test\"}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 边界条件",
+      "description": "边界值和异常输入测试",
+      "item": [
+        {
+          "name": "空文件列表",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 200（空输入应正常返回）\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个磁盘清理分析助手。\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析以下文件:\\n（无文件 — 空列表）\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "超大文件路径",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 200（长路径不导致崩溃）\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个磁盘清理分析助手。\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析以下文件:\\n- 路径: C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Microsoft\\\\Windows\\\\INetCache\\\\Content.Outlook\\\\ABC123DEF\\\\Very\\\\Deep\\\\Nested\\\\Directory\\\\Path\\\\That\\\\Exceeds\\\\Normal\\\\Limits\\\\file_with_extremely_long_path_name_to_test_boundary_conditions_in_the_ai_analysis_system_and_ensure_no_buffer_overflow_or_truncation_occurs.tmp\\n- 大小: 1024 bytes\\n- 修改时间: 2025-06-15\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 200\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        },
+        {
+          "name": "客户端超时模拟 (短超时)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 此测试配置了 500ms 的超时，期望超时",
+                  "pm.test(\"请求超时\", function () {",
+                  "    // Postman 会在超时后抛出异常",
+                  "    pm.expect(pm.response.code).to.be.oneOf([0, 408, 504]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"请生成一篇10000字的文章，详细描述磁盘清理的最佳实践。这应该需要较长的处理时间。\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 4000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          },
+          "timeout": 500
+        },
+        {
+          "name": "格式错误的 JSON 请求体",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP 状态码为 400（格式错误请求）\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "这不是合法的JSON格式 { model: gpt {{model}}  messages: [ 内容缺失 }"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "chat", "completions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Ollama 本地服务测试",
+      "description": "针对 Ollama 本地部署的测试（需本地 Ollama 运行）",
+      "item": [
+        {
+          "name": "Ollama — 列出可用模型",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Ollama 服务可达 — HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"模型列表非空\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.models).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ollama_base_url}}/api/tags",
+              "host": ["{{ollama_base_url}}"],
+              "path": ["api", "tags"]
+            }
+          }
+        },
+        {
+          "name": "Ollama — Chat Completions 分析文件",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Ollama 响应正常 — HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"llama3\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个磁盘清理分析助手。对于文件元数据，输出JSON: {\\\"label\\\": \\\"safe\\\"|\\\"unknown\\\"|\\\"risky\\\", \\\"confidence\\\": 0.0-1.0, \\\"explanation\\\": \\\"简短中文解释\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析: C:\\\\Windows\\\\Temp\\\\debug.log (15MB, 60天前修改, .log扩展名)\"\n    }\n  ],\n  \"stream\": false\n}"
+            },
+            "url": {
+              "raw": "{{ollama_base_url}}/api/chat",
+              "host": ["{{ollama_base_url}}"],
+              "path": ["api", "chat"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

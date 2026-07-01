@@ -1,0 +1,64 @@
+<UserControl x:Class="DirectoryCleanAgent.Controls.DashboardCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:DirectoryCleanAgent.Converters"
+             Height="110" Width="250" Margin="8,0">
+
+    <UserControl.Resources>
+        <converters:FileSizeConverter x:Key="FileSizeConverter" />
+        <converters:FinalActionToColorConverter x:Key="ColorConverter" />
+    </UserControl.Resources>
+
+    <!-- 卡片边框 + 背景色 -->
+    <Border CornerRadius="10" Padding="16,12"
+            Background="{Binding Category, Converter={StaticResource ColorConverter}}"
+            BorderBrush="{Binding Category, Converter={StaticResource ColorConverter}, ConverterParameter=Border}"
+            BorderThickness="1.5"
+            Cursor="Hand"
+            MouseLeftButtonDown="Card_MouseLeftButtonDown">
+
+        <!-- 悬停效果通过 Trigger 实现 -->
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.15" Color="Gray" />
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Effect">
+                            <Setter.Value>
+                                <DropShadowEffect ShadowDepth="4" BlurRadius="14" Opacity="0.3" Color="Gray" />
+                            </Setter.Value>
+                        </Setter>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 第一行: 图标 + 标题 -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBlock Text="{Binding Icon}" FontSize="22" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold"
+                           Foreground="#333333" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- 第二行: 文件大小（大字体突出显示）-->
+            <TextBlock Grid.Row="1" Text="{Binding SizeBytes, Converter={StaticResource FileSizeConverter}}"
+                       FontSize="28" FontWeight="Bold" Foreground="#1a1a1a"
+                       Margin="0,2,0,0" />
+
+            <!-- 第三行: 文件项数 -->
+            <TextBlock Grid.Row="2" Text="{Binding FormattedCount}"
+                       FontSize="13" Foreground="#666666" Margin="0,4,0,0" />
+        </Grid>
+    </Border>
+</UserControl>

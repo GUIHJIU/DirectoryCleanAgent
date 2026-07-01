@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>DirectoryCleanAgent.Decision</RootNamespace>
+    <AssemblyName>DirectoryCleanAgent.Decision</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryCleanAgent.Core\DirectoryCleanAgent.Core.csproj" />
+  </ItemGroup>
+
+</Project>

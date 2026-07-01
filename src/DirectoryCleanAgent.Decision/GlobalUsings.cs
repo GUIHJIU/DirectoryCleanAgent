@@ -1,0 +1,16 @@
+global using System;
+global using System.Collections.Concurrent;
+global using System.Collections.Generic;
+global using System.Collections.ObjectModel;
+global using System.Linq;
+global using System.Security.Cryptography;
+global using System.Text.Json;
+global using System.Text.Json.Serialization;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using Microsoft.Extensions.Logging;
+global using DirectoryCleanAgent.Core.Config;
+global using DirectoryCleanAgent.Core.DTOs;
+global using DirectoryCleanAgent.Core.Enums;
+global using DirectoryCleanAgent.Core.Interfaces;
+global using DirectoryCleanAgent.Core.Logging;

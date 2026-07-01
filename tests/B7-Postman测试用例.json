@@ -1,0 +1,429 @@
+{
+  "info": {
+    "name": "B7 AI顾问 API 测试集合",
+    "description": "智能磁盘清理工具 AI 顾问模块的 API 测试用例。覆盖 OpenAI / Ollama / 自定义 API 的正常与异常场景。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "directory-clean-agent-b7"
+  },
+  "variable": [
+    {
+      "key": "openai_base_url",
+      "value": "https://api.openai.com",
+      "type": "string"
+    },
+    {
+      "key": "ollama_base_url",
+      "value": "http://localhost:11434",
+      "type": "string"
+    },
+    {
+      "key": "custom_base_url",
+      "value": "https://your-custom-api.example.com",
+      "type": "string"
+    },
+    {
+      "key": "openai_api_key",
+      "value": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "type": "string"
+    },
+    {
+      "key": "model_name",
+      "value": "gpt-3.5-turbo",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. OpenAI - 文件分析正常请求",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 验证 HTTP 200",
+              "pm.test(\"HTTP 状态码为 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// 验证响应结构",
+              "pm.test(\"响应包含 choices 数组\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.choices).to.be.an('array').that.is.not.empty;",
+              "});",
+              "",
+              "// 验证 content 为合法 JSON",
+              "pm.test(\"content 可解析为 AI 分析结果 JSON\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var content = jsonData.choices[0].message.content;",
+              "    var result = JSON.parse(content);",
+              "    pm.expect(result).to.have.property('label');",
+              "    pm.expect(result).to.have.property('confidence');",
+              "    pm.expect(result).to.have.property('explanation');",
+              "    pm.expect(['safe', 'unknown', 'risky']).to.include(result.label);",
+              "    pm.expect(result.confidence).to.be.within(0, 1);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{openai_api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"{{model_name}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个专业的磁盘清理顾问。分析给定的文件，判断是否可以安全删除。只输出严格 JSON：{\\\"label\\\":\\\"safe|unknown|risky\\\",\\\"confidence\\\":0.0-1.0,\\\"explanation\\\":\\\"简短中文原因\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"请分析以下文件：\\n- 文件名：temp_20260623.log\\n- 所在目录：C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\n- 文件大小：156.3 MB\\n- 最后修改：2026-06-20 08:15:30 (UTC)\\n- 距今：3 天前\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 200\n}"
+        },
+        "url": {
+          "raw": "{{openai_base_url}}/v1/chat/completions",
+          "host": ["{{openai_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "2. OpenAI - 连接测试",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"连接测试返回 HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"响应包含 status:ok\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var content = jsonData.choices[0].message.content;",
+              "    var result = JSON.parse(content);",
+              "    pm.expect(result.status).to.eql('ok');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{openai_api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"{{model_name}}\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"你是一个测试助手。请用 JSON 格式回复：{\\\"status\\\":\\\"ok\\\"}\" },\n    { \"role\": \"user\", \"content\": \"这是一条连接测试消息，请回复 {\\\"status\\\":\\\"ok\\\"}\" }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 50\n}"
+        },
+        "url": {
+          "raw": "{{openai_base_url}}/v1/chat/completions",
+          "host": ["{{openai_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "3. OpenAI - 无效 API Key 错误 (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"返回 HTTP 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test(\"error.message 包含认证相关提示\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.have.property('message');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer invalid-key-test" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"{{model_name}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"test\" }\n  ],\n  \"max_tokens\": 10\n}"
+        },
+        "url": {
+          "raw": "{{openai_base_url}}/v1/chat/completions",
+          "host": ["{{openai_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "4. OpenAI - 服务端限流错误 (429)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"返回 HTTP 429\", function () {",
+              "    pm.response.to.have.status(429);",
+              "});",
+              "",
+              "pm.test(\"error 对象存在\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('error');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{openai_api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"{{model_name}}\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"rate limit test - 请快速连续发送此请求以触发限流\" }\n  ],\n  \"max_tokens\": 10\n}"
+        },
+        "url": {
+          "raw": "{{openai_base_url}}/v1/chat/completions",
+          "host": ["{{openai_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "5. OpenAI - 无效模型名称错误",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"返回 HTTP 404 或 400\", function () {",
+              "    pm.expect([400, 404]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{openai_api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"this-model-does-not-exist-xyz\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"test\" }\n  ],\n  \"max_tokens\": 10\n}"
+        },
+        "url": {
+          "raw": "{{openai_base_url}}/v1/chat/completions",
+          "host": ["{{openai_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "6. Ollama - 文件分析（无 Auth 头）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Ollama 返回 HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"响应包含 choices\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.choices).to.be.an('array').that.is.not.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"llama3\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个磁盘清理顾问。分析文件并输出 JSON：{\\\"label\\\":\\\"safe|unknown|risky\\\",\\\"confidence\\\":0.0-1.0,\\\"explanation\\\":\\\"原因\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析文件：C:\\\\Temp\\\\debug.log, 大小 256MB, 修改于 7 天前\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 200\n}"
+        },
+        "url": {
+          "raw": "{{ollama_base_url}}/v1/chat/completions",
+          "host": ["{{ollama_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "7. Ollama - 连接测试",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Ollama 连接测试返回 HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"响应非空\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.choices).to.not.be.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"llama3\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"回复 JSON: {\\\"status\\\":\\\"ok\\\"}\" },\n    { \"role\": \"user\", \"content\": \"连接测试\" }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 50\n}"
+        },
+        "url": {
+          "raw": "{{ollama_base_url}}/v1/chat/completions",
+          "host": ["{{ollama_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "8. 自定义 API - 文件分析",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"自定义 API 返回 HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"响应包含有效 JSON\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.not.be.null;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer your-custom-api-key" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"your-model\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是磁盘清理顾问。输出 JSON：{\\\"label\\\":\\\"safe|unknown|risky\\\",\\\"confidence\\\":0.0-1.0,\\\"explanation\\\":\\\"原因\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析：C:\\\\Cache\\\\thumbnails.db, 128MB, 30天前\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 200\n}"
+        },
+        "url": {
+          "raw": "{{custom_base_url}}/v1/chat/completions",
+          "host": ["{{custom_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "9. AI 响应解析 - 模型返回额外文本",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// 此测试验证：即使 AI 返回了带 markdown 代码块的额外文本，",
+              "// AiPromptBuilder.ParseResponse() 的防御性解析也能正确提取 JSON",
+              "pm.test(\"响应中存在 JSON 结构\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var content = jsonData.choices[0].message.content;",
+              "    // 检查是否包含 label/confidence/explanation 关键字",
+              "    pm.expect(content).to.include('label');",
+              "    pm.expect(content).to.include('confidence');",
+              "    pm.expect(content).to.include('explanation');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{openai_api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"{{model_name}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"分析文件安全性的 AI 助手。请使用中文回复，格式为：{\\\"label\\\":\\\"safe\\\",\\\"confidence\\\":0.9,\\\"explanation\\\":\\\"原因\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析文件：D:\\\\Downloads\\\\setup.exe, 大小 45.2 MB, 修改于 15 天前。这是一个系统文件吗？\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 300\n}"
+        },
+        "url": {
+          "raw": "{{openai_base_url}}/v1/chat/completions",
+          "host": ["{{openai_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    },
+    {
+      "name": "10. 中文文件名与路径处理",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 200（中文文件名不影响 API 调用）\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"label 为合法值\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    var content = jsonData.choices[0].message.content;",
+              "    try {",
+              "        var result = JSON.parse(content);",
+              "        pm.expect(['safe', 'unknown', 'risky']).to.include(result.label);",
+              "    } catch(e) {",
+              "        // 如果 content 不是直接 JSON（含额外文本），检查是否包含 label 字段",
+              "        pm.expect(content).to.include('label');",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+          { "key": "Authorization", "value": "Bearer {{openai_api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"{{model_name}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是磁盘清理顾问。输出严格 JSON：{\\\"label\\\":\\\"safe|unknown|risky\\\",\\\"confidence\\\":0.0-1.0,\\\"explanation\\\":\\\"简短中文原因\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"分析文件：D:\\\\我的文档\\\\项目备份\\\\旧版本数据库备份.sql, 大小 856.7 MB, 修改于 90 天前\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 200\n}"
+        },
+        "url": {
+          "raw": "{{openai_base_url}}/v1/chat/completions",
+          "host": ["{{openai_base_url}}"],
+          "path": ["v1", "chat", "completions"]
+        }
+      }
+    }
+  ]
+}

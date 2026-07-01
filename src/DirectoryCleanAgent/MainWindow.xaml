@@ -1,0 +1,263 @@
+<Window x:Class="DirectoryCleanAgent.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:DirectoryCleanAgent.Controls"
+        xmlns:converters="clr-namespace:DirectoryCleanAgent.Converters"
+        Title="智能磁盘清理" Height="720" Width="1100"
+        MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        Loaded="MainWindow_Loaded">
+
+    <Window.Resources>
+        <!-- 值转换器注册 -->
+        <converters:FileSizeConverter x:Key="FileSizeConverter" />
+        <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+        <converters:AppStateToBoolConverter x:Key="AppStateToBoolConverter" />
+    </Window.Resources>
+
+    <!-- ============================================================
+         主窗口布局：6 行 Grid（顶部栏 / 警告横幅 / 仪表板 / 操作栏 / 主内容区 / 状态栏）
+    ============================================================ -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44" />   <!-- Row 0: 顶部栏 -->
+            <RowDefinition Height="Auto" /> <!-- Row 1: 警告横幅（动态显示/隐藏） -->
+            <RowDefinition Height="Auto" /> <!-- Row 2: 仪表板卡片 -->
+            <RowDefinition Height="48" />   <!-- Row 3: 操作栏 -->
+            <RowDefinition Height="*" />    <!-- Row 4: 主内容区（C2 占位） -->
+            <RowDefinition Height="Auto" /> <!-- Row 5: 状态栏 + 进度 -->
+        </Grid.RowDefinitions>
+
+        <!-- ============================================================
+             Row 0: 顶部栏（标题 + 设置/帮助按钮）
+        ============================================================ -->
+        <Border Grid.Row="0" Padding="16,0"
+                Background="{StaticResource TopBarBackgroundBrush}"
+                BorderBrush="{StaticResource TopBarBorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 左侧: 应用标题 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🧹" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="智能磁盘清理" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{StaticResource TopBarForegroundBrush}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="V3.7" FontSize="11" Foreground="#999999"
+                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                </StackPanel>
+
+                <!-- 右侧: 操作按钮组 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- 主题切换按钮 -->
+                    <Button Content="🌓" ToolTip="切换浅色/深色主题"
+                            Style="{StaticResource TopBarButtonStyle}"
+                            Command="{Binding ToggleThemeCommand}" />
+                    <!-- 设置按钮 -->
+                    <Button Content="⚙" ToolTip="设置"
+                            Style="{StaticResource TopBarButtonStyle}"
+                            Command="{Binding NavigateToSettingsCommand}" />
+                    <!-- 历史记录按钮 -->
+                    <Button Content="📋" ToolTip="历史记录"
+                            Style="{StaticResource TopBarButtonStyle}"
+                            Command="{Binding NavigateToHistoryCommand}" />
+                    <!-- 帮助按钮 -->
+                    <Button Content="❓" ToolTip="帮助"
+                            Style="{StaticResource TopBarButtonStyle}"
+                            Command="{Binding NavigateToHelpCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================
+             Row 1: 警告横幅（非管理员只读 / 索引未完成）
+        ============================================================ -->
+        <controls:WarningBanner Grid.Row="1" DataContext="{Binding}" />
+
+        <!-- ============================================================
+             Row 2: 仪表板 — 4 张统计卡片水平排列
+        ============================================================ -->
+        <Border Grid.Row="2" Padding="20,16"
+                Background="{StaticResource WindowBackgroundBrush}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <ItemsControl ItemsSource="{Binding DashboardItems}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:DashboardCard DataContext="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- ============================================================
+             Row 3: 操作栏
+        ============================================================ -->
+        <Border Grid.Row="3" Padding="16,0"
+                Background="{StaticResource ActionBarBackgroundBrush}"
+                BorderBrush="{StaticResource ActionBarBorderBrush}"
+                BorderThickness="0,1,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 一键清理安全项（主要操作，蓝色高亮） -->
+                <Button Grid.Column="0" Content="一键清理安全项"
+                        Style="{StaticResource ActionBarPrimaryButtonStyle}"
+                        Command="{Binding QuickCleanCommand}"
+                        ToolTip="安全删除所有【安全可自动清理】分类下的文件" />
+
+                <!-- 智能选择建议项 -->
+                <Button Grid.Column="1" Content="智能选择建议项"
+                        Style="{StaticResource ActionBarButtonStyle}"
+                        Command="{Binding SmartSelectCommand}"
+                        ToolTip="自动勾选所有【建议清理】分类下的文件，确认后执行" />
+
+                <!-- 模拟运行 -->
+                <Button Grid.Column="2" Content="模拟运行"
+                        Style="{StaticResource ActionBarButtonStyle}"
+                        Command="{Binding SimulateCommand}"
+                        ToolTip="预览清理效果，不实际执行删除" />
+
+                <!-- 导出报告 -->
+                <Button Grid.Column="3" Content="导出报告"
+                        Style="{StaticResource ActionBarButtonStyle}"
+                        Command="{Binding ExportCommand}"
+                        ToolTip="导出当前分析结果为 HTML/CSV 格式" />
+
+                <!-- 刷新扫描 -->
+                <Button Grid.Column="4" Content="刷新扫描"
+                        Style="{StaticResource ActionBarButtonStyle}"
+                        Command="{Binding RefreshCommand}"
+                        ToolTip="重新执行增量扫描，更新分析结果" />
+
+                <!-- 分隔空间 -->
+                <Separator Grid.Column="5" Visibility="Hidden" />
+
+                <!-- 分组依据下拉框（C2：绑定到 FileListViewModel） -->
+                <TextBlock Grid.Column="6" Text="分组依据:" FontSize="13"
+                           Foreground="{StaticResource CardTextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="0,0,6,0" />
+                <ComboBox Grid.Column="6" Style="{StaticResource GroupByComboBoxStyle}"
+                          ItemsSource="{Binding FileListViewModel.GroupByModes}"
+                          SelectedIndex="{Binding FileListViewModel.GroupByPrimaryIndex}"
+                          IsEnabled="{Binding FileListViewModel.IsGroupedView}" />
+
+                <!-- "显示所有文件"切换开关（C2：绑定到 FileListViewModel） -->
+                <CheckBox Grid.Column="7" Content="显示所有文件"
+                          Style="{StaticResource ShowAllToggleStyle}"
+                          IsChecked="{Binding FileListViewModel.IsShowAllFiles, Mode=TwoWay}"
+                          Command="{Binding ToggleShowAllCommand}" />
+            </Grid>
+        </Border>
+
+        <!-- ============================================================
+             Row 4: 主内容区 — 文件列表与分组视图（C2）
+        ============================================================ -->
+        <controls:FileListView Grid.Row="4"
+                               DataContext="{Binding FileListViewModel}" />
+
+        <!-- ============================================================
+             Row 5: 状态栏 + 进度区
+        ============================================================ -->
+        <Border Grid.Row="5" Padding="16,4"
+                Background="{StaticResource StatusBarBackgroundBrush}"
+                BorderBrush="{StaticResource StatusBarBorderBrush}"
+                BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 本次释放空间 -->
+                <TextBlock Grid.Column="0" FontSize="12"
+                           Foreground="{StaticResource StatusBarForegroundBrush}"
+                           VerticalAlignment="Center">
+                    <Run Text="本次释放: " />
+                    <Run Text="{Binding StatusInfo.FreedBytesText, Mode=OneWay}" FontWeight="SemiBold" />
+                </TextBlock>
+                <TextBlock Grid.Column="1" Style="{StaticResource StatusBarSeparatorStyle}" />
+
+                <!-- 历史累计清理 -->
+                <TextBlock Grid.Column="2" FontSize="12"
+                           Foreground="{StaticResource StatusBarForegroundBrush}"
+                           VerticalAlignment="Center">
+                    <Run Text="累计清理: " />
+                    <Run Text="{Binding StatusInfo.CumulativeBytesText, Mode=OneWay}" FontWeight="SemiBold" />
+                </TextBlock>
+                <TextBlock Grid.Column="3" Style="{StaticResource StatusBarSeparatorStyle}" />
+
+                <!-- 最后扫描时间 -->
+                <TextBlock Grid.Column="4" FontSize="12"
+                           Foreground="{StaticResource StatusBarForegroundBrush}"
+                           VerticalAlignment="Center"
+                           Text="{Binding StatusInfo.LastScanTimeText}" />
+                <TextBlock Grid.Column="5" Style="{StaticResource StatusBarSeparatorStyle}" />
+
+                <!-- 隔离区使用情况（点击打开隔离区管理界面，操作时隐藏让位给状态文本） -->
+                <Button Grid.Column="6"
+                        Style="{StaticResource LinkButtonStyle}"
+                        Command="{Binding NavigateToQuarantineCommand}"
+                        ToolTip="点击查看隔离区详情"
+                        Visibility="{Binding IsOperating, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <TextBlock Text="{Binding StatusInfo.QuarantineText}" FontSize="12"
+                               Foreground="{StaticResource StatusBarForegroundBrush}"
+                               VerticalAlignment="Center" />
+                </Button>
+
+                <!-- 操作阶段状态文本（操作进行中时显示，C8） -->
+                <TextBlock Grid.Column="6"
+                           Text="{Binding OperationStatusText}"
+                           Visibility="{Binding IsOperating, Converter={StaticResource BoolToVisibilityConverter}}"
+                           FontSize="12"
+                           Foreground="{StaticResource StatusBarForegroundBrush}"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,12,0" />
+
+                <!-- 进度条（操作进行中时显示） -->
+                <ProgressBar Grid.Column="7"
+                             Style="{StaticResource StatusBarProgressBarStyle}"
+                             Width="160"
+                             Value="{Binding OperationProgress.Percentage, Mode=OneWay}"
+                             Visibility="{Binding IsOperating, Converter={StaticResource BoolToVisibilityConverter}}"
+                             IsIndeterminate="{Binding OperationProgress.IsIndeterminate, Mode=OneWay}" />
+
+                <!-- 取消按钮（操作进行中时显示） -->
+                <Button Grid.Column="8" Content="✕ 取消"
+                        Width="60" Height="24" FontSize="12"
+                        Command="{Binding CancelCommand}"
+                        Visibility="{Binding IsOperating, Converter={StaticResource BoolToVisibilityConverter}}"
+                        Cursor="Hand" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
