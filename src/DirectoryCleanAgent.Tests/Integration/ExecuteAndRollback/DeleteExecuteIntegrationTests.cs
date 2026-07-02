@@ -100,6 +100,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
                     FileSize = new FileInfo(path).Length,
                     Sha256Hash = hash,
                     FinalAction = FinalAction.AutoDelete,
+                    RuleVerdict = RuleVerdict.AutoDelete,
                     OperationId = operationId
                 };
             }).ToList();
@@ -160,6 +161,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
                 FileSize = new FileInfo(path).Length,
                 Sha256Hash = ComputeSha256(path),
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             }).ToList();
 
@@ -225,6 +227,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
                 FileSize = new FileInfo(path).Length,
                 Sha256Hash = ComputeSha256(path),
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             }).ToList();
 
@@ -282,6 +285,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
                 FileSize = new FileInfo(path).Length,
                 Sha256Hash = ComputeSha256(path),
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             }).ToList();
 
@@ -339,6 +343,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
                 FileSize = 2048,
                 Sha256Hash = ComputeSha256(testFile),
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             };
 
@@ -402,6 +407,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
                 FileSize = 1024,
                 Sha256Hash = hash,
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             };
 
@@ -460,6 +466,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
                 FileSize = 512,
                 Sha256Hash = ComputeSha256(testFile),
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             };
 
@@ -552,6 +559,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
                 FileSize = 1024,
                 Sha256Hash = ComputeSha256(lockedFile),
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             };
 

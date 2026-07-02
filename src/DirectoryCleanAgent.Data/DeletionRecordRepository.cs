@@ -264,7 +264,7 @@ public sealed class DeletionRecordRepository : IDeletionRecordRepository, IDispo
             cmd.Parameters.AddWithValue($"@p{i}", entry.FilePath);
             cmd.Parameters.AddWithValue($"@h{i}", entry.FileHash);
             cmd.Parameters.AddWithValue($"@s{i}", entry.FileSize);
-            cmd.Parameters.AddWithValue($"@dm{i}", entry.DeletionMethod);
+            cmd.Parameters.AddWithValue($"@dm{i}", entry.DeletionMethod.ToString().ToUpperInvariant());
             cmd.Parameters.AddWithValue($"@ds{i}", entry.DecisionSnapshotJson);
             cmd.Parameters.AddWithValue($"@ca{i}", entry.CreatedAt.ToString("O"));
         }
@@ -332,20 +332,27 @@ public sealed class DeletionRecordRepository : IDeletionRecordRepository, IDispo
             FilePath = reader.GetString(2),
             FileHash = reader.GetString(3),
             FileSize = reader.GetInt64(4),
-            DeletionMethod = reader.GetString(5),
+            DeletionMethod = ParseDeleteMethod(reader.GetString(5)),
             DecisionSnapshotJson = DecompressJson(reader.GetString(6)),
             CreatedAt = DateTime.Parse(reader.GetString(7)),
         };
     }
 
-    /// <summary>将数据库中的 deletion_method 字符串转为 DeleteMethod 枚举</summary>
+    /// <summary>将数据库中的 deletion_method 字符串转为 DeleteMethod 枚举。
+    /// 兼容历史数据格式：同时支持带下划线（如 "RECYCLE_BIN"）和无下划线（如 "RECYCLEBIN"）两种格式。
+    /// 未知值默认回退为 RecycleBin（安全保守策略：可恢复）。</summary>
     private static DeleteMethod ParseDeleteMethod(string method)
     {
-        return method switch
+        // 优先尝试 Enum.TryParse（不区分大小写），直接匹配枚举值名称
+        if (Enum.TryParse<DeleteMethod>(method, ignoreCase: true, out var result))
+            return result;
+
+        // 兼容历史格式（带下划线的大写格式，如 "RECYCLE_BIN"）
+        return method.ToUpperInvariant() switch
         {
             "RECYCLE_BIN" => DeleteMethod.RecycleBin,
             "PERMANENT" => DeleteMethod.Permanent,
-            "QUARANTINE" => DeleteMethod.Permanent, // 隔离区最终仍为永久删除
+            "QUARANTINE" => DeleteMethod.Quarantine,
             _ => DeleteMethod.RecycleBin,
         };
     }

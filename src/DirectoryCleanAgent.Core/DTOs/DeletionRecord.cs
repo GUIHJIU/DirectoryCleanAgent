@@ -24,10 +24,11 @@ public record DeletionRecord
     public required long FileSize { get; init; }
 
     /// <summary>
-    /// 删除方式：RECYCLE_BIN / QUARANTINE / PERMANENT。
-    /// 使用字符串存储以兼容未来扩展（如隔离区移入等中间态）。
+    /// 删除方式：RecycleBin / Quarantine / Permanent。
+    /// 使用强类型枚举，与 IOperationExecutor.ExecuteAsync 参数保持一致。
+    /// 持久化时转换为大写字符串（如 "RECYCLEBIN"），读取时通过 ParseDeleteMethod 解析。
     /// </summary>
-    public required string DeletionMethod { get; init; }
+    public required DeleteMethod DeletionMethod { get; init; }
 
     /// <summary>
     /// 删除时冻结的决策快照 JSON（紧凑格式，无缩进）。

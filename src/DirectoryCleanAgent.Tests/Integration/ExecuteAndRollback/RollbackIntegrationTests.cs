@@ -94,7 +94,7 @@ public class RollbackIntegrationTests : IntegrationTestBase
                 FilePath = @"\\?\" + originalFile,
                 FileHash = originalHash,
                 FileSize = originalContent.Length,
-                DeletionMethod = "QuarantineOnly",
+                DeletionMethod = DeleteMethod.Quarantine,
                 DecisionSnapshotJson = "{}",
                 CreatedAt = DateTime.UtcNow
             };
@@ -148,7 +148,7 @@ public class RollbackIntegrationTests : IntegrationTestBase
                 FilePath = @"\\?\" + Path.Combine(TestRoot, "original_recycle.dat"),
                 FileHash = sha256Hash,
                 FileSize = testContent.Length,
-                DeletionMethod = "RecycleBin",
+                DeletionMethod = DeleteMethod.RecycleBin,
                 DecisionSnapshotJson = "{}",
                 CreatedAt = DateTime.UtcNow
             };
@@ -196,7 +196,7 @@ public class RollbackIntegrationTests : IntegrationTestBase
                 FilePath = @"\\?\" + originalFile,
                 FileHash = wrongHash,
                 FileSize = 1024,
-                DeletionMethod = "QuarantineOnly",
+                DeletionMethod = DeleteMethod.Quarantine,
                 DecisionSnapshotJson = "{}",
                 CreatedAt = DateTime.UtcNow
             };
@@ -335,7 +335,7 @@ public class RollbackIntegrationTests : IntegrationTestBase
                     FilePath = @$"\\?\C:\Test\history_{i}.tmp",
                     FileHash = Guid.NewGuid().ToString("N").Replace("-", ""),
                     FileSize = 1024 * (i + 1),
-                    DeletionMethod = "RecycleBin",
+                    DeletionMethod = DeleteMethod.RecycleBin,
                     DecisionSnapshotJson = "{}",
                     CreatedAt = DateTime.UtcNow
                 });
@@ -377,7 +377,7 @@ public class RollbackIntegrationTests : IntegrationTestBase
                     FilePath = @$"\\?\C:\Test\verify_{i}.dat",
                     FileHash = new string('a', 64),
                     FileSize = 1024,
-                    DeletionMethod = "QuarantineOnly",
+                    DeletionMethod = DeleteMethod.Quarantine,
                     DecisionSnapshotJson = "{}",
                     CreatedAt = DateTime.UtcNow
                 });

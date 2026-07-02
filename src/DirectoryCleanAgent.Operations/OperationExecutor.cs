@@ -757,7 +757,7 @@ public sealed class OperationExecutor : CancellableOperationBase, IOperationExec
             FilePath = entry.FilePath,
             FileHash = entry.Sha256Hash,
             FileSize = entry.FileSize,
-            DeletionMethod = method.ToString().ToUpperInvariant(),
+            DeletionMethod = method,
             DecisionSnapshotJson = "{}", // 单个文件快照简化为空 JSON（完整快照由 B3 层管理）
             CreatedAt = now
         };

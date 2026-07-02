@@ -128,8 +128,8 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
                     // 根据删除方式选择恢复策略
                     result = record.DeletionMethod switch
                     {
-                        "QUARANTINE" => await TryRestoreFromQuarantineAsync(record, ct).ConfigureAwait(false),
-                        "RECYCLE_BIN" => await TryRestoreFromRecycleBinAsync(record, recycleBinHashCache, ct)
+                        DeleteMethod.Quarantine => await TryRestoreFromQuarantineAsync(record, ct).ConfigureAwait(false),
+                        DeleteMethod.RecycleBin => await TryRestoreFromRecycleBinAsync(record, recycleBinHashCache, ct)
                             .ConfigureAwait(false),
                         _ => new RestoreFileResult
                         {
@@ -856,7 +856,7 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
         CancellationToken ct)
     {
         // 先查隔离区
-        if (record.DeletionMethod == "QUARANTINE")
+        if (record.DeletionMethod == DeleteMethod.Quarantine)
         {
             // B6 重构：通过 QuarantineManager 统一获取隔离区目录
             var quarantineDir = await _quarantineManager.GetQuarantineDirectoryAsync(ct)
@@ -882,7 +882,7 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
         }
 
         // 再查回收站
-        if (record.DeletionMethod == "RECYCLE_BIN")
+        if (record.DeletionMethod == DeleteMethod.RecycleBin)
         {
             var denormalizedPath = PathNormalizer.Denormalize(record.FilePath);
             var driveRoot = Path.GetPathRoot(denormalizedPath);
@@ -1019,13 +1019,13 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
     /// <summary>
     /// 获取文件"未找到"原因的人类可读描述。
     /// </summary>
-    private static string GetNotFoundReason(string deletionMethod)
+    private static string GetNotFoundReason(DeleteMethod deletionMethod)
     {
         return deletionMethod switch
         {
-            "PERMANENT" => "文件已被永久删除，无恢复来源",
-            "QUARANTINE" => "隔离区中未找到匹配文件（可能已过期清理或隔离区已禁用）",
-            "RECYCLE_BIN" => "回收站中未找到匹配文件（可能已被清空或权限不足）",
+            DeleteMethod.Permanent => "文件已被永久删除，无恢复来源",
+            DeleteMethod.Quarantine => "隔离区中未找到匹配文件（可能已过期清理或隔离区已禁用）",
+            DeleteMethod.RecycleBin => "回收站中未找到匹配文件（可能已被清空或权限不足）",
             _ => "未知删除方式，无法定位文件"
         };
     }

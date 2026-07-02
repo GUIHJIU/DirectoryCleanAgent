@@ -81,7 +81,7 @@ public class BackupManagerTests : IDisposable
     private static DeletionRecord CreateRecord(
         string operationId,
         string filePath,
-        string deletionMethod = "QUARANTINE",
+        DeleteMethod deletionMethod = DeleteMethod.Quarantine,
         string fileHash = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
         long fileSize = 1024)
     {
@@ -242,7 +242,7 @@ public class BackupManagerTests : IDisposable
         var opId = Guid.NewGuid().ToString("N");
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, @"\\?\C:\test\permanent_file.txt", "PERMANENT")
+            CreateRecord(opId, @"\\?\C:\test\permanent_file.txt", DeleteMethod.Permanent)
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -267,8 +267,8 @@ public class BackupManagerTests : IDisposable
         var opId = Guid.NewGuid().ToString("N");
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, @"\\?\C:\test\file1.txt", "QUARANTINE"),
-            CreateRecord(opId, @"\\?\C:\test\file2.txt", "QUARANTINE"),
+            CreateRecord(opId, @"\\?\C:\test\file1.txt", DeleteMethod.Quarantine),
+            CreateRecord(opId, @"\\?\C:\test\file2.txt", DeleteMethod.Quarantine),
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -297,7 +297,7 @@ public class BackupManagerTests : IDisposable
         var opId = Guid.NewGuid().ToString("N");
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, @"\\?\C:\test\quarantine_file.txt", "QUARANTINE")
+            CreateRecord(opId, @"\\?\C:\test\quarantine_file.txt", DeleteMethod.Quarantine)
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -328,9 +328,9 @@ public class BackupManagerTests : IDisposable
         var filePath = CreateRealFile(_tempDir, "mixed_success.txt");
         var hash = ComputeSha256ForFile(filePath);
 
-        var restoredFile = CreateRecord(opId, filePath, "QUARANTINE", hash);
-        var permFile1 = CreateRecord(opId, @"\\?\C:\test\perm1.tmp", "PERMANENT");
-        var permFile2 = CreateRecord(opId, @"\\?\C:\test\perm2.tmp", "PERMANENT");
+        var restoredFile = CreateRecord(opId, filePath, DeleteMethod.Quarantine, hash);
+        var permFile1 = CreateRecord(opId, @"\\?\C:\test\perm1.tmp", DeleteMethod.Permanent);
+        var permFile2 = CreateRecord(opId, @"\\?\C:\test\perm2.tmp", DeleteMethod.Permanent);
 
         // 为隔离区恢复创建对应的隔离区文件
         CreateQuarantineFile(PathNormalizer.Denormalize(filePath), hash, DateTime.UtcNow);
@@ -364,8 +364,8 @@ public class BackupManagerTests : IDisposable
         var opId = Guid.NewGuid().ToString("N");
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, @"\\?\C:\test\p1.tmp", "PERMANENT"),
-            CreateRecord(opId, @"\\?\C:\test\p2.tmp", "PERMANENT"),
+            CreateRecord(opId, @"\\?\C:\test\p1.tmp", DeleteMethod.Permanent),
+            CreateRecord(opId, @"\\?\C:\test\p2.tmp", DeleteMethod.Permanent),
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -396,7 +396,7 @@ public class BackupManagerTests : IDisposable
 
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, filePath, "QUARANTINE", hash)
+            CreateRecord(opId, filePath, DeleteMethod.Quarantine, hash)
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -434,9 +434,9 @@ public class BackupManagerTests : IDisposable
 
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, file1, "QUARANTINE", hash1),
-            CreateRecord(opId, file2, "QUARANTINE", hash2),
-            CreateRecord(opId, @"\\?\C:\test\perm.tmp", "PERMANENT"),
+            CreateRecord(opId, file1, DeleteMethod.Quarantine, hash1),
+            CreateRecord(opId, file2, DeleteMethod.Quarantine, hash2),
+            CreateRecord(opId, @"\\?\C:\test\perm.tmp", DeleteMethod.Permanent),
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -544,7 +544,7 @@ public class BackupManagerTests : IDisposable
 
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, filePath, "QUARANTINE", hash),
+            CreateRecord(opId, filePath, DeleteMethod.Quarantine, hash),
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -568,7 +568,7 @@ public class BackupManagerTests : IDisposable
         var opId = Guid.NewGuid().ToString("N");
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, @"\\?\C:\test\notfound.txt", "PERMANENT")
+            CreateRecord(opId, @"\\?\C:\test\notfound.txt", DeleteMethod.Permanent)
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -592,7 +592,7 @@ public class BackupManagerTests : IDisposable
         var opId = Guid.NewGuid().ToString("N");
         var records = new List<DeletionRecord>
         {
-            CreateRecord(opId, @"\\?\C:\test\file.txt", "QUARANTINE")
+            CreateRecord(opId, @"\\?\C:\test\file.txt", DeleteMethod.Quarantine)
         };
         _deletionRecordRepoMock
             .Setup(r => r.GetByOperationIdAsync(opId, It.IsAny<CancellationToken>()))
@@ -641,7 +641,7 @@ public class BackupManagerTests : IDisposable
                 FilePath = originalPath,
                 FileHash = actualHash,
                 FileSize = quarantineContent.Length,
-                DeletionMethod = "QUARANTINE",
+                DeletionMethod = DeleteMethod.Quarantine,
                 DecisionSnapshotJson = "{}",
                 CreatedAt = DateTime.UtcNow
             }
@@ -698,7 +698,7 @@ public class BackupManagerTests : IDisposable
                 FilePath = originalPath,
                 FileHash = actualHash,
                 FileSize = 100,
-                DeletionMethod = "QUARANTINE",
+                DeletionMethod = DeleteMethod.Quarantine,
                 DecisionSnapshotJson = "{}",
                 CreatedAt = DateTime.UtcNow
             }
@@ -753,7 +753,7 @@ public class BackupManagerTests : IDisposable
                 // 预期哈希与实际内容不匹配
                 FileHash = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
                 FileSize = 100,
-                DeletionMethod = "QUARANTINE",
+                DeletionMethod = DeleteMethod.Quarantine,
                 DecisionSnapshotJson = "{}",
                 CreatedAt = DateTime.UtcNow
             }

@@ -92,6 +92,7 @@ public class ExecutionCancellationTests : IntegrationTestBase
                 FileSize = new FileInfo(path).Length,
                 Sha256Hash = ComputeSha256(path),
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             }).ToList();
 
@@ -143,6 +144,7 @@ public class ExecutionCancellationTests : IntegrationTestBase
                 FileSize = new FileInfo(path).Length,
                 Sha256Hash = ComputeSha256(path),
                 FinalAction = FinalAction.AutoDelete,
+                RuleVerdict = RuleVerdict.AutoDelete,
                 OperationId = operationId
             }).ToList();
 
@@ -194,7 +196,7 @@ public class ExecutionCancellationTests : IntegrationTestBase
                     FilePath = @$"\\?\C:\Test\rollback_cancel_{i}.dat",
                     FileHash = new string('f', 64),
                     FileSize = 1024,
-                    DeletionMethod = "QuarantineOnly",
+                    DeletionMethod = DeleteMethod.Quarantine,
                     DecisionSnapshotJson = "{}",
                     CreatedAt = DateTime.UtcNow
                 });

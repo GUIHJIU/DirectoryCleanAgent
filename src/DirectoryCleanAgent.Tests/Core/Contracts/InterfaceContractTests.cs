@@ -217,6 +217,7 @@ public class InterfaceContractTests
             FileSize = 1024,
             Sha256Hash = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
             FinalAction = FinalAction.AutoDelete,
+            RuleVerdict = RuleVerdict.SuggestDelete,
             OperationId = Guid.NewGuid().ToString()
         };
 
@@ -250,6 +251,7 @@ public class InterfaceContractTests
             FileSize = 100,
             Sha256Hash = "abcdef",
             FinalAction = FinalAction.ManualReview,
+            RuleVerdict = RuleVerdict.SuggestDelete,
             OperationId = "op-123"
         };
 
@@ -266,11 +268,11 @@ public class InterfaceContractTests
     {
         var entries = new List<DeleteSnapshotEntry>
         {
-            new() { FilePath = @"\\?\a", FileSize = 1, Sha256Hash = "aa", FinalAction = FinalAction.AutoDelete, OperationId = "1" },
-            new() { FilePath = @"\\?\b", FileSize = 2, Sha256Hash = "bb", FinalAction = FinalAction.AutoDelete, OperationId = "1" },
-            new() { FilePath = @"\\?\c", FileSize = 3, Sha256Hash = "cc", FinalAction = FinalAction.SuggestDelete, OperationId = "1" },
-            new() { FilePath = @"\\?\d", FileSize = 4, Sha256Hash = "dd", FinalAction = FinalAction.ManualReview, OperationId = "1" },
-            new() { FilePath = @"\\?\e", FileSize = 5, Sha256Hash = "ee", FinalAction = FinalAction.Protected, OperationId = "1" },
+            new() { FilePath = @"\\?\a", FileSize = 1, Sha256Hash = "aa", FinalAction = FinalAction.AutoDelete, RuleVerdict = RuleVerdict.AutoDelete, OperationId = "1" },
+            new() { FilePath = @"\\?\b", FileSize = 2, Sha256Hash = "bb", FinalAction = FinalAction.AutoDelete, RuleVerdict = RuleVerdict.AutoDelete, OperationId = "1" },
+            new() { FilePath = @"\\?\c", FileSize = 3, Sha256Hash = "cc", FinalAction = FinalAction.SuggestDelete, RuleVerdict = RuleVerdict.SuggestDelete, OperationId = "1" },
+            new() { FilePath = @"\\?\d", FileSize = 4, Sha256Hash = "dd", FinalAction = FinalAction.ManualReview, RuleVerdict = RuleVerdict.Keep, OperationId = "1" },
+            new() { FilePath = @"\\?\e", FileSize = 5, Sha256Hash = "ee", FinalAction = FinalAction.Protected, RuleVerdict = RuleVerdict.Forbid, OperationId = "1" },
         };
 
         var snapshot = new DecisionSnapshot

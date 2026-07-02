@@ -123,6 +123,7 @@ public sealed class DecisionEngine : IDecisionEngine
             // ========================================================
             var entryLock = new object();  // 保护 entries 列表的线程安全写入
             var entries = new List<DeleteSnapshotEntry>(nonProtected.Count);
+            var skippedEntries = new List<SkippedEntry>();
             var failedCount = 0;
 
             if (nonProtected.Count > 0)
@@ -148,6 +149,7 @@ public sealed class DecisionEngine : IDecisionEngine
                                 FileSize = cache.SizeBytes,
                                 Sha256Hash = hash,
                                 FinalAction = action,
+                                RuleVerdict = cache.RuleVerdict,
                                 OperationId = operationId
                             };
 
@@ -155,6 +157,24 @@ public sealed class DecisionEngine : IDecisionEngine
                             {
                                 entries.Add(entry);
                             }
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                            // 文件被其他进程独占锁定 → 无法读取，也无法删除，直接跳过
+                            var failedIndex = Interlocked.Increment(ref failedCount);
+
+                            lock (entryLock)
+                            {
+                                skippedEntries.Add(new SkippedEntry
+                                {
+                                    FilePath = cache.FilePath,
+                                    Reason = "文件被其他进程占用，无法访问",
+                                    ExceptionType = nameof(UnauthorizedAccessException)
+                                });
+                            }
+
+                            _logger.LogWarning("文件 {Path} 被其他进程占用，跳过（第{Count}个）",
+                                cache.FilePath, failedIndex);
                         }
                         catch (OperationCanceledException)
                         {
@@ -164,6 +184,23 @@ public sealed class DecisionEngine : IDecisionEngine
                         {
                             // 单个文件哈希失败不中断整体快照 —— 记录警告后跳过
                             var failedIndex = Interlocked.Increment(ref failedCount);
+                            var reason = ex switch
+                            {
+                                FileNotFoundException => "文件不存在（扫描后被删除）",
+                                DirectoryNotFoundException => "目录不存在",
+                                _ => $"文件读取失败: {ex.Message}"
+                            };
+
+                            lock (entryLock)
+                            {
+                                skippedEntries.Add(new SkippedEntry
+                                {
+                                    FilePath = cache.FilePath,
+                                    Reason = reason,
+                                    ExceptionType = ex.GetType().Name
+                                });
+                            }
+
                             _logger.LogWarning(ex,
                                 "文件 {Path} 的 SHA-256 哈希计算失败（第{Count}个跳过）: {Message}",
                                 cache.FilePath, failedIndex, ex.Message);
@@ -185,6 +222,9 @@ public sealed class DecisionEngine : IDecisionEngine
             {
                 OperationId = operationId,
                 Entries = new ReadOnlyCollection<DeleteSnapshotEntry>(entries),
+                SkippedEntries = skippedEntries.Count > 0
+                    ? new ReadOnlyCollection<SkippedEntry>(skippedEntries)
+                    : new ReadOnlyCollection<SkippedEntry>(Array.Empty<SkippedEntry>()),
                 FrozenAt = frozenAt,
                 TotalSizeBytes = entries.Sum(e => e.FileSize)
             };
@@ -192,9 +232,9 @@ public sealed class DecisionEngine : IDecisionEngine
             _logger.LogOperation(
                 "DecisionSnapshot",
                 $"OperationId={operationId}",
-                $"条目={entries.Count}, 受保护={protectedCount}, 失败={failedCount}, 总大小={snapshot.TotalSizeBytes} 字节");
+                $"条目={entries.Count}, 受保护={protectedCount}, 跳过={skippedEntries.Count}, 失败={failedCount}, 总大小={snapshot.TotalSizeBytes} 字节");
 
-            _logger.LogMethodExit($"完成: {entries.Count} 条目, {failedCount} 失败");
+            _logger.LogMethodExit($"完成: {entries.Count} 条目, {skippedEntries.Count} 跳过, {failedCount} 失败");
             return snapshot;
         }
         catch (OperationCanceledException)

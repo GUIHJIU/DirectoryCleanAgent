@@ -663,7 +663,8 @@ public class DecisionEngineTests : IDisposable
         var json = snapshot.ToCompactJson();
 
         Assert.False(string.IsNullOrWhiteSpace(json));
-        Assert.StartsWith("[", json); // JSON 数组格式
+        Assert.StartsWith("{\"op\":", json); // wrapper 对象格式（符合设计文档 5.1 节结构）
+        Assert.Contains("\"files\":[", json);
         Assert.Contains(tempPath.Replace("\\", "\\\\"), json);
     }
 

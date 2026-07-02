@@ -26,6 +26,13 @@ public record DeleteSnapshotEntry
     [JsonPropertyName("action")]
     public required FinalAction FinalAction { get; init; }
 
+    /// <summary>
+    /// 规则引擎裁决结果。
+    /// 记录文件被删除时的规则匹配类型，用于审计溯源（了解文件因何种规则被删除）。
+    /// </summary>
+    [JsonPropertyName("verdict")]
+    public required RuleVerdict RuleVerdict { get; init; }
+
     /// <summary>关联的操作批次 UUID，用于回滚时精确清除墓碑</summary>
     [JsonPropertyName("op")]
     public required string OperationId { get; init; }

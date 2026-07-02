@@ -93,6 +93,7 @@ public class OperationExecutorTests : IDisposable
             FileSize = fileSize,
             Sha256Hash = hash,
             FinalAction = action,
+            RuleVerdict = RuleVerdict.Keep,
             OperationId = operationId ?? Guid.NewGuid().ToString("N")
         };
     }
