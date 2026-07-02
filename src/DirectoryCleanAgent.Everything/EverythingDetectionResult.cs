@@ -54,7 +54,7 @@ public class EverythingDetectionResult
     /// <summary>构建号</summary>
     public int BuildNumber { get; init; }
 
-    /// <summary>版本号是否满足最低要求（≥ 1.5.0）</summary>
+    /// <summary>版本号是否满足最低要求（≥ 1.4.1）</summary>
     public bool VersionOk { get; init; }
 
     /// <summary>格式化的版本字符串（如 "1.4.1.232"）</summary>

@@ -96,6 +96,28 @@ public class EverythingDependencyDetector : IEverythingDetector
             }
             _logger.LogInformation("[检测 1/5] Everything 进程存活 — 通过");
 
+            // ---- SDK 版本探测（步骤 1 之后）：尝试 SDK 3.0，失败则回退 SDK 2.0 ----
+            int sdkVersion = 2;
+            IntPtr clientHandle = IntPtr.Zero;
+            try
+            {
+                clientHandle = Everything3Native.Everything3_ConnectW(null);
+                if (clientHandle != IntPtr.Zero)
+                {
+                    sdkVersion = 3;
+                    _logger.LogInformation("检测到 Everything SDK 3.0（命名管道模式），客户端句柄: 0x{Handle:X}",
+                        clientHandle);
+                }
+            }
+            catch (EntryPointNotFoundException)
+            {
+                _logger.LogInformation("Everything64.dll 不含 SDK 3.0 导出，回退 SDK 2.0（全局状态模式）");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "SDK 3.0 探测失败，回退 SDK 2.0");
+            }
+
             // ---- 步骤 2：IPC 通信验证（SDK 2.0 通过执行一次搜索来验证）----
             ct.ThrowIfCancellationRequested();
             _logger.LogInformation("[检测 2/5] 验证 Everything IPC 通信...");
@@ -192,9 +214,10 @@ public class EverythingDependencyDetector : IEverythingDetector
                 FRN_AVAILABLE = frnAvailable,
                 DBLoaded = EverythingNative.Everything_IsDBLoaded(),
                 IsIndexing = isIndexing,
+                RawVersion = EverythingNative.Everything_GetVersion(),
                 ElapsedMilliseconds = sw.ElapsedMilliseconds,
-                SdkVersion = 2,
-                ClientHandle = IntPtr.Zero,
+                SdkVersion = sdkVersion,
+                ClientHandle = clientHandle,
             };
         }
         catch (DllNotFoundException ex)
