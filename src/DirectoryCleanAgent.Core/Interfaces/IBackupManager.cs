@@ -74,30 +74,6 @@ public interface IBackupManager
 }
 
 /// <summary>
-/// 可回滚操作批次摘要信息（用于历史记录列表展示）
-/// </summary>
-public record OperationBatchInfo
-{
-    /// <summary>操作批次 UUID</summary>
-    public required string OperationId { get; init; }
-
-    /// <summary>操作执行时间戳（UTC）</summary>
-    public required DateTime ExecutedAt { get; init; }
-
-    /// <summary>批次中的文件总数</summary>
-    public required int FileCount { get; init; }
-
-    /// <summary>批次释放的总空间（字节）</summary>
-    public required long TotalSizeBytes { get; init; }
-
-    /// <summary>删除方式</summary>
-    public required DeleteMethod Method { get; init; }
-
-    /// <summary>是否仍可回滚（部分文件可能已被永久删除或过期）</summary>
-    public required bool IsRollbackable { get; init; }
-}
-
-/// <summary>
 /// SHA-256 哈希校验结果
 /// </summary>
 public record HashVerificationResult

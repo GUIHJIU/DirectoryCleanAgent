@@ -1,5 +1,4 @@
 using DirectoryCleanAgent.Core.DTOs;
-using DirectoryCleanAgent.Core.Interfaces;
 
 namespace DirectoryCleanAgent.Data;
 

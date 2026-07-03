@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -23,6 +24,19 @@ public sealed class TombstoneCache : ITombstoneCache
 
     // FRN 不可用时使用此字典（指纹匹配，强制 3 天过期）
     private readonly ConcurrentDictionary<string, LocalTombstone> _fingerprintCache = new();
+
+    /// <summary>
+    /// ISO 8601 日期时间格式正则，用于精确区分 FRN 键与指纹键。
+    ///
+    /// FRN 键格式: "{VolumeGuid}:{FileReferenceNumber}"，不含日期时间。
+    /// 指纹键格式: "{Size}:{LastWriteTime:O}"，包含 ISO 8601 格式的时间戳（如 "2026-06-21T10:30:00.0000000"）。
+    ///
+    /// 通过检测 "YYYY-MM-DDTHH:MM:SS" 模式来精确识别指纹键，
+    /// 替代此前 Contains('T') 的启发式判断（A3 审计偏差 #2 修复）。
+    /// </summary>
+    private static readonly Regex Iso8601Pattern = new(
+        @"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private readonly ILocalTombstoneRepository _repository;
     private readonly ILogger<TombstoneCache> _logger;
@@ -170,16 +184,16 @@ public sealed class TombstoneCache : ITombstoneCache
     /// <summary>
     /// 将单条墓碑添加到对应的缓存字典中。
     /// 根据 FileIdentityKey 的格式自动判断应放入 FRN 缓存还是指纹缓存：
-    /// - 包含 ":" 且不含 "T"（ISO 日期分隔符）→ FRN 键
-    /// - 否则 → 指纹键
+    /// - 匹配 ISO 8601 日期时间模式 → 指纹键（降级匹配，强制 3 天过期）
+    /// - 不匹配 → FRN 键（精确匹配，无过期限制）
     /// </summary>
     private void AddToCache(
         LocalTombstone tombstone, ref int frnCount, ref int fingerprintCount)
     {
-        // FRN 键格式: "{VolumeGuid}:{FRN}"（包含冒号）
-        // 指纹键格式: "{Size}:{LastWriteTime:O}"（包含 ISO 日期时间，含 T 分隔符）
-        // 区分方式：指纹键必然包含日期时间的 "T"（如 "2026-06-21T10:30:00"）
-        if (tombstone.FileIdentityKey.Contains('T'))
+        // FRN 键格式: "{VolumeGuid}:{FileReferenceNumber}"，不含日期时间
+        // 指纹键格式: "{Size}:{LastWriteTime:O}"，必然包含 ISO 8601 时间戳
+        // 通过正则精确检测 "YYYY-MM-DDTHH:MM:SS" 模式来区分
+        if (Iso8601Pattern.IsMatch(tombstone.FileIdentityKey))
         {
             _fingerprintCache[tombstone.FileIdentityKey] = tombstone;
             fingerprintCount++;

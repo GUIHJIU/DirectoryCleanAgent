@@ -2,7 +2,6 @@ using System.IO.Compression;
 using System.Text;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Enums;
-using DirectoryCleanAgent.Core.Interfaces;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
