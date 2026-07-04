@@ -47,6 +47,9 @@ public class JsonConfigService : IConfigService, IDisposable
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
+
+        // 构造时即填充必填字段默认值，确保 LoadAsync 之前 Current 属性已可用
+        EnsureDefaults();
     }
 
     // ============================================================
@@ -95,6 +98,9 @@ public class JsonConfigService : IConfigService, IDisposable
             _logger.LogInformation(
                 "配置加载完成。语言={Language}, 模式={Mode}, 规则版本={Version}",
                 _current.Language, _current.UserMode, _current.RuleCacheVersion);
+
+            // 确保必填字段有默认值
+            EnsureDefaults();
         }
         catch (OperationCanceledException)
         {
@@ -105,6 +111,7 @@ public class JsonConfigService : IConfigService, IDisposable
         {
             _logger.LogError(ex, "加载配置文件失败: {Path}，将使用默认配置", _configFilePath);
             _current = new UserConfig();
+            EnsureDefaults();
         }
         finally
         {
@@ -115,11 +122,12 @@ public class JsonConfigService : IConfigService, IDisposable
     /// <inheritdoc />
     public async Task SaveAsync(CancellationToken ct = default)
     {
+        var saved = false;
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             await SaveInternalAsync(ct).ConfigureAwait(false);
-            OnConfigChanged();
+            saved = true;
         }
         catch (OperationCanceledException)
         {
@@ -134,6 +142,12 @@ public class JsonConfigService : IConfigService, IDisposable
         finally
         {
             _semaphore.Release();
+        }
+
+        // ConfigChanged 在锁外触发，防止事件处理器回调 IConfigService 时死锁
+        if (saved)
+        {
+            OnConfigChanged();
         }
     }
 
@@ -177,8 +191,26 @@ public class JsonConfigService : IConfigService, IDisposable
     // ============================================================
 
     /// <summary>
-    /// 从文件读取并反序列化配置。
+    /// 确保必填配置字段有默认值。
+    /// 在配置加载完成后（无论来源是文件还是新建）调用。
     /// </summary>
+    private void EnsureDefaults()
+    {
+        // 确保 IncludedVolumes 至少包含系统盘
+        if (_current.IncludedVolumes.Count == 0)
+        {
+            var systemDrive = Path.GetPathRoot(Environment.SystemDirectory)?.TrimEnd('\\') ?? "C:";
+            _current.IncludedVolumes.Add(systemDrive);
+            _logger.LogDebug("IncludedVolumes 为空，自动添加系统盘 {Drive}", systemDrive);
+        }
+
+        // 确保 DataStoragePath 不为空，默认使用 %LocalAppData%\SpaceClear
+        if (string.IsNullOrWhiteSpace(_current.DataStoragePath))
+        {
+            _current.DataStoragePath = _configDirectory;
+            _logger.LogDebug("DataStoragePath 为空，自动设为默认路径: {Path}", _configDirectory);
+        }
+    }
     private async Task ReadFromFileAsync(CancellationToken ct)
     {
         using var stream = new FileStream(
@@ -200,13 +232,6 @@ public class JsonConfigService : IConfigService, IDisposable
             _current = new UserConfig();
         }
 
-        // 确保 IncludedVolumes 至少包含系统盘
-        if (_current.IncludedVolumes.Count == 0)
-        {
-            var systemDrive = Path.GetPathRoot(Environment.SystemDirectory)?.TrimEnd('\\') ?? "C:";
-            _current.IncludedVolumes.Add(systemDrive);
-            _logger.LogDebug("IncludedVolumes 为空，自动添加系统盘 {Drive}", systemDrive);
-        }
     }
 
     /// <summary>

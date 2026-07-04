@@ -108,7 +108,7 @@ public class UserConfig
     [JsonPropertyName("userExcludedDirs")]
     public List<string> UserExcludedDirs { get; set; } = new();
 
-    /// <summary>用户排除的文件扩展名列表（含点号，如 ".log"）</summary>
+    /// <summary>用户排除的文件扩展名列表（可含前导点号，如 ".log" 或 "log" 均可，代码自动归一化）</summary>
     [JsonPropertyName("userExcludedExtensions")]
     public List<string> UserExcludedExtensions { get; set; } = new();
 
@@ -173,6 +173,9 @@ public class UserConfig
     /// <summary>
     /// 创建当前配置的深拷贝副本。
     /// 调用方可安全地读取和修改副本，不会影响 JsonConfigService 内部的可变实例。
+    ///
+    /// ⚠️ 注意：添加新的可变引用类型属性（如 List、Dictionary、HashSet 等）时，
+    /// 必须在此方法中手动深拷贝，否则新旧实例将共享同一个集合引用，导致数据污染。
     /// </summary>
     /// <returns>独立的深拷贝 UserConfig 实例</returns>
     public UserConfig Clone()
