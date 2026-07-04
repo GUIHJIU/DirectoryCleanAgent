@@ -11,6 +11,10 @@ namespace DirectoryCleanAgent.Rules.HardRules;
 /// 不被误删。用户可以通过排除规则进一步自定义保护范围。
 ///
 /// 优先级4的规则返回 Protect verdict，决策引擎会将其映射为 final_action = Protected。
+///
+/// 已知限制：WSL 发行版路径基于默认安装位置检测（\Packages\CanonicalGroupLimited、
+/// \AppData\Local\Docker\wsl）。若用户通过 wsl --import 指定了自定义发行版路径，
+/// 这些路径将不受保护。未来版本可考虑读取 WSL 注册表配置动态获取实际发行版路径。
 /// </summary>
 public static class BuiltInProtectRules
 {

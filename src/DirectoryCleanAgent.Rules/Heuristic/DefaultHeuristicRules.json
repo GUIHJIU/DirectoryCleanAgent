@@ -70,16 +70,18 @@
       }
     },
     {
-      "name": "nuget_npm_cache",
+      "name": "package_manager_cache",
       "priority": 5,
       "semanticCategory": "应用缓存",
-      "reason": "超过60天的包管理器缓存文件",
+      "reason": "超过60天的包管理器缓存文件（NuGet/npm/pip/Cargo/Go）",
       "enabled": true,
       "conditions": {
         "pathPatterns": [
           "**\\.nuget\\**",
           "**\\node_modules\\.cache\\**",
-          "**\\pip-cache\\**"
+          "**\\pip-cache\\**",
+          "**\\target\\release\\**",
+          "**\\go\\pkg\\mod\\**"
         ],
         "minAgeDays": 60
       }

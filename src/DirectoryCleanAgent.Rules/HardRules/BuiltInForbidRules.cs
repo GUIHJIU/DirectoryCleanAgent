@@ -1,6 +1,7 @@
 using DirectoryCleanAgent.Core.Config;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Enums;
+using DirectoryCleanAgent.Core.PathHandling;
 
 namespace DirectoryCleanAgent.Rules.HardRules;
 
@@ -107,18 +108,14 @@ public static class BuiltInForbidRules
         {
             RuleName = ruleName;
             Reason = reason;
-            // 同时支持普通格式和 \\?\ 格式
-            _forbiddenPathUpper = forbiddenPath.ToUpperInvariant();
+            // 使用 PathNormalizer 标准化路径（转为 \\?\ 格式），与 AgePathAutoDeleteRule 保持一致
+            _forbiddenPathUpper = PathNormalizer.Normalize(forbiddenPath).ToUpperInvariant();
         }
 
         public RuleVerdict? Evaluate(FileItem file, UserConfig config)
         {
-            // FileItem.FilePath 是 \\?\ 格式，去掉前缀后再比较
+            // FileItem.FilePath 和 _forbiddenPathUpper 均已标准化为 \\?\ 格式，直接比较
             var filePathUpper = file.FilePath.ToUpperInvariant();
-            // 检查 \\?\ 格式
-            if (filePathUpper.StartsWith(@"\\?\" + _forbiddenPathUpper, StringComparison.Ordinal))
-                return RuleVerdict.Forbid;
-            // 也检查无前缀格式（以防万一）
             if (filePathUpper.StartsWith(_forbiddenPathUpper, StringComparison.Ordinal))
                 return RuleVerdict.Forbid;
             return null;

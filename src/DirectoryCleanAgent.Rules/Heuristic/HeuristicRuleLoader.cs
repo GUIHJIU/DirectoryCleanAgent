@@ -86,6 +86,18 @@ public sealed class HeuristicRuleLoader
             // 过滤禁用的规则
             var activeRules = allRules.Where(r => r is HeuristicRuleAdapter a && a.Enabled).ToList<IRule>();
 
+            // 验证规则优先级（启发式规则只允许 5=建议删除 或 6=建议保留）
+            var invalidPriorityRules = activeRules
+                .Where(r => r.Priority != 5 && r.Priority != 6)
+                .ToList();
+            foreach (var invalid in invalidPriorityRules)
+            {
+                _logger.LogWarning(
+                    "启发式规则 '{RuleName}' 的优先级 {Priority} 无效（仅允许 5 或 6），已跳过该规则",
+                    invalid.RuleName, invalid.Priority);
+                activeRules.Remove(invalid);
+            }
+
             // 预编译所有规则的路径 Glob 模式（一次性 RegexOptions.Compiled，避免每文件重新编译）
             CompilePathPatterns(activeRules);
 

@@ -223,7 +223,8 @@ public class HeuristicRuleTests
             Name = "test", Priority = 5, SemanticCategory = "测试", Reason = "test",
             Conditions = new RuleConditions
             {
-                PathPatterns = new List<string> { @"**\Downloads\**" }
+                PathPatterns = new List<string> { @"**\Downloads\**" },
+                CompiledPathPatterns = new List<CompiledGlobPattern> { new(@"**\Downloads\**") }
             }
         };
         var file = CreateFile(@"\\?\C:\Users\test\Downloads\setup.exe");
@@ -240,7 +241,8 @@ public class HeuristicRuleTests
             Name = "test", Priority = 5, SemanticCategory = "测试", Reason = "test",
             Conditions = new RuleConditions
             {
-                PathPatterns = new List<string> { @"**\Downloads\**" }
+                PathPatterns = new List<string> { @"**\Downloads\**" },
+                CompiledPathPatterns = new List<CompiledGlobPattern> { new(@"**\Downloads\**") }
             }
         };
         var file = CreateFile(@"\\?\C:\Users\test\Documents\report.docx");
@@ -257,7 +259,8 @@ public class HeuristicRuleTests
             Name = "test", Priority = 5, SemanticCategory = "测试", Reason = "test",
             Conditions = new RuleConditions
             {
-                PathPatterns = new List<string> { @"**\下载\**" }
+                PathPatterns = new List<string> { @"**\下载\**" },
+                CompiledPathPatterns = new List<CompiledGlobPattern> { new(@"**\下载\**") }
             }
         };
         var file = CreateFile(@"\\?\C:\Users\test\下载\chrome_installer.exe");
@@ -274,7 +277,13 @@ public class HeuristicRuleTests
             Name = "test", Priority = 5, SemanticCategory = "测试", Reason = "test",
             Conditions = new RuleConditions
             {
-                PathPatterns = new List<string> { @"**\Videos\**", @"**\Music\**", @"**\Downloads\**" }
+                PathPatterns = new List<string> { @"**\Videos\**", @"**\Music\**", @"**\Downloads\**" },
+                CompiledPathPatterns = new List<CompiledGlobPattern>
+                {
+                    new(@"**\Videos\**"),
+                    new(@"**\Music\**"),
+                    new(@"**\Downloads\**")
+                }
             }
         };
         var file = CreateFile(@"\\?\C:\Users\test\Music\song.mp3");

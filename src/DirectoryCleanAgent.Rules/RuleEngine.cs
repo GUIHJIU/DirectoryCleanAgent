@@ -28,6 +28,7 @@ public sealed class RuleEngine : IRuleEngine, IDisposable
 {
     private readonly IConfigService _configService;
     private readonly HeuristicRuleLoader _heuristicLoader;
+    private readonly IExclusionManager _exclusionManager;
     private readonly ILogger<RuleEngine> _logger;
 
     /// <summary>当前编译好的规则列表（按优先级排序），volatile 保证多线程可见性</summary>
@@ -46,27 +47,18 @@ public sealed class RuleEngine : IRuleEngine, IDisposable
     private bool _disposed;
 
     // ============================================================
-    // 用户排除预编译缓存（V3.7 性能优化）
-    // 在 CompileRules 时一次性预编译，避免每文件动态创建 HeuristicRuleDefinition + Regex
-    // ============================================================
-
-    /// <summary>预编译的用户排除目录 Glob 模式（无通配符的目录路径也存储为 CompiledGlobPattern）</summary>
-    private volatile CompiledUserExclusionCache _userExclusionCache = CompiledUserExclusionCache.Empty;
-
-    /// <summary>用户排除扩展名的 HashSet（OrdinalIgnoreCase，O(1) 查找替代 O(n) 列表遍历）</summary>
-    private volatile HashSet<string> _userExcludedExtensionsSet = new(StringComparer.OrdinalIgnoreCase);
-
-    // ============================================================
     // 构造与生命周期
     // ============================================================
 
     public RuleEngine(
         IConfigService configService,
         HeuristicRuleLoader heuristicLoader,
+        IExclusionManager exclusionManager,
         ILogger<RuleEngine> logger)
     {
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         _heuristicLoader = heuristicLoader ?? throw new ArgumentNullException(nameof(heuristicLoader));
+        _exclusionManager = exclusionManager ?? throw new ArgumentNullException(nameof(exclusionManager));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // 订阅配置变更事件 — 实现热加载的核心链路：
@@ -77,84 +69,6 @@ public sealed class RuleEngine : IRuleEngine, IDisposable
         // 初始编译规则列表
         CompileRules();
         _logger.LogInformation("规则引擎初始化完成，共 {Count} 条活动规则", _rules.Count);
-    }
-
-    // ============================================================
-    // 用户排除预编译缓存（V3.7 性能优化）
-    // ============================================================
-
-    /// <summary>
-    /// 预编译的用户排除缓存 — 将 UserConfig 中的排除目录和扩展名
-    /// 预编译为高效查找结构，避免每文件重复解析。
-    /// </summary>
-    private sealed class CompiledUserExclusionCache
-    {
-        /// <summary>预编译的目录 Glob 模式（含无通配符的纯路径前缀）</summary>
-        public IReadOnlyList<CompiledGlobPattern> DirPatterns { get; init; } = Array.Empty<CompiledGlobPattern>();
-
-        /// <summary>纯路径前缀（无通配符），用于 StartsWith 快速匹配</summary>
-        public IReadOnlyList<string> PlainDirPrefixes { get; init; } = Array.Empty<string>();
-
-        /// <summary>排除扩展名 HashSet（小写，不含前导点）</summary>
-        public HashSet<string> Extensions { get; init; } = new(StringComparer.OrdinalIgnoreCase);
-
-        public static CompiledUserExclusionCache Empty => new();
-    }
-
-    /// <summary>
-    /// 从 UserConfig 构建预编译的用户排除缓存。
-    /// 在 CompileRules() 和 OnConfigChanged() 中调用。
-    /// </summary>
-    private static CompiledUserExclusionCache BuildExclusionCache(UserConfig config)
-    {
-        var dirPatterns = new List<CompiledGlobPattern>();
-        var plainPrefixes = new List<string>();
-        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        // 编译目录排除模式
-        if (config.UserExcludedDirs.Count > 0)
-        {
-            foreach (var dir in config.UserExcludedDirs)
-            {
-                if (string.IsNullOrWhiteSpace(dir))
-                    continue;
-
-                var trimmed = dir.TrimEnd('\\').ToLowerInvariant();
-
-                if (trimmed.Contains('*') || trimmed.Contains('?'))
-                {
-                    // 通配符模式 → 预编译为 CompiledGlobPattern
-                    dirPatterns.Add(new CompiledGlobPattern(trimmed));
-                }
-                else
-                {
-                    // 纯路径前缀 → 加入快速匹配列表
-                    plainPrefixes.Add(trimmed);
-                }
-            }
-        }
-
-        // 编译扩展名排除
-        if (config.UserExcludedExtensions.Count > 0)
-        {
-            foreach (var ext in config.UserExcludedExtensions)
-            {
-                if (string.IsNullOrWhiteSpace(ext))
-                    continue;
-
-                // 统一去除前导点，小写
-                var clean = ext.TrimStart('.').ToLowerInvariant();
-                if (clean.Length > 0)
-                    extensions.Add(clean);
-            }
-        }
-
-        return new CompiledUserExclusionCache
-        {
-            DirPatterns = dirPatterns,
-            PlainDirPrefixes = plainPrefixes,
-            Extensions = extensions
-        };
     }
 
     // ============================================================
@@ -182,9 +96,21 @@ public sealed class RuleEngine : IRuleEngine, IDisposable
             if (!userExclusionsChecked && rule.Priority >= UserExcludePriority)
             {
                 userExclusionsChecked = true;
-                var excludeResult = EvaluateUserExclusions(file, config);
-                if (excludeResult != null)
-                    return excludeResult;
+                var isExcluded = ReferenceEquals(config, _configService.Current)
+                    ? _exclusionManager.IsExcluded(file.FilePath)
+                    : ExclusionManager.IsExcluded(file.FilePath, config);
+
+                if (isExcluded)
+                {
+                    return new RuleResult
+                    {
+                        Verdict = RuleVerdict.Exclude,
+                        SemanticCategory = UserExcludeCategory,
+                        MatchedRuleName = "user_exclude",
+                        RulePriority = UserExcludePriority,
+                        Reason = "用户排除规则"
+                    };
+                }
             }
 
             try
@@ -218,86 +144,25 @@ public sealed class RuleEngine : IRuleEngine, IDisposable
         // 如果编译规则全部遍历完但用户排除尚未检查（规则列表可能为空或不含P4+）
         if (!userExclusionsChecked)
         {
-            var excludeResult = EvaluateUserExclusions(file, config);
-            if (excludeResult != null)
-                return excludeResult;
-        }
+            var isExcluded = ReferenceEquals(config, _configService.Current)
+                ? _exclusionManager.IsExcluded(file.FilePath)
+                : ExclusionManager.IsExcluded(file.FilePath, config);
 
-        // 所有规则均未命中 → 返回默认保留
-        return RuleResult.NoMatch;
-    }
-
-    /// <summary>
-    /// 评估用户排除规则（优先级3）。
-    /// 使用预编译缓存（_userExclusionCache + _userExcludedExtensionsSet），
-    /// 避免每文件动态创建 HeuristicRuleDefinition 和编译正则。
-    /// </summary>
-    private RuleResult? EvaluateUserExclusions(FileItem file, UserConfig config)
-    {
-        var cache = _userExclusionCache;
-
-        // 检查目录排除
-        if (cache.PlainDirPrefixes.Count > 0 || cache.DirPatterns.Count > 0)
-        {
-            // FileItem.FilePath 使用 \\?\ 前缀，去除前缀后用于匹配
-            var filePathLower = file.FilePath.ToLowerInvariant();
-            var filePathNoPrefix = filePathLower.StartsWith(@"\\?\")
-                ? filePathLower[4..]
-                : filePathLower;
-
-            // 1) 纯路径前缀快速匹配（无通配符，仅 StartsWith）
-            foreach (var prefix in cache.PlainDirPrefixes)
-            {
-                if (filePathLower.StartsWith(prefix, StringComparison.Ordinal) ||
-                    filePathNoPrefix.StartsWith(prefix, StringComparison.Ordinal))
-                {
-                    return new RuleResult
-                    {
-                        Verdict = RuleVerdict.Exclude,
-                        SemanticCategory = UserExcludeCategory,
-                        MatchedRuleName = "user_exclude_dir",
-                        RulePriority = UserExcludePriority,
-                        Reason = $"用户排除目录（前缀匹配）"
-                    };
-                }
-            }
-
-            // 2) 预编译的 Glob 模式匹配
-            foreach (var pattern in cache.DirPatterns)
-            {
-                // 同时检查 \\?\ 前缀版和去除前缀版
-                if (pattern.IsMatch(filePathLower) || pattern.IsMatch(filePathNoPrefix))
-                {
-                    return new RuleResult
-                    {
-                        Verdict = RuleVerdict.Exclude,
-                        SemanticCategory = UserExcludeCategory,
-                        MatchedRuleName = "user_exclude_dir",
-                        RulePriority = UserExcludePriority,
-                        Reason = $"用户排除目录（Glob 匹配）"
-                    };
-                }
-            }
-        }
-
-        // 检查扩展名排除（O(1) HashSet 查找替代 O(n) 列表遍历）
-        if (cache.Extensions.Count > 0 && file.Extension != null)
-        {
-            var fileExt = file.Extension.TrimStart('.'); // 去除前导点
-            if (cache.Extensions.Contains(fileExt))
+            if (isExcluded)
             {
                 return new RuleResult
                 {
                     Verdict = RuleVerdict.Exclude,
                     SemanticCategory = UserExcludeCategory,
-                    MatchedRuleName = "user_exclude_ext",
+                    MatchedRuleName = "user_exclude",
                     RulePriority = UserExcludePriority,
-                    Reason = $"用户排除扩展名"
+                    Reason = "用户排除规则"
                 };
             }
         }
 
-        return null;
+        // 所有规则均未命中 → 返回默认保留
+        return RuleResult.NoMatch;
     }
 
     // ============================================================
@@ -398,11 +263,6 @@ public sealed class RuleEngine : IRuleEngine, IDisposable
                 allRules.Sort((a, b) => a.Priority.CompareTo(b.Priority));
 
                 _rules = allRules.AsReadOnly();
-
-                // 重建用户排除预编译缓存
-                var config = _configService.Current;
-                _userExclusionCache = BuildExclusionCache(config);
-                _userExcludedExtensionsSet = _userExclusionCache.Extensions;
             }
             catch (Exception ex)
             {
@@ -424,6 +284,10 @@ public sealed class RuleEngine : IRuleEngine, IDisposable
 
         // 取消订阅配置变更事件，防止内存泄漏
         _configService.ConfigChanged -= OnConfigChanged;
+
+        // 释放排除管理器
+        if (_exclusionManager is IDisposable disposable)
+            disposable.Dispose();
 
         _logger.LogDebug("RuleEngine 已释放");
     }

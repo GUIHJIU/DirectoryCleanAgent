@@ -23,6 +23,10 @@ public sealed class CompiledGlobPattern
     // 含 ** 的复杂模式 → 按 ** 分割后的各段正则（首段锚定开头，末段锚定结尾）
     private readonly CompiledDoubleStarSegment[]? _doubleStarSegments;
 
+    // 是否以 ** 开头/结尾（用于判断锚定行为）
+    private readonly bool _startsWithDoubleStar;
+    private readonly bool _endsWithDoubleStar;
+
     public CompiledGlobPattern(string pattern)
     {
         _pattern = pattern ?? throw new ArgumentNullException(nameof(pattern));
@@ -30,13 +34,15 @@ public sealed class CompiledGlobPattern
 
         if (pat.Contains("**"))
         {
+            _startsWithDoubleStar = pat.StartsWith("**");
+            _endsWithDoubleStar = pat.EndsWith("**");
             _doubleStarSegments = CompileDoubleStarSegments(pat);
         }
         else if (pat.Contains('*') || pat.Contains('?'))
         {
             _simpleRegex = CompileRegex(GlobToRegex(pat));
         }
-        // 无通配符 → _simpleRegex 和 _doubleStarSegments 均为 null，使用 Contains 匹配
+        // 无通配符 → _simpleRegex 和 _doubleStarSegments 均为 null，使用路径组件匹配
     }
 
     /// <summary>
@@ -57,8 +63,10 @@ public sealed class CompiledGlobPattern
             return MatchDoubleStar(path);
         }
 
-        // 无通配符：简单子串包含匹配
-        return path.Contains(_pattern.ToLowerInvariant());
+        // 无通配符：作为完整路径组件精确匹配（前后必须是 \ 或字符串边界）
+        var patternLower = _pattern.ToLowerInvariant();
+        int searchStart = 0;
+        return TryMatchPathComponent(path, patternLower, ref searchStart);
     }
 
     // ============================================================
@@ -73,10 +81,18 @@ public sealed class CompiledGlobPattern
         for (int i = 0; i < segments.Length; i++)
         {
             var seg = segments[i];
+            bool isFirst = (i == 0);
+            bool isLast = (i == segments.Length - 1);
 
-            if (i == 0)
+            // 判断锚定行为：
+            // - 首段锚定开头：仅当模式不以 ** 开头时
+            // - 末段锚定结尾：仅当模式不以 ** 结尾时
+            bool anchorStart = isFirst && !_startsWithDoubleStar;
+            bool anchorEnd = isLast && !_endsWithDoubleStar;
+
+            if (anchorStart)
             {
-                // 首段：必须从路径开头匹配
+                // 首段锚定：必须从路径开头匹配
                 if (seg.Regex != null)
                 {
                     var match = seg.Regex.Match(path);
@@ -86,25 +102,25 @@ public sealed class CompiledGlobPattern
                 }
                 else
                 {
-                    // 无通配符首段：必须以该文本开头
+                    // 无通配符首段：必须以该文本开头，且后接路径分隔符或字符串结尾
                     if (!path.StartsWith(seg.Literal, StringComparison.Ordinal))
                         return false;
-                    searchStart = seg.Literal.Length;
+                    int afterLiteral = seg.Literal.Length;
+                    if (afterLiteral < path.Length && path[afterLiteral] != '\\')
+                        return false;
+                    searchStart = afterLiteral;
                 }
             }
-            else if (i == segments.Length - 1)
+            else if (anchorEnd)
             {
-                // 末段：必须匹配到路径结尾
+                // 末段锚定：必须匹配到路径结尾
                 if (seg.Regex != null)
                 {
-                    // 从 searchStart 开始查找，验证匹配是否延伸到路径末尾
                     var match = seg.Regex.Match(path, searchStart);
                     if (!match.Success)
                         return false;
-                    // 验证匹配结束位置是否是路径末尾
                     if (match.Index + match.Length != path.Length)
                     {
-                        // 尝试从更后面的位置匹配（贪婪匹配到末尾）
                         match = seg.Regex.Match(path, path.Length - 1);
                         bool foundAtEnd = false;
                         while (match.Success)
@@ -122,14 +138,17 @@ public sealed class CompiledGlobPattern
                 }
                 else
                 {
-                    // 无通配符末段：路径必须以该文本结尾
+                    // 无通配符末段：路径必须以该文本结尾，且前接路径分隔符或字符串开头
                     if (!path.EndsWith(seg.Literal, StringComparison.Ordinal))
+                        return false;
+                    int literalStart = path.Length - seg.Literal.Length;
+                    if (literalStart > 0 && path[literalStart - 1] != '\\')
                         return false;
                 }
             }
             else
             {
-                // 中间段：必须在 searchStart 之后找到
+                // 非锚定段（被 ** 包围或中间段）：在 searchStart 之后找到，作为完整路径组件
                 if (seg.Regex != null)
                 {
                     var match = seg.Regex.Match(path, searchStart);
@@ -139,15 +158,42 @@ public sealed class CompiledGlobPattern
                 }
                 else
                 {
-                    int idx = path.IndexOf(seg.Literal, searchStart, StringComparison.Ordinal);
-                    if (idx < 0)
+                    if (!TryMatchPathComponent(path, seg.Literal, ref searchStart))
                         return false;
-                    searchStart = idx + seg.Literal.Length;
                 }
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 在路径中查找字面量作为完整路径组件（前后必须是 \ 或字符串边界）。
+    /// 从 searchStart 位置开始搜索，找到后更新 searchStart 为匹配结束位置。
+    /// </summary>
+    /// <returns>true 表示找到完整的路径组件匹配</returns>
+    private static bool TryMatchPathComponent(string path, string literal, ref int searchStart)
+    {
+        int idx = searchStart;
+        while (true)
+        {
+            idx = path.IndexOf(literal, idx, StringComparison.Ordinal);
+            if (idx < 0)
+                return false;
+
+            // 验证匹配位置前是路径分隔符或字符串开头
+            bool validStart = (idx == 0 || path[idx - 1] == '\\');
+            // 验证匹配位置后是路径分隔符或字符串结尾
+            int afterIdx = idx + literal.Length;
+            bool validEnd = (afterIdx == path.Length || path[afterIdx] == '\\');
+
+            if (validStart && validEnd)
+            {
+                searchStart = afterIdx;
+                return true;
+            }
+            idx++; // 继续搜索下一个位置
+        }
     }
 
     /// <summary>

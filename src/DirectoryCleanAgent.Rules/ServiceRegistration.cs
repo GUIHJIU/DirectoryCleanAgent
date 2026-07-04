@@ -48,13 +48,17 @@ public static class RulesServiceRegistration
             return loader;
         });
 
-        // 2. IRuleEngine / RuleEngine — 规则引擎主实现
+        // 2. IExclusionManager / ExclusionManager — 排除管理器（在规则引擎之前注册）
+        services.AddSingleton<IExclusionManager, ExclusionManager>();
+
+        // 3. IRuleEngine / RuleEngine — 规则引擎主实现
         services.AddSingleton<IRuleEngine>(sp =>
         {
             var configService = sp.GetRequiredService<IConfigService>();
             var heuristicLoader = sp.GetRequiredService<HeuristicRuleLoader>();
+            var exclusionManager = sp.GetRequiredService<IExclusionManager>();
             var logger = sp.GetRequiredService<ILogger<RuleEngine>>();
-            return new RuleEngine(configService, heuristicLoader, logger);
+            return new RuleEngine(configService, heuristicLoader, exclusionManager, logger);
         });
 
         return services;

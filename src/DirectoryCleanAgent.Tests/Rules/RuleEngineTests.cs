@@ -25,6 +25,7 @@ public class RuleEngineTests : IDisposable
 {
     private readonly Mock<IConfigService> _configServiceMock;
     private readonly HeuristicRuleLoader _heuristicLoader;
+    private readonly ExclusionManager _exclusionManager;
     private readonly RuleEngine _engine;
     private readonly ILogger<RuleEngine> _engineLogger;
     private readonly string _tempRulesDir;
@@ -44,9 +45,13 @@ public class RuleEngineTests : IDisposable
         var loaderLogger = NullLoggerFactory.Instance.CreateLogger<HeuristicRuleLoader>();
         _heuristicLoader = new HeuristicRuleLoader(loaderLogger, _tempRulesDir);
 
+        // 创建 ExclusionManager
+        var exclLogger = NullLoggerFactory.Instance.CreateLogger<ExclusionManager>();
+        _exclusionManager = new ExclusionManager(_configServiceMock.Object, exclLogger);
+
         // 创建 RuleEngine
         _engineLogger = NullLoggerFactory.Instance.CreateLogger<RuleEngine>();
-        _engine = new RuleEngine(_configServiceMock.Object, _heuristicLoader, _engineLogger);
+        _engine = new RuleEngine(_configServiceMock.Object, _heuristicLoader, _exclusionManager, _engineLogger);
     }
 
     public void Dispose()
@@ -55,6 +60,7 @@ public class RuleEngineTests : IDisposable
         _disposed = true;
 
         _engine.Dispose();
+        _exclusionManager.Dispose();
 
         try
         {

@@ -30,6 +30,7 @@ public class ScanRuleEvaluateIntegrationTests : IntegrationTestBase
     private readonly ILogger<RuleEngine> _ruleLogger;
     private readonly ILogger<DecisionEngine> _decisionLogger;
     private readonly HeuristicRuleLoader _heuristicLoader;
+    private readonly ExclusionManager _exclusionManager;
     private readonly string _rulesDir;
 
     public ScanRuleEvaluateIntegrationTests() : base("scan_eval")
@@ -48,8 +49,13 @@ public class ScanRuleEvaluateIntegrationTests : IntegrationTestBase
             NullLoggerFactory.Instance.CreateLogger<HeuristicRuleLoader>(),
             _rulesDir);
 
+        // 初始化排除管理器
+        _exclusionManager = new ExclusionManager(
+            ConfigServiceMock.Object,
+            NullLoggerFactory.Instance.CreateLogger<ExclusionManager>());
+
         // 初始化规则引擎和决策引擎（真实实例，非 Mock）
-        _ruleEngine = new RuleEngine(ConfigServiceMock.Object, _heuristicLoader, _ruleLogger);
+        _ruleEngine = new RuleEngine(ConfigServiceMock.Object, _heuristicLoader, _exclusionManager, _ruleLogger);
         _decisionEngine = new DecisionEngine(ConfigServiceMock.Object, _decisionLogger);
     }
 
@@ -534,6 +540,7 @@ public class ScanRuleEvaluateIntegrationTests : IntegrationTestBase
     public new void Dispose()
     {
         _ruleEngine?.Dispose();
+        _exclusionManager?.Dispose();
         _fileGenerator?.Dispose();
         base.Dispose();
     }
