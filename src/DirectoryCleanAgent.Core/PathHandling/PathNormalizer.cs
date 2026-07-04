@@ -98,6 +98,11 @@ public static class PathNormalizer
     /// - \\?\C:\... → C:\...
     /// - \\?\UNC\server\share... → \\server\share...
     /// - 无扩展前缀的路径 → 原样返回
+    ///
+    /// 注意：通过 Normalize 转换的 \\.\ 设备路径（如 \\.\C:\file）
+    /// 经 Denormalize 后将还原为 C:\file 而非原始 \\.\C:\file。
+    /// 因为 Denormalize 的目标是生成用户可读格式，而 \\.\ 是内部设备命名空间语法。
+    /// 此行为是设计意图，非缺陷。
     /// </summary>
     /// <param name="path">带 \\?\ 前缀的路径</param>
     /// <returns>去除前缀后的标准路径</returns>
@@ -176,8 +181,8 @@ public static class PathNormalizer
         {
             var ch = path[i];
 
-            // 检查控制字符（ASCII 0-31，含 NUL）
-            if (ch <= '\u001F')
+            // 检查控制字符（ASCII 0-31，含 NUL '\0'）
+            if (ch <= '')
             {
                 throw new ArgumentException(
                     $"路径中包含非法控制字符（ASCII {(int)ch}），位置: {i}。",
@@ -198,15 +203,6 @@ public static class PathNormalizer
                         $"路径中包含非法字符 '{ch}'，位置: {i}。",
                         nameof(path));
             }
-        }
-
-        // 额外检查：路径不应包含 NUL 字符（\0）
-        // 已在控制字符检查中覆盖，此处补充提示
-        if (path.Contains('\0'))
-        {
-            throw new ArgumentException(
-                "路径中包含 NUL 字符，该字符在任何 Windows 文件系统中均不被允许。",
-                nameof(path));
         }
     }
 }
