@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using DirectoryCleanAgent.Core.Cancellation;
 using DirectoryCleanAgent.Core.Config;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Enums;
@@ -29,8 +28,9 @@ namespace DirectoryCleanAgent.Operations;
 /// B6 重构：隔离区目录解析和文件命名委托给 IQuarantineManager，
 /// 消除与 OperationExecutor 的重复代码。
 /// </summary>
-public sealed class BackupManager : CancellableOperationBase, IBackupManager
+public sealed class BackupManager : IBackupManager, IDisposable
 {
+    private readonly ILogger Logger;
     private readonly ILocalTombstoneRepository _tombstoneRepo;
     private readonly IDeletionRecordRepository _deletionRecordRepo;
     private readonly ITombstoneCache _tombstoneCache;
@@ -57,14 +57,14 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
         ITombstoneCache tombstoneCache,
         IConfigService configService,
         IQuarantineManager quarantineManager)
-        : base(logger)
     {
+        Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _tombstoneRepo = tombstoneRepo ?? throw new ArgumentNullException(nameof(tombstoneRepo));
         _deletionRecordRepo = deletionRecordRepo ?? throw new ArgumentNullException(nameof(deletionRecordRepo));
         _tombstoneCache = tombstoneCache ?? throw new ArgumentNullException(nameof(tombstoneCache));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         _quarantineManager = quarantineManager ?? throw new ArgumentNullException(nameof(quarantineManager));
-        _shellFileOp = new ShellFileOperation(logger);
+        _shellFileOp = new ShellFileOperation(Logger);
     }
 
     // ================================================================
@@ -732,8 +732,7 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
             if (File.Exists(cachedPath))
             {
                 var resolvedPath = ResolveRestorePath(record.FilePath);
-                return await MoveRecycleBinFileAsync(cachedPath, resolvedPath, record.FileSize, ct)
-                    .ConfigureAwait(false);
+                return MoveRecycleBinFile(cachedPath, resolvedPath, record.FileSize);
             }
             // 缓存路径已失效，移除
             hashCache.Remove(record.FileHash);
@@ -762,8 +761,7 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
                     if (string.Equals(fileHash, record.FileHash, StringComparison.OrdinalIgnoreCase))
                     {
                         var resolvedPath = ResolveRestorePath(record.FilePath);
-                        return await MoveRecycleBinFileAsync(rFile, resolvedPath, record.FileSize, ct)
-                            .ConfigureAwait(false);
+                        return MoveRecycleBinFile(rFile, resolvedPath, record.FileSize);
                     }
                 }
                 catch (OperationCanceledException)
@@ -798,10 +796,12 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
 
     /// <summary>
     /// 将回收站文件移动到目标路径。
-    /// 回收站文件通常为只读，需要先移除只读属性再移动。
+    /// 优先使用 ShellFileOperation.MoveFile（与隔离区恢复路径一致），
+    /// 失败时回退到 File.Move。
+    /// 回收站文件通常为只读，Move 前移除只读属性。
     /// </summary>
-    private static async Task<RestoreFileResult> MoveRecycleBinFileAsync(
-        string sourcePath, string destPath, long fileSize, CancellationToken ct)
+    private RestoreFileResult MoveRecycleBinFile(
+        string sourcePath, string destPath, long fileSize)
     {
         try
         {
@@ -812,16 +812,32 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
                 Directory.CreateDirectory(destDir);
             }
 
-            // 移除回收站文件的只读属性
+            // 移除回收站文件的只读属性（Shell API 通常能处理，但保留安全措施）
             var fileInfo = new FileInfo(sourcePath);
             if (fileInfo.Attributes.HasFlag(FileAttributes.ReadOnly))
             {
                 fileInfo.Attributes &= ~FileAttributes.ReadOnly;
             }
 
+            // 优先使用 ShellFileOperation.MoveFile（与隔离区恢复路径一致）
+            var moveHr = _shellFileOp.MoveFile(sourcePath, destPath);
+            if (moveHr == Shell32Native.S_OK)
+            {
+                return new RestoreFileResult
+                {
+                    Success = true,
+                    RestoredPath = destPath,
+                    FileSize = fileSize
+                };
+            }
+
+            // ShellFileOperation 失败 → 回退到 File.Move
             var denormSrc = PathNormalizer.Denormalize(sourcePath);
             var denormDst = PathNormalizer.Denormalize(destPath);
-            await Task.Run(() => File.Move(denormSrc, denormDst), ct).ConfigureAwait(false);
+            File.Move(denormSrc, denormDst);
+
+            Logger.LogOperation("RecycleBinRestore", destPath,
+                $"通过 File.Move 回退恢复成功");
 
             return new RestoreFileResult
             {
@@ -1018,10 +1034,7 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
     {
         try
         {
-            // 先刷新待写入队列以确保所有墓碑已落盘
-            await _tombstoneRepo.FlushAsync(ct).ConfigureAwait(false);
-
-            // 按操作 ID 批量删除数据库中的墓碑
+            // 按操作 ID 批量删除数据库中的墓碑（DeleteByOperationIdAsync 内部已包含 FlushAsync）
             var deletedCount = await _tombstoneRepo.DeleteByOperationIdAsync(operationId, ct)
                 .ConfigureAwait(false);
 
@@ -1036,6 +1049,15 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
             Logger.LogError(ex, "[墓碑清除] 清理墓碑失败: OperationId={OpId}", operationId);
             // 墓碑清除失败不影响恢复结果（文件已恢复，墓碑将随过期机制自动清理）
         }
+    }
+
+    /// <summary>
+    /// 释放资源。
+    /// </summary>
+    public void Dispose()
+    {
+        // BackupManager 不持有需要释放的非托管资源。
+        // 取消令牌由调用方（UI）管理。
     }
 
     // ================================================================

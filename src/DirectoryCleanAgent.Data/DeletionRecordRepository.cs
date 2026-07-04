@@ -204,7 +204,9 @@ public sealed class DeletionRecordRepository : IDeletionRecordRepository, IDispo
                 MIN(created_at) AS first_created,
                 COUNT(*) AS file_count,
                 SUM(file_size) AS total_size,
-                MIN(deletion_method) AS method
+                MIN(deletion_method) AS method,
+                MAX(CASE WHEN deletion_method != 'PERMANENT'
+                    THEN 1 ELSE 0 END) AS has_recoverable
             FROM DeletionRecord
             GROUP BY operation_id
             ORDER BY first_created DESC
@@ -220,14 +222,15 @@ public sealed class DeletionRecordRepository : IDeletionRecordRepository, IDispo
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
+            var method = ParseDeleteMethod(reader.GetString(4));
             results.Add(new OperationBatchInfo
             {
                 OperationId = reader.GetString(0),
                 ExecutedAt = DateTime.Parse(reader.GetString(1)),
                 FileCount = reader.GetInt32(2),
                 TotalSizeBytes = reader.GetInt64(3),
-                Method = ParseDeleteMethod(reader.GetString(4)),
-                IsRollbackable = true, // 由调用方根据实际情况更新
+                Method = method,
+                IsRollbackable = reader.GetInt32(5) == 1,
             });
         }
 
