@@ -131,6 +131,13 @@ public class UserConfig
     [JsonPropertyName("ruleCacheVersion")]
     public int RuleCacheVersion { get; set; } = 0;
 
+    /// <summary>
+    /// SHA-256 哈希并发度。0=自动（使用 CPU 核心数），>0=手动指定上限（不超过 CPU 核心数）。
+    /// HDD 用户建议设为 2-4 以避免磁盘 I/O 饱和导致系统卡顿。
+    /// </summary>
+    [JsonPropertyName("hashConcurrency")]
+    public int HashConcurrency { get; set; } = 0;
+
     /// <summary>FRN（File Reference Number）能力标记。
     /// 启动时通过探测 C:\Windows\explorer.exe 的 FRN 字段获取。
     /// false 时墓碑匹配降级为 Size+LastWriteTime 指纹模式，强制 3 天过期。

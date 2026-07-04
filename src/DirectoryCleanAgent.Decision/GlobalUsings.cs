@@ -10,6 +10,7 @@ global using System.Threading;
 global using System.Threading.Tasks;
 global using Microsoft.Extensions.Logging;
 global using DirectoryCleanAgent.Core.Config;
+global using DirectoryCleanAgent.Core.Constants;
 global using DirectoryCleanAgent.Core.DTOs;
 global using DirectoryCleanAgent.Core.Enums;
 global using DirectoryCleanAgent.Core.Interfaces;

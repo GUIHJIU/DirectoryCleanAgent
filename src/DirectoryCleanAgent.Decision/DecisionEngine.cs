@@ -74,6 +74,9 @@ public sealed class DecisionEngine : IDecisionEngine
         var config = _configService.Current;
         var aiEnabled = config.AIEnabled;
         var aiTrustLevel = config.AITrustLevel;
+        var hashConcurrency = config.HashConcurrency > 0
+            ? Math.Min(config.HashConcurrency, Environment.ProcessorCount)
+            : Environment.ProcessorCount;
         var operationId = Guid.NewGuid().ToString("N");
         var frozenAt = DateTime.UtcNow;
 
@@ -132,7 +135,7 @@ public sealed class DecisionEngine : IDecisionEngine
                     nonProtected,
                     new ParallelOptions
                     {
-                        MaxDegreeOfParallelism = Environment.ProcessorCount,
+                        MaxDegreeOfParallelism = hashConcurrency,
                         CancellationToken = ct
                     },
                     async (tuple, token) =>
@@ -160,7 +163,27 @@ public sealed class DecisionEngine : IDecisionEngine
                         }
                         catch (UnauthorizedAccessException)
                         {
-                            // 文件被其他进程独占锁定 → 无法读取，也无法删除，直接跳过
+                            // 权限不足（ACL 拒绝读取 或 路径为目录）
+                            // 文件可能仍可删除（NTFS 删除权限在父目录），但无法计算哈希
+                            var failedIndex = Interlocked.Increment(ref failedCount);
+
+                            lock (entryLock)
+                            {
+                                skippedEntries.Add(new SkippedEntry
+                                {
+                                    FilePath = cache.FilePath,
+                                    Reason = "权限不足，无法读取文件",
+                                    ExceptionType = nameof(UnauthorizedAccessException)
+                                });
+                            }
+
+                            _logger.LogWarning("文件 {Path} 权限不足，无法计算哈希（第{Count}个）",
+                                cache.FilePath, failedIndex);
+                        }
+                        catch (IOException ioEx) when ((ioEx.HResult & 0xFFFF) == 0x0020)
+                        {
+                            // ERROR_SHARING_VIOLATION (0x80070020) → 文件被其他进程独占锁定
+                            // 锁定文件无法读取哈希，也无法安全删除
                             var failedIndex = Interlocked.Increment(ref failedCount);
 
                             lock (entryLock)
@@ -169,7 +192,7 @@ public sealed class DecisionEngine : IDecisionEngine
                                 {
                                     FilePath = cache.FilePath,
                                     Reason = "文件被其他进程占用，无法访问",
-                                    ExceptionType = nameof(UnauthorizedAccessException)
+                                    ExceptionType = nameof(IOException)
                                 });
                             }
 
@@ -182,7 +205,7 @@ public sealed class DecisionEngine : IDecisionEngine
                         }
                         catch (Exception ex)
                         {
-                            // 单个文件哈希失败不中断整体快照 —— 记录警告后跳过
+                            // 其他类型的单个文件哈希失败不中断整体快照 —— 记录警告后跳过
                             var failedIndex = Interlocked.Increment(ref failedCount);
                             var reason = ex switch
                             {
@@ -333,11 +356,11 @@ public sealed class DecisionEngine : IDecisionEngine
             return FinalAction.ManualReview;
 
         // AI 标记为 safe — 无条件建议删除（AI 确认安全）
-        if (aiLabel.Equals("safe", StringComparison.OrdinalIgnoreCase))
+        if (aiLabel.Equals(AiLabelConstants.Safe, StringComparison.OrdinalIgnoreCase))
             return FinalAction.SuggestDelete;
 
         // AI 标记为 unknown — 高置信度 + 高信任度时才人工复核
-        if (aiLabel.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+        if (aiLabel.Equals(AiLabelConstants.Unknown, StringComparison.OrdinalIgnoreCase))
         {
             if (aiConfidence.Value >= 0.8 && aiTrustLevel == AITrustLevel.High)
                 return FinalAction.ManualReview;
@@ -345,7 +368,7 @@ public sealed class DecisionEngine : IDecisionEngine
         }
 
         // AI 标记为 risky — 高置信度 + 中/高信任度时人工复核
-        if (aiLabel.Equals("risky", StringComparison.OrdinalIgnoreCase))
+        if (aiLabel.Equals(AiLabelConstants.Risky, StringComparison.OrdinalIgnoreCase))
         {
             if (aiConfidence.Value >= 0.6 &&
                 (aiTrustLevel == AITrustLevel.Medium || aiTrustLevel == AITrustLevel.High))
@@ -373,7 +396,7 @@ public sealed class DecisionEngine : IDecisionEngine
         // 仅当 AI 认为 safe + 高置信度 + 用户高信任度时，升级为建议删除
         if (aiLabel != null
             && aiConfidence.HasValue
-            && aiLabel.Equals("safe", StringComparison.OrdinalIgnoreCase)
+            && aiLabel.Equals(AiLabelConstants.Safe, StringComparison.OrdinalIgnoreCase)
             && aiTrustLevel == AITrustLevel.High
             && aiConfidence.Value >= 0.7)
         {

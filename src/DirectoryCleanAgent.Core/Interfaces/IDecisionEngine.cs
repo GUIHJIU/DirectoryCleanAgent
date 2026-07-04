@@ -23,7 +23,7 @@ public interface IDecisionEngine
     /// 处理流程：
     /// 1. 遍历候选文件列表，根据决策表为每个文件计算 final_action
     /// 2. 筛选出 final_action != Protected 的文件
-    /// 3. 使用 SemaphoreSlim(ProcessorCount) 控制并发，逐文件计算 SHA-256 哈希
+    /// 3. 使用 Parallel.ForEachAsync(ProcessorCount) 控制并发，逐文件计算 SHA-256 哈希
     /// 4. 每完成一个文件报告进度
     /// 5. 全部完成后深拷贝为 ReadOnlyCollection&lt;DeleteSnapshotEntry&gt;
     /// 6. 封装为 DecisionSnapshot 返回
@@ -31,7 +31,7 @@ public interface IDecisionEngine
     /// <param name="candidates">待决策的文件缓存列表（已命中规则的文件）</param>
     /// <param name="progress">
     /// 哈希计算进度报告（0 到 candidates.Count），为 null 时不报告。
-    /// 每完成一个文件的哈希计算即调用一次 Report(completedCount)。
+    /// 每完成一个文件的仲裁即调用一次 Report(completedCount)（含 Protected 文件立即上报和哈希计算完成后上报）。
     /// </param>
     /// <param name="ct">取消令牌，触发后停止哈希计算并抛出 OperationCanceledException</param>
     /// <returns>不可变决策快照，包含所有待操作文件的冻结信息</returns>
