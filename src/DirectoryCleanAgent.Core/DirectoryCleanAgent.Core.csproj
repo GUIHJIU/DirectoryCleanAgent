@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>DirectoryCleanAgent.Core</RootNamespace>
     <AssemblyName>DirectoryCleanAgent.Core</AssemblyName>
+    <!-- A6: 显式声明嵌入式资源为启用，消除对 SDK 默认值的隐含依赖 -->
+    <EnableDefaultEmbeddedResourceItems>true</EnableDefaultEmbeddedResourceItems>
   </PropertyGroup>
 
   <ItemGroup>

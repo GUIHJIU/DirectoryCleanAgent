@@ -265,6 +265,28 @@
     <value>Ask for Directory Each Time</value>
   </data>
 
+  <!-- Settings - AI Service Type Options -->
+  <data name="Settings.AIService.OpenAI" xml:space="preserve">
+    <value>OpenAI (Cloud)</value>
+  </data>
+  <data name="Settings.AIService.Ollama" xml:space="preserve">
+    <value>Ollama (Local)</value>
+  </data>
+  <data name="Settings.AIService.Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+
+  <!-- Settings - AI Trust Level Options -->
+  <data name="Settings.AITrust.Low" xml:space="preserve">
+    <value>Low — Auto-clean only</value>
+  </data>
+  <data name="Settings.AITrust.Medium" xml:space="preserve">
+    <value>Medium — May suggest clean</value>
+  </data>
+  <data name="Settings.AITrust.High" xml:space="preserve">
+    <value>High — All actions need confirm</value>
+  </data>
+
   <!-- Settings - AI Advisor -->
   <data name="Settings.AI.Enable" xml:space="preserve">
     <value>Enable AI Advisor</value>
@@ -435,6 +457,78 @@
   </data>
   <data name="Semantic.Uncategorized" xml:space="preserve">
     <value>Uncategorized</value>
+  </data>
+
+  <!-- C5: Dry Run / Simulation -->
+  <data name="Simulate.Title" xml:space="preserve">
+    <value>Dry Run Results</value>
+  </data>
+  <data name="Simulate.CapacityCheck" xml:space="preserve">
+    <value>Checking recycle bin capacity...</value>
+  </data>
+  <data name="Simulate.Enumerating" xml:space="preserve">
+    <value>Enumerating files...</value>
+  </data>
+  <data name="Simulate.Analyzing" xml:space="preserve">
+    <value>Analyzing files...</value>
+  </data>
+  <data name="Simulate.NoData" xml:space="preserve">
+    <value>No cleanable files found</value>
+  </data>
+
+  <!-- C5: Report Export -->
+  <data name="Export.Title" xml:space="preserve">
+    <value>Export Analysis Report</value>
+  </data>
+  <data name="Export.SelectPath" xml:space="preserve">
+    <value>Select Export Path</value>
+  </data>
+  <data name="Export.Success" xml:space="preserve">
+    <value>Report exported to: {0}</value>
+  </data>
+  <data name="Export.NoSimulationData" xml:space="preserve">
+    <value>Please run a dry run first</value>
+  </data>
+  <data name="Export.HtmlFilter" xml:space="preserve">
+    <value>HTML Report (*.html)|*.html</value>
+  </data>
+  <data name="Export.CsvFilter" xml:space="preserve">
+    <value>CSV Report (*.csv)|*.csv</value>
+  </data>
+
+  <!-- C5: Report Content Labels -->
+  <data name="Report.Summary" xml:space="preserve">
+    <value>Summary Statistics</value>
+  </data>
+  <data name="Report.GeneratedAt" xml:space="preserve">
+    <value>Generated At</value>
+  </data>
+  <data name="Report.OperationId" xml:space="preserve">
+    <value>Operation Batch</value>
+  </data>
+  <data name="Report.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Report.Action" xml:space="preserve">
+    <value>Recommended Action</value>
+  </data>
+  <data name="Report.Count" xml:space="preserve">
+    <value>Count</value>
+  </data>
+  <data name="Report.Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Report.SampleFiles" xml:space="preserve">
+    <value>Sample Files</value>
+  </data>
+  <data name="Report.Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Report.LastModified" xml:space="preserve">
+    <value>Last Modified</value>
+  </data>
+  <data name="Report.AiLabel" xml:space="preserve">
+    <value>AI Label</value>
   </data>
 
   <!-- App -->

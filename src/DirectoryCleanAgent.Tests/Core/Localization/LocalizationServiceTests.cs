@@ -272,6 +272,9 @@ public class LocalizationServiceTests : IDisposable
     [InlineData("Warning.IndexingIncomplete")]
     [InlineData("Settings.Tab.General")]
     [InlineData("Wizard.Welcome.Title")]
+    [InlineData("Simulate.Title")]
+    [InlineData("Export.Title")]
+    [InlineData("Report.Summary")]
     [InlineData("App.Title")]
     public void GetString_AllLanguages_ForKey_ReturnsNonEmpty(string key)
     {
