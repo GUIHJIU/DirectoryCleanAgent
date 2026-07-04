@@ -90,7 +90,7 @@ public class FileListItem : ViewModelBase
         set => SetProperty(ref _isChecked, value);
     }
 
-    /// <summary>Everything 排序键（透传给 IFileListProvider 用于排序下推）</summary>
+    /// <summary>文件标识键（文件路径，可用于后续 Everything 精确重查）</summary>
     public string? EverythingSortKey { get; set; }
 
     /// <summary>原始 FileDecisionCache 中的 FilePath 键（用于缓存回写和增量刷新）</summary>

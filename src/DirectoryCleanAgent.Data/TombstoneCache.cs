@@ -78,17 +78,31 @@ public sealed class TombstoneCache : ITombstoneCache
     }
 
     /// <inheritdoc/>
-    public bool IsTombstoned(string? frnKey, string? fingerprintKey)
+    public bool IsTombstoned(string? frnKey, string? fingerprintKey,
+        string? filePath = null, long? fileSize = null)
     {
-        // 优先使用 FRN 精确匹配
+        // 优先使用 FRN 精确匹配（FRN 是 NTFS 物理标识，无碰撞风险）
         if (frnKey is not null && _frnCache.ContainsKey(frnKey))
         {
             return true;
         }
 
-        // 回退到指纹降级匹配
-        if (fingerprintKey is not null && _fingerprintCache.ContainsKey(fingerprintKey))
+        // 回退到指纹降级匹配 + 额外校验
+        if (fingerprintKey is not null && _fingerprintCache.TryGetValue(fingerprintKey, out var tombstone))
         {
+            // 若调用方提供了路径和大小，执行额外校验防止指纹碰撞
+            if (filePath is not null && fileSize.HasValue)
+            {
+                bool pathMatch = string.Equals(tombstone.FilePath, filePath, StringComparison.OrdinalIgnoreCase);
+                bool sizeMatch = tombstone.OriginalSize == fileSize.Value;
+
+                if (!pathMatch || !sizeMatch)
+                {
+                    // 指纹碰撞：键匹配但路径或大小不一致，视为未命中
+                    return false;
+                }
+            }
+
             return true;
         }
 

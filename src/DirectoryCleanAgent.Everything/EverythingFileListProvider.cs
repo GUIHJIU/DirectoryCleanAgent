@@ -114,6 +114,7 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
     /// <remarks>
     /// 委托给 Everything SDK 的 IsDBLoaded 查询。
     /// 返回 true 表示 Everything 正在构建索引（结果不完整）。
+    /// IsDBLoaded 是只读操作，不修改 SDK 全局状态，无需获取 _sdkLock。
     /// </remarks>
     public Task<bool> IsIndexingAsync(CancellationToken ct)
     {
@@ -233,7 +234,10 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
 
             resultCount = _sdk.GetNumResults();
 
-            // 应用 MaxResults 上限
+            // 应用 MaxResults 上限（在托管侧截断，而非通过 Everything_SetMax 下推）。
+            // 原因：SDK 2.0 的 Everything_SetMax 是全局持久状态，设置后影响后续所有查询
+            // （包括轮询），需要 save/restore 模式配合 IEverythingSdk.GetMax() 接口扩展。
+            // TODO(D3): 性能测试后评估是否需要下推优化。
             if (queryParams.MaxResults.HasValue &&
                 queryParams.MaxResults.Value < resultCount)
             {
@@ -341,18 +345,22 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
                     ? $"{volumeGuid}:{effectiveFrn.Value}"
                     : null;
 
-                string? fingerprintKey = !frnAvailable
+                // 指纹键降级：当 FRN 键构造失败时（全局 FRN 不可用、或单文件 rawFrn=0、
+                // 或 volumeGuid=null），自动降级为 Size+LastWriteTime 指纹匹配。
+                // 不依赖全局 frnAvailable 标记，因为全局可用时特定文件仍可能无有效 FRN
+                // （如 FAT32/exFAT 卷上的文件）。
+                string? fingerprintKey = (frnKey is null)
                     ? $"{sizeBytes}:{lastWriteTime:O}"
                     : null;
 
-                if (_tombstoneCache.IsTombstoned(frnKey, fingerprintKey))
+                if (_tombstoneCache.IsTombstoned(frnKey, fingerprintKey, normalizedPath, sizeBytes))
                 {
                     filesSkippedByTombstone++;
                     continue;
                 }
 
-                // --- i. 构建 EverythingSortKey ---
-                string sortKey = i.ToString();
+                // --- i. 构建 EverythingSortKey（文件路径，可用于后续 Everything 重查）---
+                string sortKey = normalizedPath;
 
                 // --- j. yield return 产出 FileItem ---
                 totalBytesYielded += sizeBytes;

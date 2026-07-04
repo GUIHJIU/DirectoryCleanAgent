@@ -144,6 +144,93 @@ public class TombstoneCacheTests
     }
 
     [Fact]
+    public async Task IsTombstoned_FingerprintMatch_ButPathMismatch_ReturnsFalse()
+    {
+        // Arrange: 指纹键匹配但文件路径不一致（指纹碰撞场景，审计偏差 #3 修复）
+        var fpKey = "1024:2026-06-20T12:00:00.0000000";
+        var tombstone = new LocalTombstone
+        {
+            FilePath = @"\\?\C:\original\file.tmp",
+            FileIdentityKey = fpKey,
+            OperationId = "op-001",
+            OriginalSize = 1024,
+            OriginalLastWriteTime = new DateTime(2026, 6, 20, 12, 0, 0, DateTimeKind.Utc),
+            DeletedAt = DateTime.UtcNow
+        };
+        var mockRepo = new Mock<ILocalTombstoneRepository>();
+        mockRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { tombstone }.AsReadOnly());
+        var mockLogger = new Mock<ILogger<TombstoneCache>>();
+        var cache = new TombstoneCache(mockRepo.Object, mockLogger.Object);
+        await cache.LoadAsync();
+
+        // Act & Assert: 指纹键命中，但路径不同 → 应返回 false（指纹碰撞）
+        bool result = cache.IsTombstoned(
+            null, fpKey,
+            filePath: @"\\?\C:\different\file.tmp",  // ← 不同路径
+            fileSize: 1024);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsTombstoned_FingerprintMatch_PathAndSizeMatch_ReturnsTrue()
+    {
+        // Arrange: 指纹键匹配 + 路径/大小一致 → 确认命中
+        var fpKey = "1024:2026-06-20T12:00:00.0000000";
+        var tombstone = new LocalTombstone
+        {
+            FilePath = @"\\?\C:\test\file.tmp",
+            FileIdentityKey = fpKey,
+            OperationId = "op-001",
+            OriginalSize = 1024,
+            OriginalLastWriteTime = new DateTime(2026, 6, 20, 12, 0, 0, DateTimeKind.Utc),
+            DeletedAt = DateTime.UtcNow
+        };
+        var mockRepo = new Mock<ILocalTombstoneRepository>();
+        mockRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { tombstone }.AsReadOnly());
+        var mockLogger = new Mock<ILogger<TombstoneCache>>();
+        var cache = new TombstoneCache(mockRepo.Object, mockLogger.Object);
+        await cache.LoadAsync();
+
+        // Act & Assert: 指纹键命中 + 路径一致 + 大小一致 → 确认命中
+        bool result = cache.IsTombstoned(
+            null, fpKey,
+            filePath: @"\\?\C:\test\file.tmp",
+            fileSize: 1024);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsTombstoned_FingerprintMatch_NoVerificationParams_ReturnsTrue()
+    {
+        // Arrange: 向后兼容 — 未提供路径和大小参数时，仅依赖键匹配
+        var fpKey = "1024:2026-06-20T12:00:00.0000000";
+        var tombstone = new LocalTombstone
+        {
+            FilePath = @"\\?\C:\test\file.tmp",
+            FileIdentityKey = fpKey,
+            OperationId = "op-001",
+            OriginalSize = 1024,
+            OriginalLastWriteTime = new DateTime(2026, 6, 20, 12, 0, 0, DateTimeKind.Utc),
+            DeletedAt = DateTime.UtcNow
+        };
+        var mockRepo = new Mock<ILocalTombstoneRepository>();
+        mockRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { tombstone }.AsReadOnly());
+        var mockLogger = new Mock<ILogger<TombstoneCache>>();
+        var cache = new TombstoneCache(mockRepo.Object, mockLogger.Object);
+        await cache.LoadAsync();
+
+        // Act & Assert: 未提供校验参数 → 信任键匹配（向后兼容）
+        bool result = cache.IsTombstoned(null, fpKey); // 无 filePath/fileSize
+
+        Assert.True(result);
+    }
+
+    [Fact]
     public void Add_IncreasesCount()
     {
         // Arrange

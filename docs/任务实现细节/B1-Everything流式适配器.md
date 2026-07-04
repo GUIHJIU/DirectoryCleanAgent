@@ -33,12 +33,14 @@
   1. **单一 Dictionary + 键前缀区分**：致命缺陷——单字典需要字符串解析决定匹配策略，在 200 万文件枚举中积累为显著 CPU 开销。
   2. **每次查询 SQLite**：致命缺陷——`yield return` 循环中每次 I/O 会使扫描性能下降 100-1000 倍。
 
-### 4. 枚举流程：锁内查询 + 锁外产出
+### 4. 枚举流程：锁内查询 + 锁内产出（已修订）
 
-- **最终决策**：`SemaphoreSlim(1,1)` 保护 Everything SDK 全局状态，查询执行在锁内，`yield return` 在锁外。`for (uint i = 0; i < resultCount; i++)` 逐索引通过 SDK 获取字段值，使用索引而非 Everything 内部游标。
-- **核心权衡（Trade-off）**：索引访问方式意味着并发枚举时每个结果需要多次 SDK 调用（GetResultFullPathName、GetResultSize 等），但每个 SDK 调用是极快的 IPC 内存拷贝（微秒级），且此设计保证了结果集在枚举过程中的稳定性。
+- **最终决策（修订后）**：`SemaphoreSlim(1,1)` 保护 Everything SDK 全局状态，查询执行和 `yield return` 均在锁内。`for (uint i = 0; i < resultCount; i++)` 逐索引通过 SDK 获取字段值，使用索引而非 Everything 内部游标。
+- **修订原因**：SDK 2.0 使用全局进程状态——查询结果集是全局的。若在 `yield return` 期间释放锁，变更轮询定时器可能执行新查询并覆盖结果集，导致 `AccessViolationException`。因此锁必须覆盖整个查询 + 结果访问周期。`try/finally` 确保枚举器 Dispose 时释放锁。
+- **关于 C# yield return + try/finally**：初始设计认为 C# 不允许在 try-finally 块内使用 `yield return`。实际上 C# 仅禁止 `yield return` 在 `try/catch` 块内，`try/finally`（无 catch）是完全合法的。此发现使锁内产出成为可能。
+- **核心权衡（Trade-off）**：索引访问方式意味着并发枚举时每个结果需要多次 SDK 调用（GetResultFullPathName、GetResultSize 等），但每个 SDK 调用是极快的 IPC 内存拷贝（微秒级），且此设计保证了结果集在枚举过程中的稳定性。锁内产出的代价是在枚举期间（可能数秒）阻塞轮询器，但 3 秒轮询延迟相对于用户主动扫描操作是可接受的。
 - **被否决的替代方案**：
-  1. **在锁内 `yield return`**：致命缺陷——编译失败，C# 不允许在 try-finally 块内使用 `yield return`。
+  1. **锁外 `yield return`**：致命缺陷——SDK 2.0 全局状态下，轮询器可能覆盖结果集导致 AccessViolationException。
   2. **先全量获取路径再流式产出**：致命缺陷——2M 文件场景下 `List<string>` 路径列表本身占 >200MB 内存，违反 <200MB 约束。
 
 ---

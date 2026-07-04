@@ -118,7 +118,8 @@ public class EverythingFileListProviderTests
         var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
         var mockConfig = CreateMockConfigService(frnAvailable: true);
         var mockTombstone = new Mock<ITombstoneCache>();
-        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>()))
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -156,7 +157,7 @@ public class EverythingFileListProviderTests
         var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
         var mockConfig = CreateMockConfigService();
         var mockTombstone = new Mock<ITombstoneCache>();
-        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>()))
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -191,10 +192,11 @@ public class EverythingFileListProviderTests
         var mockTombstone = new Mock<ITombstoneCache>();
         // file2 (FRN=1002, Volume=A8B3-1C4D) 命中墓碑
         mockTombstone
-            .Setup(t => t.IsTombstoned("A8B3-1C4D:1002", null))
+            .Setup(t => t.IsTombstoned("A8B3-1C4D:1002", null, It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(true);
         mockTombstone
-            .Setup(t => t.IsTombstoned(It.Is<string?>(k => k != "A8B3-1C4D:1002"), null))
+            .Setup(t => t.IsTombstoned(It.Is<string?>(k => k != "A8B3-1C4D:1002"), null,
+                It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -234,7 +236,7 @@ public class EverythingFileListProviderTests
         var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
         var mockConfig = CreateMockConfigService();
         var mockTombstone = new Mock<ITombstoneCache>();
-        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>()))
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -271,7 +273,7 @@ public class EverythingFileListProviderTests
         var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
         var mockConfig = CreateMockConfigService();
         var mockTombstone = new Mock<ITombstoneCache>();
-        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>()))
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -310,7 +312,7 @@ public class EverythingFileListProviderTests
         var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
         var mockConfig = CreateMockConfigService();
         var mockTombstone = new Mock<ITombstoneCache>();
-        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>()))
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -345,7 +347,7 @@ public class EverythingFileListProviderTests
         var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
         var mockConfig = CreateMockConfigService();
         var mockTombstone = new Mock<ITombstoneCache>();
-        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>()))
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -441,7 +443,7 @@ public class EverythingFileListProviderTests
         var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
         var mockConfig = CreateMockConfigService();
         var mockTombstone = new Mock<ITombstoneCache>();
-        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>()))
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -505,7 +507,7 @@ public class EverythingFileListProviderTests
         var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
         var mockConfig = CreateMockConfigService(frnAvailable: false);
         var mockTombstone = new Mock<ITombstoneCache>();
-        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>()))
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<long?>()))
             .Returns(false);
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
@@ -520,7 +522,8 @@ public class EverythingFileListProviderTests
         Assert.Single(results);
         // FRN 模式：frnKey 为 null，fingerprintKey 非 null
         mockTombstone.Verify(
-            t => t.IsTombstoned(null, It.IsNotNull<string?>()),
+            t => t.IsTombstoned(null, It.IsNotNull<string?>(),
+                It.IsAny<string?>(), It.IsAny<long?>()),
             Times.Once);
     }
 
@@ -544,6 +547,79 @@ public class EverythingFileListProviderTests
 
         // Assert: 返回 bool（具体值取决于 Everything 是否运行）
         Assert.IsType<bool>(result);
+    }
+
+    // ================================================================
+    // FRN 可用但单文件 FRN=0 降级测试（审计偏差 #2 修复）
+    // ================================================================
+
+    [Fact]
+    public async Task EnumerateFilesAsync_FrnAvailable_ButRawFrnZero_FallsBackToFingerprint()
+    {
+        // Arrange: 全局 FRN_AVAILABLE=true，但单文件 rawFrn=0（如 FAT32 卷）
+        var paths = new[] { @"C:\file1.tmp" };
+        var sizes = new long[] { 100 };
+        var frns = new long[] { 0 }; // ← 该文件无有效 FRN
+        var dates = new long[] { TestFileTime };
+        var volumes = new uint[] { 0 }; // ← volumeSerial 也为 0
+
+        var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
+        var mockConfig = CreateMockConfigService(frnAvailable: true);
+        var mockTombstone = new Mock<ITombstoneCache>();
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<long?>()))
+            .Returns(false);
+        var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
+
+        var provider = new EverythingFileListProvider(
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+
+        // Act
+        var results = await CollectAsync(
+            provider.EnumerateFilesAsync(new EverythingQueryParams(), CancellationToken.None));
+
+        // Assert
+        Assert.Single(results);
+        // frnKey 应为 null（rawFrn=0 且 volumeGuid=null），fingerprintKey 应非 null（降级）
+        mockTombstone.Verify(
+            t => t.IsTombstoned(null, It.IsNotNull<string?>(),
+                It.IsAny<string?>(), It.IsAny<long?>()),
+            Times.Once);
+    }
+
+    // ================================================================
+    // EverythingSortKey 应为文件路径（审计偏差 #5 修复）
+    // ================================================================
+
+    [Fact]
+    public async Task EnumerateFilesAsync_EverythingSortKey_IsNormalizedPath()
+    {
+        // Arrange
+        var paths = new[] { @"C:\file1.tmp" };
+        var sizes = new long[] { 100 };
+        var frns = new long[] { 1001 };
+        var dates = new long[] { TestFileTime };
+        var volumes = new uint[] { 0xA8B31C4D };
+
+        var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
+        var mockConfig = CreateMockConfigService();
+        var mockTombstone = new Mock<ITombstoneCache>();
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<long?>()))
+            .Returns(false);
+        var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
+
+        var provider = new EverythingFileListProvider(
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+
+        // Act
+        var results = await CollectAsync(
+            provider.EnumerateFilesAsync(new EverythingQueryParams(), CancellationToken.None));
+
+        // Assert: EverythingSortKey 应为标准化后的路径
+        Assert.Single(results);
+        Assert.StartsWith(@"\\?\C:\", results[0].EverythingSortKey);
+        Assert.EndsWith("file1.tmp", results[0].EverythingSortKey);
     }
 
     // ================================================================

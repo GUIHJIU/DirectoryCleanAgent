@@ -31,11 +31,18 @@ public interface ITombstoneCache
     /// 1. 若 frnKey 非空 → 查询 FRN 缓存（VolumeGuid:FRN 精确匹配）
     /// 2. 若 frnKey 为空且 fingerprintKey 非空 → 查询指纹缓存（Size:LastWriteTime 降级匹配）
     /// 3. 两者均为空 → 返回 false（无法判断，假定未删除）
+    ///
+    /// 指纹匹配的额外校验：
+    /// 当通过指纹键命中墓碑时，若提供了 filePath 和 fileSize 参数，
+    /// 将额外校验原始路径与大小是否一致，防止指纹碰撞导致的误过滤。
     /// </summary>
     /// <param name="frnKey">FRN 精确匹配键，格式 "{VolumeGuid}:{FRN}"，FRN 不可用时为 null</param>
     /// <param name="fingerprintKey">指纹降级键，格式 "{Size}:{LastWriteTime:O}"，FRN 可用时为 null</param>
+    /// <param name="filePath">文件路径（\\?\ 格式），用于指纹命中后的路径一致性校验，可选</param>
+    /// <param name="fileSize">文件大小（字节），用于指纹命中后的大小一致性校验，可选</param>
     /// <returns>true 表示文件已被删除（命中墓碑），应在枚举中跳过</returns>
-    bool IsTombstoned(string? frnKey, string? fingerprintKey);
+    bool IsTombstoned(string? frnKey, string? fingerprintKey,
+        string? filePath = null, long? fileSize = null);
 
     /// <summary>
     /// 向内存缓存添加单条墓碑（不负责持久化）。
