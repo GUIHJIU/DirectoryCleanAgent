@@ -93,30 +93,6 @@ internal static partial class Shell32Native
         int nFileSystemNameSize);
 
     // ================================================================
-    // MoveFileEx — 文件重命名/移动（用于 .cleaning.tmp 重命名）
-    // ================================================================
-
-    /// <summary>MOVEFILE_REPLACE_EXISTING: 若目标已存在则覆盖</summary>
-    internal const uint MOVEFILE_REPLACE_EXISTING = 0x1;
-
-    /// <summary>MOVEFILE_WRITE_THROUGH: 立即写入磁盘，不缓存</summary>
-    internal const uint MOVEFILE_WRITE_THROUGH = 0x8;
-
-    /// <summary>
-    /// 移动/重命名文件。
-    /// 用于隔离区流程中 .cleaning.tmp → .quarantine 的原子重命名操作。
-    ///
-    /// 注意：\\?\ 前缀路径下不支持 MOVEFILE_DELAY_UNTIL_REBOOT，
-    /// 且跨卷移动会失败（与 .NET File.Move 行为一致）。
-    /// </summary>
-    [DllImport(Kernel32, CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool MoveFileExW(
-        string lpExistingFileName,
-        string lpNewFileName,
-        uint dwFlags);
-
-    // ================================================================
     // 错误码常量（与 IFileOperation COM 共享）
     // ================================================================
 

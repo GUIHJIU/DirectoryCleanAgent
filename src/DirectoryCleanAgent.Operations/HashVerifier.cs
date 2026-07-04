@@ -58,11 +58,14 @@ internal static class HashVerifier
     /// - 使用 FileStream 异步读取，4KB 缓冲区
     /// - 共享读取模式（FileShare.Read），允许其他进程并发读取
     /// - 返回小写十六进制字符串
+    ///
+    /// 此方法供 HashVerifier（隔离区复制校验）和 BackupManager（回收站文件匹配）
+    /// 共用，避免重复实现。
     /// </summary>
     /// <param name="filePath">\\?\ 格式的文件路径</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>小写十六进制 SHA-256 哈希字符串，失败返回 null</returns>
-    private static async Task<string?> ComputeSha256Async(string filePath, CancellationToken ct)
+    public static async Task<string?> ComputeSha256Async(string filePath, CancellationToken ct)
     {
         try
         {

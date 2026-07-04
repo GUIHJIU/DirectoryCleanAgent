@@ -276,6 +276,18 @@ public sealed class OperationExecutor : CancellableOperationBase, IOperationExec
                                 ErrorCode = "0x80070020",
                                 ErrorMessage = "文件被其他进程占用，已降级为人工审核"
                             });
+
+                            // 写入降级审计日志（不写墓碑，文件未被实际删除）
+                            _auditLogRepo.Insert(new AuditLogEntry
+                            {
+                                Timestamp = DateTime.UtcNow,
+                                UserSid = GetCurrentUserSid(),
+                                OperationType = "FILE_LOCKED",
+                                Target = entry.FilePath,
+                                Result = "DOWNGRADED_TO_MANUAL_REVIEW",
+                                Details = $"{{ \"fileSize\": {entry.FileSize}, \"method\": \"{method}\" }}"
+                            });
+                            continue; // 不写墓碑/删除记录，文件仍存在于磁盘
                         }
                         else
                         {
@@ -311,6 +323,18 @@ public sealed class OperationExecutor : CancellableOperationBase, IOperationExec
                                 ErrorCode = $"0x{deleteHr:X8}",
                                 ErrorMessage = ShellFileOperation.GetErrorMessage(deleteHr)
                             });
+
+                            // 写入降级审计日志（不写墓碑，文件未被实际删除）
+                            _auditLogRepo.Insert(new AuditLogEntry
+                            {
+                                Timestamp = DateTime.UtcNow,
+                                UserSid = GetCurrentUserSid(),
+                                OperationType = "FILE_LOCKED",
+                                Target = entry.FilePath,
+                                Result = "DOWNGRADED_TO_MANUAL_REVIEW",
+                                Details = $"{{ \"fileSize\": {entry.FileSize}, \"method\": \"{method}\" }}"
+                            });
+                            continue; // 不写墓碑/删除记录，文件仍存在于磁盘
                         }
                         else
                         {
@@ -550,8 +574,9 @@ public sealed class OperationExecutor : CancellableOperationBase, IOperationExec
                 Logger.LogDebug("同卷移动隔离区: {Source} → {Dest}", entry.FilePath, quarantinePath);
                 var moveHr = _shellFileOp.MoveFile(entry.FilePath, quarantinePath);
 
-                if (moveHr == Shell32Native.S_OK)
+                if (moveHr == Shell32Native.S_OK || moveHr == Shell32Native.ERROR_FILE_NOT_FOUND)
                 {
+                    // 移动成功 或 文件已不存在（等效于已删除）
                     return new QuarantineBackupResult { Success = true };
                 }
 
@@ -622,6 +647,12 @@ public sealed class OperationExecutor : CancellableOperationBase, IOperationExec
             {
                 // 复制失败，清理可能的残留临时文件
                 TryDeleteFile(cleaningTmpPath);
+
+                // 文件已不存在（被其他进程删除）= 等效于已删除
+                if (copyHr == Shell32Native.ERROR_FILE_NOT_FOUND)
+                {
+                    return new QuarantineBackupResult { Success = true };
+                }
 
                 if (ShellFileOperation.IsLockViolation(copyHr))
                 {
@@ -725,8 +756,12 @@ public sealed class OperationExecutor : CancellableOperationBase, IOperationExec
     private LocalTombstone CreateTombstone(
         DeleteSnapshotEntry entry, string operationId, DateTime now)
     {
-        // 降级指纹：FRN 不可用时使用 Size + LastWriteTime 组合
-        var frnAvailable = _configService.Current.FRN_AVAILABLE;
+        // 降级指纹：使用 Size + 操作时间戳的组合。
+        // 注意：FRN 信息（VolumeGuid + FileReferenceNumber）在 B4 阶段不可用，
+        // 因为 DeleteSnapshotEntry 由 B3 产出时不包含这些字段。
+        // 若后续 DTO 扩展增加 FRN 字段，此处应分叉：
+        //   FRN 可用 → FileIdentityKey = $"{VolumeGuid}:{FRN}"（精确匹配）
+        //   FRN 不可用 → 当前指纹降级（3 天过期）
         var fingerprintKey = $"{entry.FileSize}:{now:O}";
 
         return new LocalTombstone
@@ -758,7 +793,7 @@ public sealed class OperationExecutor : CancellableOperationBase, IOperationExec
             FileHash = entry.Sha256Hash,
             FileSize = entry.FileSize,
             DeletionMethod = method,
-            DecisionSnapshotJson = "{}", // 单个文件快照简化为空 JSON（完整快照由 B3 层管理）
+            DecisionSnapshotJson = System.Text.Json.JsonSerializer.Serialize(entry),
             CreatedAt = now
         };
     }

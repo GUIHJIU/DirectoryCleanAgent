@@ -990,31 +990,12 @@ public sealed class BackupManager : CancellableOperationBase, IBackupManager
     /// <param name="filePath">文件路径</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>小写十六进制哈希字符串，失败返回 null</returns>
-    private static async Task<string?> ComputeFileHashAsync(string filePath, CancellationToken ct)
-    {
-        try
-        {
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            await using var stream = new FileStream(
-                filePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                bufferSize: 4096,
-                useAsync: true);
-
-            var hashBytes = await sha256.ComputeHashAsync(stream, ct).ConfigureAwait(false);
-            return Convert.ToHexString(hashBytes).ToLowerInvariant();
-        }
-        catch (FileNotFoundException)
-        {
-            return null;
-        }
-        catch (DirectoryNotFoundException)
-        {
-            return null;
-        }
-    }
+    /// <summary>
+    /// 计算文件的 SHA-256 哈希值。
+    /// 委托给 HashVerifier.ComputeSha256Async（B4 统一哈希工具），避免重复实现。
+    /// </summary>
+    private static Task<string?> ComputeFileHashAsync(string filePath, CancellationToken ct)
+        => HashVerifier.ComputeSha256Async(filePath, ct);
 
     /// <summary>
     /// 获取文件"未找到"原因的人类可读描述。
