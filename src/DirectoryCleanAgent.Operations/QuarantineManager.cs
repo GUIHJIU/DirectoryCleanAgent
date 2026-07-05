@@ -266,7 +266,7 @@ public sealed class QuarantineManager : IQuarantineManager
     }
 
     /// <inheritdoc/>
-    public async Task<bool> CanAccommodateAsync(long fileSize, CancellationToken ct = default)
+    public async Task<bool> HasCapacityAsync(long fileSize, CancellationToken ct = default)
     {
         try
         {
@@ -716,7 +716,7 @@ public sealed class QuarantineManager : IQuarantineManager
                         lastProgressTime = nowTicks;
                         progress?.Report(new OperationProgress
                         {
-                            Phase = OperationPhase.Hashing,
+                            Phase = OperationPhase.Scanning,
                             CurrentFilePath = file,
                             CompletedCount = processedCount,
                             TotalCount = -1, // 文件总数未知，枚举过程中动态增长

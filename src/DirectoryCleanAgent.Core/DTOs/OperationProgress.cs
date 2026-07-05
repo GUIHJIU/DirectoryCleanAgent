@@ -72,6 +72,9 @@ public readonly struct OperationProgress
 /// </summary>
 public enum OperationPhase
 {
+    /// <summary>正在扫描/枚举文件（隔离区文件列表、目录遍历等）</summary>
+    Scanning,
+
     /// <summary>正在检查回收站容量（删除前预检）</summary>
     CheckingCapacity,
 

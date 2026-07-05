@@ -16,7 +16,7 @@ namespace DirectoryCleanAgent.Tests.Operations;
 /// - 构造函数参数 null 校验（×2）
 /// - GetQuarantineDirectoryAsync: 禁用/启用/自动创建目录
 /// - GetQuarantineStatsAsync: 禁用/空目录/有文件/有过期文件
-/// - CanAccommodateAsync: 容量充足/容量不足/禁用
+/// - HasCapacityAsync: 容量充足/容量不足/禁用
 /// - IsLargeFileForQuarantineAsync: 小文件/大文件/禁用
 /// - EnforceCapacityAsync: 容量充足/容量不足/禁用
 /// - CleanupExpiredAsync: 无过期/有过期/混合/取消/进度报告
@@ -265,11 +265,11 @@ public class QuarantineManagerTests : IDisposable
     }
 
     // ================================================================
-    // CanAccommodateAsync 测试
+    // HasCapacityAsync 测试
     // ================================================================
 
     [Fact]
-    public async Task CanAccommodateAsync_WhenDisabled_ShouldReturnFalse()
+    public async Task HasCapacityAsync_WhenDisabled_ShouldReturnFalse()
     {
         // Arrange
         var config = new UserConfig
@@ -280,21 +280,21 @@ public class QuarantineManagerTests : IDisposable
         var sut = CreateSut(config);
 
         // Act
-        var result = await sut.CanAccommodateAsync(1024);
+        var result = await sut.HasCapacityAsync(1024);
 
         // Assert
         Assert.False(result);
     }
 
     [Fact]
-    public async Task CanAccommodateAsync_WithinLimit_ShouldReturnTrue()
+    public async Task HasCapacityAsync_WithinLimit_ShouldReturnTrue()
     {
         // Arrange: 空隔离区，文件大小远小于上限
         Directory.CreateDirectory(_quarantineDir);
         var sut = CreateSut();
 
         // Act
-        var result = await sut.CanAccommodateAsync(1024);
+        var result = await sut.HasCapacityAsync(1024);
 
         // Assert
         Assert.True(result);

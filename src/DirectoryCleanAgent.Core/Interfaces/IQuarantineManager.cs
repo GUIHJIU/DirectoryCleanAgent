@@ -45,7 +45,7 @@ public interface IQuarantineManager
     /// </summary>
     /// <param name="fileSize">待添加文件的大小（字节）</param>
     /// <param name="ct">取消令牌</param>
-    Task<bool> CanAccommodateAsync(long fileSize, CancellationToken ct = default);
+    Task<bool> HasCapacityAsync(long fileSize, CancellationToken ct = default);
 
     /// <summary>
     /// 判断文件是否过大而应绕过隔离区直接删除。

@@ -41,6 +41,8 @@ public class StatusBarInfo
     {
         OperationStatusText = p.Phase switch
         {
+            OperationPhase.Scanning when p.TotalCount > 0 => $"正在扫描 ({p.CompletedCount}/{p.TotalCount})...",
+            OperationPhase.Scanning => "正在扫描文件...",
             OperationPhase.CheckingCapacity => "正在检查回收站容量...",
             OperationPhase.Hashing when p.TotalCount > 0 => $"正在计算哈希 ({p.CompletedCount}/{p.TotalCount})...",
             OperationPhase.Hashing => "正在计算文件哈希...",
