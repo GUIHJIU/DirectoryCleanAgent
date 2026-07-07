@@ -8,6 +8,7 @@ using DirectoryCleanAgent.Core.Enums;
 using DirectoryCleanAgent.Core.Interfaces;
 using DirectoryCleanAgent.Core.Logging;
 using DirectoryCleanAgent.Core.Localization;
+using DirectoryCleanAgent.Core.Formatting;
 using DirectoryCleanAgent.Models;
 using DirectoryCleanAgent.Services;
 using DirectoryCleanAgent.ViewModels.Base;
@@ -33,15 +34,17 @@ public class QuarantineViewModel : ViewModelBase
     private readonly IQuarantineManager _quarantineManager;
     private readonly IBackupManager _backupManager;
     private readonly IConfigService _configService;
+    private readonly ILocalizationService _localization;
     private readonly IAppStateService _appStateService; // C9: 管理员权限检测
 
     private CancellationTokenSource? _cts; // 当前操作的取消令牌源
     private bool _isLoading;
     private bool _isOperating;
     private OperationProgress _operationProgress;
-    private string _statusText = "就绪";
+    private string _statusText;
     private string? _errorMessage;
     private QuarantineStats _stats;
+    private int _selectedCount; // 待确认-4: O(1) 选中计数，替代 QuarantineFiles.Any(...)
 
     // ============================================================
     // 构造函数
@@ -59,7 +62,11 @@ public class QuarantineViewModel : ViewModelBase
         _quarantineManager = quarantineManager ?? throw new ArgumentNullException(nameof(quarantineManager));
         _backupManager = backupManager ?? throw new ArgumentNullException(nameof(backupManager));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+        _localization = localization ?? throw new ArgumentNullException(nameof(localization));
         _appStateService = appStateService ?? throw new ArgumentNullException(nameof(appStateService));
+
+        // 从本地化服务初始化状态文本
+        _statusText = _localization.GetString("Status.Ready");
 
         // 初始化集合
         QuarantineFiles = new ObservableCollection<QuarantineFileItem>();
@@ -98,15 +105,16 @@ public class QuarantineViewModel : ViewModelBase
                 OnPropertyChanged(nameof(CapacityText));
                 OnPropertyChanged(nameof(UtilizationText));
                 OnPropertyChanged(nameof(ExpiredFileCount));
+                OnPropertyChanged(nameof(ExpiredHintText));
                 OnPropertyChanged(nameof(IsQuarantineDisabled));
             }
         }
     }
 
-    /// <summary>容量展示文本：已用空间 / 最大空间</summary>
+    /// <summary>容量展示文本：已用空间 / 最大空间（本地化）</summary>
     public string CapacityText => Stats.IsDisabled
-        ? "隔离区已禁用"
-        : $"{FormatBytes(Stats.TotalSizeBytes)} / {FormatBytes(Stats.QuarantineMaxSizeBytes)}";
+        ? _localization.GetString("Quarantine.Capacity.Disabled")
+        : $"{ByteFormatter.Format(Stats.TotalSizeBytes)} / {ByteFormatter.Format(Stats.QuarantineMaxSizeBytes)}";
 
     /// <summary>使用率展示文本</summary>
     public string UtilizationText => Stats.IsDisabled
@@ -116,8 +124,27 @@ public class QuarantineViewModel : ViewModelBase
     /// <summary>过期文件数量</summary>
     public int ExpiredFileCount => Stats.ExpiredFileCount;
 
+    /// <summary>过期提示文本（本地化，如 "3 个文件已过期"）</summary>
+    public string ExpiredHintText =>
+        string.Format(_localization.GetString("Quarantine.Capacity.ExpiredHint"), ExpiredFileCount);
+
     /// <summary>隔离区是否已禁用</summary>
     public bool IsQuarantineDisabled => Stats.IsDisabled;
+
+    /// <summary>窗口标题（本地化）</summary>
+    public string WindowTitle => _localization.GetString("Quarantine.Title");
+
+    /// <summary>恢复选中按钮文本（本地化）</summary>
+    public string RestoreSelectedText => _localization.GetString("Quarantine.RestoreSelected");
+
+    /// <summary>永久删除按钮文本（本地化）</summary>
+    public string DeleteSelectedText => _localization.GetString("Quarantine.DeleteSelected");
+
+    /// <summary>全选文本（本地化）</summary>
+    public string SelectAllText => _localization.GetString("Quarantine.SelectAll");
+
+    /// <summary>容量标题（本地化）</summary>
+    public string CapacityTitleText => _localization.GetString("Quarantine.Capacity.Title");
 
     /// <summary>容量使用率（用于 ProgressBar 绑定，0~100）</summary>
     public double UtilizationPercentage => Stats.UtilizationPercentage;
@@ -172,18 +199,24 @@ public class QuarantineViewModel : ViewModelBase
     /// <summary>是否有错误信息需要展示</summary>
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
-    /// <summary>是否有文件被选中</summary>
-    public bool HasSelection => QuarantineFiles.Any(f => f.IsSelected);
+    /// <summary>是否有文件被选中（O(1) 计数器，避免大列表 O(n) 遍历）</summary>
+    public bool HasSelection => _selectedCount > 0;
 
-    /// <summary>选中文件数量文本</summary>
+    /// <summary>选中的文件列表（用于批量操作获取选中项）</summary>
+    private List<QuarantineFileItem> GetSelectedFiles() =>
+        QuarantineFiles.Where(f => f.IsSelected).ToList();
+
+    /// <summary>选中文件数量文本（本地化）</summary>
     public string SelectionText
     {
         get
         {
-            var selected = QuarantineFiles.Where(f => f.IsSelected).ToList();
-            if (selected.Count == 0) return "未选中任何文件";
-            var totalSize = selected.Sum(f => f.FileSizeBytes);
-            return $"已选中 {selected.Count} 个文件，共 {FormatBytes(totalSize)}";
+            if (_selectedCount == 0)
+                return _localization.GetString("Quarantine.Selection.None");
+            var selected = GetSelectedFiles();
+            var totalSize = ByteFormatter.Format(selected.Sum(f => f.FileSizeBytes));
+            return string.Format(_localization.GetString("Quarantine.Selection.Count"),
+                _selectedCount, totalSize);
         }
     }
 
@@ -249,16 +282,23 @@ public class QuarantineViewModel : ViewModelBase
             QuarantineFiles.Clear();
             if (Stats.IsDisabled)
             {
-                ErrorMessage = "隔离区功能已禁用。请在设置中启用并配置隔离区容量上限。";
-                StatusText = "隔离区已禁用";
+                ErrorMessage = _localization.GetString("Quarantine.Error.DisabledMessage");
+                StatusText = _localization.GetString("Quarantine.Status.Disabled");
             }
             else
             {
                 foreach (var entry in filesTask.Result)
                 {
-                    QuarantineFiles.Add(new QuarantineFileItem(entry));
+                    QuarantineFiles.Add(new QuarantineFileItem(entry)
+                    {
+                        // 通过本地化服务设置过期状态显示文本
+                        ExpiredStatusText = entry.IsExpired
+                            ? _localization.GetString("Quarantine.Item.Expired")
+                            : _localization.GetString("Quarantine.Item.Normal")
+                    });
                 }
-                StatusText = $"已加载 {QuarantineFiles.Count} 个隔离区文件";
+                StatusText = string.Format(
+                    _localization.GetString("Quarantine.Status.Loaded"), QuarantineFiles.Count);
             }
 
             UpdateSelectionText();
@@ -269,8 +309,8 @@ public class QuarantineViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "加载隔离区数据失败");
-            ErrorMessage = $"加载失败: {ex.Message}";
-            StatusText = "加载失败";
+            ErrorMessage = string.Format(_localization.GetString("Quarantine.Error.LoadFailed"), ex.Message);
+            StatusText = _localization.GetString("Quarantine.Status.LoadFailed");
         }
         finally
         {
@@ -295,7 +335,7 @@ public class QuarantineViewModel : ViewModelBase
     private async Task BatchRestoreAsync()
     {
         _logger.LogMethodEntry("用户触发批量恢复");
-        var selectedFiles = QuarantineFiles.Where(f => f.IsSelected).ToList();
+        var selectedFiles = GetSelectedFiles();
         if (selectedFiles.Count == 0) return;
 
         // C9: 非管理员运行时守卫（与 MainViewModel.ExecuteQuickClean 模式一致）
@@ -332,7 +372,9 @@ public class QuarantineViewModel : ViewModelBase
                 ct.ThrowIfCancellationRequested();
 
                 var item = selectedFiles[i];
-                StatusText = $"正在恢复: {item.OriginalFileName} ({i + 1}/{selectedFiles.Count})";
+                StatusText = string.Format(
+                    _localization.GetString("Quarantine.Progress.RestoringFile"),
+                    item.OriginalFileName, i + 1, selectedFiles.Count);
 
                 try
                 {
@@ -368,16 +410,20 @@ public class QuarantineViewModel : ViewModelBase
             }
 
             // 显示操作结果
-            var message = $"恢复完成: 成功 {successCount} 项, 失败 {failCount} 项\n" +
-                          $"恢复空间: {FormatBytes(restoredBytes)}";
+            var message = string.Format(
+                _localization.GetString("Quarantine.Result.RestoreComplete"),
+                successCount, failCount, ByteFormatter.Format(restoredBytes));
             if (failedItems.Count > 0)
             {
-                message += $"\n\n失败详情:\n{string.Join("\n", failedItems.Take(10))}";
+                message += "\n\n" + _localization.GetString("Quarantine.Result.FailureDetails")
+                    + "\n" + string.Join("\n", failedItems.Take(10));
                 if (failedItems.Count > 10)
-                    message += $"\n... 还有 {failedItems.Count - 10} 项";
+                    message += "\n" + string.Format(
+                        _localization.GetString("Quarantine.Result.MoreItems"), failedItems.Count - 10);
             }
 
-            MessageBox.Show(message, "批量恢复结果",
+            MessageBox.Show(message,
+                _localization.GetString("Quarantine.BatchRestoreResult"),
                 MessageBoxButton.OK,
                 failCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
 
@@ -387,16 +433,22 @@ public class QuarantineViewModel : ViewModelBase
         catch (OperationCanceledException)
         {
             _logger.LogWarning("批量恢复被用户取消: 已完成 {SuccessCount} 项", successCount);
-            StatusText = $"操作已取消（已恢复 {successCount} 项）";
-            MessageBox.Show($"操作已取消。\n已成功恢复 {successCount} 个文件。", "批量恢复",
+            StatusText = string.Format(
+                _localization.GetString("Quarantine.Result.RestoreCancelled"), successCount);
+            MessageBox.Show(
+                string.Format(_localization.GetString("Quarantine.Result.RestoreCancelled"), successCount),
+                _localization.GetString("Quarantine.BatchRestoreResult"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
             await LoadDataAsync();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "批量恢复执行失败");
-            ErrorMessage = $"恢复操作失败: {ex.Message}";
-            MessageBox.Show($"恢复操作失败: {ex.Message}", "操作失败",
+            ErrorMessage = string.Format(
+                _localization.GetString("Quarantine.Error.LoadFailed"), ex.Message);
+            MessageBox.Show(
+                string.Format(_localization.GetString("Quarantine.Error.LoadFailed"), ex.Message),
+                _localization.GetString("Error.OperationFailed"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
@@ -421,7 +473,7 @@ public class QuarantineViewModel : ViewModelBase
     private async Task BatchDeleteAsync()
     {
         _logger.LogMethodEntry("用户触发批量永久删除");
-        var selectedFiles = QuarantineFiles.Where(f => f.IsSelected).ToList();
+        var selectedFiles = GetSelectedFiles();
         if (selectedFiles.Count == 0) return;
 
         // C9: 非管理员运行时守卫（与 MainViewModel.ExecuteQuickClean 模式一致）
@@ -439,9 +491,9 @@ public class QuarantineViewModel : ViewModelBase
         // 确认对话框：永久删除操作不可逆，必须用户明确确认
         var totalSize = selectedFiles.Sum(f => f.FileSizeBytes);
         var confirmResult = MessageBox.Show(
-            $"确认永久删除 {selectedFiles.Count} 个文件（{FormatBytes(totalSize)}）？\n\n" +
-            "此操作不可撤销，文件将无法恢复！",
-            "确认永久删除",
+            string.Format(_localization.GetString("Quarantine.ConfirmDelete.Message"),
+                selectedFiles.Count, ByteFormatter.Format(totalSize)),
+            _localization.GetString("Quarantine.ConfirmDelete.Title"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
             MessageBoxResult.No);
@@ -473,7 +525,9 @@ public class QuarantineViewModel : ViewModelBase
                 ct.ThrowIfCancellationRequested();
 
                 var item = selectedFiles[i];
-                StatusText = $"正在删除: {item.OriginalFileName} ({i + 1}/{selectedFiles.Count})";
+                StatusText = string.Format(
+                    _localization.GetString("Quarantine.Progress.DeletingFile"),
+                    item.OriginalFileName, i + 1, selectedFiles.Count);
 
                 try
                 {
@@ -515,16 +569,20 @@ public class QuarantineViewModel : ViewModelBase
             }
 
             // 显示操作结果
-            var message = $"永久删除完成: 成功 {successCount} 项, 失败 {failCount} 项\n" +
-                          $"释放空间: {FormatBytes(freedBytes)}";
+            var message = string.Format(
+                _localization.GetString("Quarantine.Result.DeleteComplete"),
+                successCount, failCount, ByteFormatter.Format(freedBytes));
             if (failedItems.Count > 0)
             {
-                message += $"\n\n失败详情:\n{string.Join("\n", failedItems.Take(10))}";
+                message += "\n\n" + _localization.GetString("Quarantine.Result.FailureDetails")
+                    + "\n" + string.Join("\n", failedItems.Take(10));
                 if (failedItems.Count > 10)
-                    message += $"\n... 还有 {failedItems.Count - 10} 项";
+                    message += "\n" + string.Format(
+                        _localization.GetString("Quarantine.Result.MoreItems"), failedItems.Count - 10);
             }
 
-            MessageBox.Show(message, "批量删除结果",
+            MessageBox.Show(message,
+                _localization.GetString("Quarantine.BatchDeleteResult"),
                 MessageBoxButton.OK,
                 failCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
 
@@ -534,16 +592,22 @@ public class QuarantineViewModel : ViewModelBase
         catch (OperationCanceledException)
         {
             _logger.LogWarning("批量删除被用户取消: 已完成 {SuccessCount} 项", successCount);
-            StatusText = $"操作已取消（已删除 {successCount} 项）";
-            MessageBox.Show($"操作已取消。\n已成功删除 {successCount} 个文件。", "批量删除",
+            StatusText = string.Format(
+                _localization.GetString("Quarantine.Result.DeleteCancelled"), successCount);
+            MessageBox.Show(
+                string.Format(_localization.GetString("Quarantine.Result.DeleteCancelled"), successCount),
+                _localization.GetString("Quarantine.BatchDeleteResult"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
             await LoadDataAsync();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "批量删除执行失败");
-            ErrorMessage = $"删除操作失败: {ex.Message}";
-            MessageBox.Show($"删除操作失败: {ex.Message}", "操作失败",
+            ErrorMessage = string.Format(
+                _localization.GetString("Quarantine.Error.LoadFailed"), ex.Message);
+            MessageBox.Show(
+                string.Format(_localization.GetString("Quarantine.Error.LoadFailed"), ex.Message),
+                _localization.GetString("Error.OperationFailed"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
@@ -565,7 +629,7 @@ public class QuarantineViewModel : ViewModelBase
         try
         {
             _cts?.Cancel();
-            StatusText = "正在取消...";
+            StatusText = _localization.GetString("Quarantine.Status.Cancelling");
             _logger.LogWarning("已发送取消请求到隔离区操作");
         }
         catch (Exception ex)
@@ -584,8 +648,10 @@ public class QuarantineViewModel : ViewModelBase
             {
                 file.IsSelected = isChecked;
             }
+            // 全选/取消全选时直接更新计数器（避免每个 Item.PropertyChanged 触发 N 次）
+            _selectedCount = isChecked ? QuarantineFiles.Count : 0;
             UpdateSelectionText();
-            _logger.LogDebug("全选切换: IsChecked={Checked}", isChecked);
+            _logger.LogDebug("全选切换: IsChecked={Checked}, Count={Count}", isChecked, _selectedCount);
         }
         catch (Exception ex)
         {
@@ -634,10 +700,17 @@ public class QuarantineViewModel : ViewModelBase
                 {
                     if (args.PropertyName == nameof(QuarantineFileItem.IsSelected))
                     {
+                        // 维护 O(1) 选中计数器
+                        _selectedCount += item.IsSelected ? 1 : -1;
                         RefreshCommandStates();
                     }
                 };
             }
+        }
+        // 列表被清空时重置计数器（Clear → Reset 操作）
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            _selectedCount = 0;
         }
         RefreshCommandStates();
     }
@@ -648,31 +721,11 @@ public class QuarantineViewModel : ViewModelBase
     /// </summary>
     private void OnAppModeChanged(object? sender, AppMode newMode)
     {
-        // 单元测试环境下 Application.Current 可能为 null，需做防护
-        if (Application.Current?.Dispatcher != null)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                _logger.LogInformation("隔离区 ViewModel 收到模式变更: {Mode}", newMode);
-                RefreshCommandStates();
-            });
-        }
-        else
-        {
-            _logger.LogInformation("隔离区 ViewModel 收到模式变更: {Mode}", newMode);
+        _logger.LogInformation("隔离区 ViewModel 收到模式变更: {Mode}", newMode);
+        // Application.Current?.Dispatcher 为 null 时（单元测试环境），直接在当前线程执行
+        Application.Current?.Dispatcher.Invoke(() => RefreshCommandStates());
+        if (Application.Current?.Dispatcher == null)
             RefreshCommandStates();
-        }
     }
 
-    /// <summary>格式化字节数为人类可读字符串</summary>
-    private static string FormatBytes(long bytes)
-    {
-        return bytes switch
-        {
-            >= 1_073_741_824 => $"{bytes / 1_073_741_824.0:F2} GB",
-            >= 1_048_576 => $"{bytes / 1_048_576.0:F2} MB",
-            >= 1_024 => $"{bytes / 1_024.0:F2} KB",
-            _ => $"{bytes} B"
-        };
-    }
 }

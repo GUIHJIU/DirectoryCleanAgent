@@ -488,6 +488,93 @@
   <data name="Quarantine.BatchDelete" xml:space="preserve">
     <value>批量删除</value>
   </data>
+  <data name="Quarantine.SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="Quarantine.RestoreSelected" xml:space="preserve">
+    <value>恢复选中</value>
+  </data>
+  <data name="Quarantine.DeleteSelected" xml:space="preserve">
+    <value>永久删除</value>
+  </data>
+  <data name="Quarantine.Item.Expired" xml:space="preserve">
+    <value>已过期</value>
+  </data>
+  <data name="Quarantine.Item.Normal" xml:space="preserve">
+    <value>正常</value>
+  </data>
+  <data name="Quarantine.Capacity.Title" xml:space="preserve">
+    <value>隔离区容量</value>
+  </data>
+  <data name="Quarantine.Capacity.Disabled" xml:space="preserve">
+    <value>隔离区已禁用</value>
+  </data>
+  <data name="Quarantine.Capacity.ExpiredHint" xml:space="preserve">
+    <value>{0} 个文件已过期</value>
+  </data>
+  <data name="Quarantine.Status.Disabled" xml:space="preserve">
+    <value>隔离区已禁用</value>
+  </data>
+  <data name="Quarantine.Status.Loaded" xml:space="preserve">
+    <value>已加载 {0} 个隔离区文件</value>
+  </data>
+  <data name="Quarantine.Status.LoadFailed" xml:space="preserve">
+    <value>加载失败</value>
+  </data>
+  <data name="Quarantine.Status.Cancelling" xml:space="preserve">
+    <value>正在取消...</value>
+  </data>
+  <data name="Quarantine.Error.DisabledMessage" xml:space="preserve">
+    <value>隔离区功能已禁用。请在设置中启用并配置隔离区容量上限。</value>
+  </data>
+  <data name="Quarantine.Error.LoadFailed" xml:space="preserve">
+    <value>加载失败: {0}</value>
+  </data>
+  <data name="Quarantine.Progress.RestoringFile" xml:space="preserve">
+    <value>正在恢复: {0} ({1}/{2})</value>
+  </data>
+  <data name="Quarantine.Progress.DeletingFile" xml:space="preserve">
+    <value>正在删除: {0} ({1}/{2})</value>
+  </data>
+  <data name="Quarantine.Selection.None" xml:space="preserve">
+    <value>未选中任何文件</value>
+  </data>
+  <data name="Quarantine.Selection.Count" xml:space="preserve">
+    <value>已选中 {0} 个文件，共 {1}</value>
+  </data>
+  <data name="Quarantine.ConfirmDelete.Title" xml:space="preserve">
+    <value>确认永久删除</value>
+  </data>
+  <data name="Quarantine.ConfirmDelete.Message" xml:space="preserve">
+    <value>确认永久删除 {0} 个文件（{1}）？
+此操作不可撤销，文件将无法恢复！</value>
+  </data>
+  <data name="Quarantine.Result.RestoreComplete" xml:space="preserve">
+    <value>恢复完成: 成功 {0} 项, 失败 {1} 项
+恢复空间: {2}</value>
+  </data>
+  <data name="Quarantine.Result.DeleteComplete" xml:space="preserve">
+    <value>永久删除完成: 成功 {0} 项, 失败 {1} 项
+释放空间: {2}</value>
+  </data>
+  <data name="Quarantine.Result.RestoreCancelled" xml:space="preserve">
+    <value>操作已取消（已恢复 {0} 项）</value>
+  </data>
+  <data name="Quarantine.Result.DeleteCancelled" xml:space="preserve">
+    <value>操作已取消（已删除 {0} 项）</value>
+  </data>
+  <data name="Quarantine.Result.FailureDetails" xml:space="preserve">
+    <value>失败详情:</value>
+  </data>
+  <data name="Quarantine.Result.MoreItems" xml:space="preserve">
+    <value>... 还有 {0} 项</value>
+  </data>
+  <data name="Quarantine.BatchRestoreResult" xml:space="preserve">
+    <value>批量恢复结果</value>
+  </data>
+  <data name="Quarantine.BatchDeleteResult" xml:space="preserve">
+    <value>批量删除结果</value>
+  </data>
 
   <!-- ================================================================ -->
   <!-- 审计日志 / 历史记录 -->

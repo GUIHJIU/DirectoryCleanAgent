@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:DirectoryCleanAgent.Converters"
-        Title="隔离区管理" Height="600" Width="900"
+        Title="{Binding WindowTitle}" Height="600" Width="900"
         MinHeight="400" MinWidth="700"
         WindowStartupLocation="CenterOwner"
         Loaded="QuarantineWindow_Loaded"
@@ -50,7 +50,7 @@
 
                         <!-- 容量标题 -->
                         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="隔离区容量" FontSize="15" FontWeight="SemiBold"
+                            <TextBlock Text="{Binding CapacityTitleText}" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{StaticResource CardTextPrimaryBrush}"
                                        VerticalAlignment="Center" />
                             <TextBlock Text="  —  " FontSize="13"
@@ -73,10 +73,8 @@
                         <!-- 过期提示 -->
                         <TextBlock Grid.Row="0" Grid.Column="1" FontSize="12"
                                    Foreground="{StaticResource WarningBannerForegroundBrush}"
-                                   VerticalAlignment="Center">
-                            <Run Text="{Binding ExpiredFileCount, Mode=OneWay}" />
-                            <Run Text=" 个文件已过期" />
-                        </TextBlock>
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ExpiredHintText}" />
 
                         <!-- 使用率进度条 -->
                         <ProgressBar Grid.Row="1" Grid.ColumnSpan="2"
@@ -228,7 +226,7 @@
                            VerticalAlignment="Center" Margin="0,0,16,0" />
 
                 <!-- 全选 CheckBox -->
-                <CheckBox Grid.Column="1" Content="全选"
+                <CheckBox Grid.Column="1" Content="{Binding SelectAllText}"
                           VerticalAlignment="Center" FontSize="12"
                           Foreground="{StaticResource CardTextSecondaryBrush}"
                           Command="{Binding SelectAllCommand}"
@@ -236,7 +234,7 @@
 
                 <!-- 操作按钮组（右侧对齐） -->
                 <!-- 恢复选中按钮（主操作） -->
-                <Button Grid.Column="3" Content="恢复选中"
+                <Button Grid.Column="3" Content="{Binding RestoreSelectedText}"
                         Style="{StaticResource ActionBarButtonStyle}"
                         Command="{Binding RestoreSelectedCommand}"
                         ToolTip="将选中的文件恢复到原始路径"
@@ -245,7 +243,7 @@
                         BorderBrush="{StaticResource PrimaryButtonBorderBrush}" />
 
                 <!-- 永久删除按钮（危险操作） -->
-                <Button Grid.Column="4" Content="永久删除"
+                <Button Grid.Column="4" Content="{Binding DeleteSelectedText}"
                         Style="{StaticResource ActionBarButtonStyle}"
                         Command="{Binding DeleteSelectedCommand}"
                         ToolTip="永久删除选中的文件（不可撤销）"

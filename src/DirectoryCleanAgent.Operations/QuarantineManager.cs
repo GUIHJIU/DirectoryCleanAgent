@@ -4,6 +4,7 @@ using DirectoryCleanAgent.Core.Config;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Interfaces;
 using DirectoryCleanAgent.Core.Logging;
+using DirectoryCleanAgent.Core.Formatting;
 using DirectoryCleanAgent.Core.PathHandling;
 using Microsoft.Extensions.Logging;
 
@@ -698,7 +699,7 @@ public sealed class QuarantineManager : IQuarantineManager
                             QuarantineTimestamp = quarantineTimestamp,
                             FileSizeBytes = fileInfo.Length,
                             IsExpired = isExpired,
-                            FileSizeText = FormatBytesForDisplay(fileInfo.Length)
+                            FileSizeText = ByteFormatter.Format(fileInfo.Length)
                         });
 
                         processedCount++;
@@ -796,21 +797,6 @@ public sealed class QuarantineManager : IQuarantineManager
     // ================================================================
     // IQuarantineManager 实现 — 文件命名
     // ================================================================
-
-    /// <summary>
-    /// 格式化字节数为人类可读的字符串，用于 UI 展示。
-    /// 与 MainViewModel.FormatBytesForDisplay 保持一致。
-    /// </summary>
-    private static string FormatBytesForDisplay(long bytes)
-    {
-        return bytes switch
-        {
-            >= 1_073_741_824 => $"{bytes / 1_073_741_824.0:F2} GB",
-            >= 1_048_576 => $"{bytes / 1_048_576.0:F2} MB",
-            >= 1_024 => $"{bytes / 1_024.0:F2} KB",
-            _ => $"{bytes} B"
-        };
-    }
 
     /// <inheritdoc/>
     public string ConstructQuarantineFileName(string sha256Hash, string originalFileName)

@@ -47,9 +47,11 @@ public class QuarantineFileItem : ViewModelBase
     public long FileSizeBytes => Entry.FileSizeBytes;
 
     /// <summary>
-    /// 过期状态显示文本，用于 DataGrid 中展示"已过期"或"正常"。
+    /// 过期状态显示文本，用于 DataGrid 中展示。
+    /// 由 ViewModel 在创建时通过 ILocalizationService 设置，
+    /// 避免 Model 层对本地化服务的硬依赖。
     /// </summary>
-    public string ExpiredStatusText => IsExpired ? "已过期" : "正常";
+    public string ExpiredStatusText { get; set; } = "";
 
     public QuarantineFileItem(QuarantineFileEntry entry)
     {

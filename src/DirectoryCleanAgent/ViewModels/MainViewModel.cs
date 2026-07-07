@@ -11,6 +11,7 @@ using DirectoryCleanAgent.Core.Enums;
 using DirectoryCleanAgent.Core.Interfaces;
 using DirectoryCleanAgent.Core.Localization;
 using DirectoryCleanAgent.Core.Logging;
+using DirectoryCleanAgent.Core.Formatting;
 using DirectoryCleanAgent.Models;
 using DirectoryCleanAgent.Services;
 using DirectoryCleanAgent.ViewModels.Base;
@@ -382,8 +383,8 @@ public class MainViewModel : ViewModelBase
                 if (!capacity.CanAccommodate(totalSize))
                 {
                     var confirmResult = MessageBox.Show(
-                        $"待清理文件总大小约为 {FormatBytesForDisplay(totalSize)}，" +
-                        $"超出回收站可用容量 ({FormatBytesForDisplay(capacity.AvailableBytes)})。\n\n" +
+                        $"待清理文件总大小约为 {ByteFormatter.Format(totalSize)}，" +
+                        $"超出回收站可用容量 ({ByteFormatter.Format(capacity.AvailableBytes)})。\n\n" +
                         "超出部分将直接永久删除。是否继续？",
                         "回收站容量不足", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
@@ -535,7 +536,7 @@ public class MainViewModel : ViewModelBase
                 var totalSize = candidates.Sum(c => c.SizeBytes);
                 var confirmResult = MessageBox.Show(
                     $"将清理所有【建议清理】分类下的文件（{candidates.Count:N0} 项，" +
-                    $"约 {FormatBytesForDisplay(totalSize)}）。\n\n是否继续？",
+                    $"约 {ByteFormatter.Format(totalSize)}）。\n\n是否继续？",
                     "智能选择确认",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
@@ -706,7 +707,7 @@ public class MainViewModel : ViewModelBase
             // 构建结果展示消息
             var message = new StringBuilder();
             message.AppendLine($"共分析 {result.TotalProcessedCount:N0} 个文件");
-            message.AppendLine($"预估可释放空间: {FormatBytesForDisplay(result.TotalFreedBytes)}");
+            message.AppendLine($"预估可释放空间: {ByteFormatter.Format(result.TotalFreedBytes)}");
             message.AppendLine($"耗时: {result.Elapsed:hh\\:mm\\:ss\\.fff}");
             message.AppendLine();
             message.AppendLine("操作分布:");
@@ -1247,20 +1248,6 @@ public class MainViewModel : ViewModelBase
         {
             _logger.LogError(ex, "更新仪表板失败");
         }
-    }
-
-    /// <summary>
-    /// 格式化字节数为可读字符串，用于 UI 展示。
-    /// </summary>
-    private static string FormatBytesForDisplay(long bytes)
-    {
-        return bytes switch
-        {
-            >= 1_073_741_824 => $"{bytes / 1_073_741_824.0:F2} GB",
-            >= 1_048_576 => $"{bytes / 1_048_576.0:F2} MB",
-            >= 1_024 => $"{bytes / 1_024.0:F2} KB",
-            _ => $"{bytes} B"
-        };
     }
 
     /// <summary>

@@ -413,6 +413,93 @@
   <data name="Quarantine.BatchDelete" xml:space="preserve">
     <value>Batch Delete</value>
   </data>
+  <data name="Quarantine.SelectAll" xml:space="preserve">
+    <value>Select All</value>
+  </data>
+  <data name="Quarantine.RestoreSelected" xml:space="preserve">
+    <value>Restore Selected</value>
+  </data>
+  <data name="Quarantine.DeleteSelected" xml:space="preserve">
+    <value>Permanently Delete</value>
+  </data>
+  <data name="Quarantine.Item.Expired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Quarantine.Item.Normal" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="Quarantine.Capacity.Title" xml:space="preserve">
+    <value>Quarantine Capacity</value>
+  </data>
+  <data name="Quarantine.Capacity.Disabled" xml:space="preserve">
+    <value>Quarantine Disabled</value>
+  </data>
+  <data name="Quarantine.Capacity.ExpiredHint" xml:space="preserve">
+    <value>{0} file(s) expired</value>
+  </data>
+  <data name="Quarantine.Status.Disabled" xml:space="preserve">
+    <value>Quarantine Disabled</value>
+  </data>
+  <data name="Quarantine.Status.Loaded" xml:space="preserve">
+    <value>Loaded {0} quarantine file(s)</value>
+  </data>
+  <data name="Quarantine.Status.LoadFailed" xml:space="preserve">
+    <value>Load Failed</value>
+  </data>
+  <data name="Quarantine.Status.Cancelling" xml:space="preserve">
+    <value>Cancelling...</value>
+  </data>
+  <data name="Quarantine.Error.DisabledMessage" xml:space="preserve">
+    <value>Quarantine is disabled. Enable it in Settings and configure the capacity limit.</value>
+  </data>
+  <data name="Quarantine.Error.LoadFailed" xml:space="preserve">
+    <value>Load failed: {0}</value>
+  </data>
+  <data name="Quarantine.Progress.RestoringFile" xml:space="preserve">
+    <value>Restoring: {0} ({1}/{2})</value>
+  </data>
+  <data name="Quarantine.Progress.DeletingFile" xml:space="preserve">
+    <value>Deleting: {0} ({1}/{2})</value>
+  </data>
+  <data name="Quarantine.Selection.None" xml:space="preserve">
+    <value>No file selected</value>
+  </data>
+  <data name="Quarantine.Selection.Count" xml:space="preserve">
+    <value>{0} file(s) selected, total {1}</value>
+  </data>
+  <data name="Quarantine.ConfirmDelete.Title" xml:space="preserve">
+    <value>Confirm Permanent Deletion</value>
+  </data>
+  <data name="Quarantine.ConfirmDelete.Message" xml:space="preserve">
+    <value>Permanently delete {0} file(s) ({1})?
+This action is irreversible!</value>
+  </data>
+  <data name="Quarantine.Result.RestoreComplete" xml:space="preserve">
+    <value>Restore complete: {0} succeeded, {1} failed
+Space restored: {2}</value>
+  </data>
+  <data name="Quarantine.Result.DeleteComplete" xml:space="preserve">
+    <value>Deletion complete: {0} succeeded, {1} failed
+Space freed: {2}</value>
+  </data>
+  <data name="Quarantine.Result.RestoreCancelled" xml:space="preserve">
+    <value>Operation cancelled ({0} file(s) restored)</value>
+  </data>
+  <data name="Quarantine.Result.DeleteCancelled" xml:space="preserve">
+    <value>Operation cancelled ({0} file(s) deleted)</value>
+  </data>
+  <data name="Quarantine.Result.FailureDetails" xml:space="preserve">
+    <value>Failure details:</value>
+  </data>
+  <data name="Quarantine.Result.MoreItems" xml:space="preserve">
+    <value>... and {0} more</value>
+  </data>
+  <data name="Quarantine.BatchRestoreResult" xml:space="preserve">
+    <value>Batch Restore Results</value>
+  </data>
+  <data name="Quarantine.BatchDeleteResult" xml:space="preserve">
+    <value>Batch Delete Results</value>
+  </data>
 
   <!-- Audit Log / History -->
   <data name="Audit.Title" xml:space="preserve">
