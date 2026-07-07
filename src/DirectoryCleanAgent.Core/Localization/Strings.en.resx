@@ -541,4 +541,51 @@
   <data name="App.ComingSoon" xml:space="preserve">
     <value>Coming Soon</value>
   </data>
+
+  <!-- C4: Settings — Supplemental Localization Keys -->
+  <data name="Settings.Scan.NtfsOnlyHint" xml:space="preserve">
+    <value>Only NTFS volumes can be indexed by Everything. Non-NTFS volumes are not listed.</value>
+  </data>
+  <data name="Settings.Scan.NoNtfsWarning" xml:space="preserve">
+    <value>No NTFS fixed disk volumes detected. Please check your disk format.</value>
+  </data>
+  <data name="Settings.Scan.MaxScanFiles" xml:space="preserve">
+    <value>Max Scan Files</value>
+  </data>
+  <data name="Settings.Scan.HashConcurrency" xml:space="preserve">
+    <value>Hash Concurrency</value>
+  </data>
+  <data name="Settings.Scan.AdvancedOptions" xml:space="preserve">
+    <value>Advanced Options</value>
+  </data>
+  <data name="Settings.Exclusions.AddButton" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Settings.Exclusions.WildcardHint" xml:space="preserve">
+    <value>Supports wildcards, e.g. C:\Users\*\Downloads\*</value>
+  </data>
+  <data name="Settings.Exclusions.ExtensionHint" xml:space="preserve">
+    <value>Separate extensions with commas, e.g. .pst, .ost, .vhd</value>
+  </data>
+  <data name="Settings.Exclusions.QuarantineSizeDefault" xml:space="preserve">
+    <value>Default limit 10 GB (actual limit based on available disk space)</value>
+  </data>
+  <data name="Settings.Exclusions.RetentionHint" xml:space="preserve">
+    <value>Quarantined files exceeding the retention period will be automatically cleaned.</value>
+  </data>
+  <data name="Settings.Automation.Description" xml:space="preserve">
+    <value>Automated scheduled cleanup is under development and will be available in a future release.</value>
+  </data>
+  <data name="Settings.VSS.Description" xml:space="preserve">
+    <value>VSS snapshot awareness will be available in V3.8+. It will intelligently detect and skip space occupied by VSS snapshots.</value>
+  </data>
+  <data name="Settings.Button.Browse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="Settings.Button.Reset" xml:space="preserve">
+    <value>Reset to Defaults</value>
+  </data>
+  <data name="Settings.Button.ResetTooltip" xml:space="preserve">
+    <value>Restore all settings to their default values</value>
+  </data>
 </root>

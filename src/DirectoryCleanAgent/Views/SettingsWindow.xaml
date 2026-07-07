@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:DirectoryCleanAgent.Converters"
         xmlns:models="clr-namespace:DirectoryCleanAgent.Models"
-        Title="设置" Height="620" Width="820"
+        Title="{Binding LblWindowTitle}" Height="620" Width="820"
         MinHeight="500" MinWidth="720"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
@@ -14,6 +14,7 @@
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
     </Window.Resources>
 
     <!-- ============================================================
@@ -82,7 +83,7 @@
                             <TextBox Grid.Column="0" Text="{Binding EditDataStoragePath, UpdateSourceTrigger=PropertyChanged}"
                                      Height="32" VerticalContentAlignment="Center" Padding="8,0"
                                      FontSize="12" />
-                            <Button Grid.Column="1" Content="浏览..."
+                            <Button Grid.Column="1" Content="{Binding LblButtonBrowse}"
                                     Width="80" Height="32"
                                     Margin="8,0,0,0"
                                     Command="{Binding BrowseDataPathCommand}" />
@@ -122,21 +123,52 @@
                                   HorizontalAlignment="Left" Margin="0,0,0,20" />
 
                         <!-- 复选框组 -->
-                        <CheckBox Content="一键清理前弹出二次确认"
+                        <CheckBox Content="{Binding LblConfirmBeforeClean}"
                                   IsChecked="{Binding EditConfirmBeforeClean}"
                                   Margin="0,0,0,12" FontSize="13" Foreground="#333333" />
-                        <CheckBox Content="显示需人工审核的文件"
+                        <CheckBox Content="{Binding LblShowManualReview}"
                                   IsChecked="{Binding EditShowManualReview}"
                                   Margin="0,0,0,12" FontSize="13" Foreground="#333333" />
-                        <CheckBox Content="自动刷新扫描结果（Everything 事件驱动）"
+                        <CheckBox Content="{Binding LblAutoRefresh}"
                                   IsChecked="{Binding EditAutoRefresh}"
                                   Margin="0,0,0,20" FontSize="13" Foreground="#333333" />
+
+                        <!-- 高级选项 -->
+                        <TextBlock Text="{Binding LblAdvancedOptions}"
+                                   FontSize="13" FontWeight="SemiBold" Foreground="#888888"
+                                   Margin="0,8,0,6" />
+
+                        <!-- 最大扫描文件数 -->
+                        <TextBlock Text="{Binding LblMaxScanFiles}"
+                                   FontSize="13" FontWeight="SemiBold" Foreground="#333333"
+                                   Margin="0,0,0,6" />
+                        <TextBox Text="{Binding EditMaxScanFiles, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="32" Width="160"
+                                 HorizontalAlignment="Left"
+                                 VerticalContentAlignment="Center" Padding="8,0"
+                                 Margin="0,0,0,4" FontSize="12"
+                                 PreviewTextInput="IntegerOnly_PreviewTextInput" />
+                        <TextBlock Text="单次扫描最大文件数，0 表示不限制（值越小扫描越快但可能不完整）"
+                                   FontSize="11" Foreground="#999999" Margin="0,0,0,16" />
+
+                        <!-- 哈希并发度 -->
+                        <TextBlock Text="{Binding LblHashConcurrency}"
+                                   FontSize="13" FontWeight="SemiBold" Foreground="#333333"
+                                   Margin="0,0,0,6" />
+                        <TextBox Text="{Binding EditHashConcurrency, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="32" Width="120"
+                                 HorizontalAlignment="Left"
+                                 VerticalContentAlignment="Center" Padding="8,0"
+                                 Margin="0,0,0,4" FontSize="12"
+                                 PreviewTextInput="IntegerOnly_PreviewTextInput" />
+                        <TextBlock Text="SHA-256 哈希并发度，0=自动（使用 CPU 核心数），HDD 用户建议设为 2-4"
+                                   FontSize="11" Foreground="#999999" Margin="0,0,0,20" />
 
                         <!-- 包含的磁盘卷 -->
                         <TextBlock Text="{Binding LblIncludedVolumes}"
                                    FontSize="13" FontWeight="SemiBold" Foreground="#333333"
                                    Margin="0,0,0,6" />
-                        <TextBlock Text="仅 NTFS 卷可被 Everything 索引，非 NTFS 卷不会显示在列表中。"
+                        <TextBlock Text="{Binding LblNtfsOnlyHint}"
                                    FontSize="11" Foreground="#999999" Margin="0,0,0,10" />
                         <ItemsControl ItemsSource="{Binding IncludedVolumes}"
                                       Margin="0,0,0,8">
@@ -150,9 +182,9 @@
                         </ItemsControl>
 
                         <!-- 若没有发现 NTFS 卷 -->
-                        <TextBlock Text="未检测到 NTFS 格式的固定磁盘卷。请检查磁盘格式。"
+                        <TextBlock Text="{Binding LblNoNtfsWarning}"
                                    FontSize="12" Foreground="#D13438"
-                                   Visibility="{Binding IncludedVolumes.Count, Converter={StaticResource InverseBoolConverter}}" />
+                                   Visibility="{Binding IncludedVolumes.Count, Converter={StaticResource CountToVisibilityConverter}}" />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -164,7 +196,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="20,16">
                     <StackPanel>
                         <!-- 启用开关 -->
-                        <CheckBox Content="启用 AI 智能顾问"
+                        <CheckBox Content="{Binding LblAIEnable}"
                                   IsChecked="{Binding EditAIEnabled}"
                                   Margin="0,0,0,20" FontSize="14" FontWeight="SemiBold"
                                   Foreground="#333333" />
@@ -232,11 +264,12 @@
                                      HorizontalAlignment="Left"
                                      VerticalContentAlignment="Center" Padding="8,0"
                                      Margin="0,0,0,16" FontSize="12"
-                                     PreviewTextInput="NumericOnly_PreviewTextInput" />
+                                     PreviewTextInput="IntegerOnly_PreviewTextInput" />
 
-                            <!-- 自动分析（仅专家模式） -->
+                            <!-- 自动分析（仅专家模式可见） -->
                             <CheckBox Content="自动为未分类文件请求 AI 分析（仅专家模式生效）"
                                       IsChecked="{Binding EditAIAutoAnalyze}"
+                                      Visibility="{Binding IsExpertMode, Converter={StaticResource BoolToVisibilityConverter}}"
                                       Margin="0,8,0,0" FontSize="13" Foreground="#555555" />
                         </StackPanel>
                     </StackPanel>
@@ -254,7 +287,7 @@
                         <TextBlock Text="{Binding LblAutomationComingSoon}"
                                    FontSize="22" Foreground="#AAAAAA"
                                    HorizontalAlignment="Center" />
-                        <TextBlock Text="自动化定时清理功能正在规划中，将在后续版本中提供。"
+                        <TextBlock Text="{Binding LblAutomationDescription}"
                                    FontSize="14" Foreground="#BBBBBB"
                                    HorizontalAlignment="Center" Margin="0,12,0,0" />
                     </StackPanel>
@@ -298,11 +331,11 @@
                                      Text="{Binding NewExcludedDir, UpdateSourceTrigger=PropertyChanged}"
                                      Height="32" VerticalContentAlignment="Center" Padding="8,0"
                                      FontSize="12" />
-                            <Button Grid.Column="1" Content="添加" Width="64" Height="32"
+                            <Button Grid.Column="1" Content="{Binding LblAddButton}" Width="64" Height="32"
                                     Margin="8,0,0,0"
                                     Command="{Binding AddExcludedDirCommand}" />
                         </Grid>
-                        <TextBlock Text="支持通配符，如 C:\\Users\\*\\Downloads\\*"
+                        <TextBlock Text="{Binding LblWildcardHint}"
                                    FontSize="11" Foreground="#999999" Margin="0,0,0,10" />
 
                         <!-- 排除目录列表 -->
@@ -337,7 +370,7 @@
                         <TextBox Text="{Binding ExcludedExtensionsText, UpdateSourceTrigger=PropertyChanged}"
                                  Height="32" VerticalContentAlignment="Center" Padding="8,0"
                                  FontSize="12" Margin="0,0,0,6" />
-                        <TextBlock Text="多个扩展名用逗号分隔，如 .pst, .ost, .vhd"
+                        <TextBlock Text="{Binding LblExtensionHint}"
                                    FontSize="11" Foreground="#999999" Margin="0,0,0,20" />
 
                         <!-- 隔离区大小 -->
@@ -354,14 +387,14 @@
                                      Width="100" Height="32"
                                      VerticalContentAlignment="Center" Padding="8,0"
                                      Margin="0,0,8,0" FontSize="12"
-                                     PreviewTextInput="NumericOnly_PreviewTextInput" />
+                                     PreviewTextInput="DecimalOnly_PreviewTextInput" />
                             <ComboBox Grid.Column="1"
                                       ItemsSource="{Binding QuarantineSizeUnitOptions}"
                                       SelectedIndex="{Binding QuarantineSizeUnitIndex}"
                                       DisplayMemberPath="Display"
                                       Width="70" Height="32" />
                         </Grid>
-                        <TextBlock Text="默认上限 min(2% 磁盘空间, 10 GB)"
+                        <TextBlock Text="{Binding LblQuarantineSizeDefault}"
                                    FontSize="11" Foreground="#999999" Margin="0,0,0,20" />
 
                         <!-- 隔离区保留天数 -->
@@ -373,8 +406,8 @@
                                  HorizontalAlignment="Left"
                                  VerticalContentAlignment="Center" Padding="8,0"
                                  FontSize="12" Margin="0,0,0,6"
-                                 PreviewTextInput="NumericOnly_PreviewTextInput" />
-                        <TextBlock Text="超过保留天数的隔离文件将被自动清理。"
+                                 PreviewTextInput="IntegerOnly_PreviewTextInput" />
+                        <TextBlock Text="{Binding LblRetentionHint}"
                                    FontSize="11" Foreground="#999999" Margin="0,0,0,4" />
                     </StackPanel>
                 </ScrollViewer>
@@ -391,7 +424,7 @@
                         <TextBlock Text="VSS 卷影副本感知"
                                    FontSize="22" Foreground="{StaticResource PlaceholderForegroundBrush}"
                                    HorizontalAlignment="Center" />
-                        <TextBlock Text="磁盘卷影副本感知功能将在 V3.8+ 版本推出，届时可智能识别并跳过 VSS 快照占用的空间。"
+                        <TextBlock Text="{Binding LblVSSDescription}"
                                    FontSize="14" Foreground="{StaticResource PlaceholderForegroundBrush}"
                                    HorizontalAlignment="Center" Margin="0,12,0,0"
                                    TextWrapping="Wrap" MaxWidth="420" />
@@ -415,11 +448,11 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- 左侧：重置按钮 -->
-                <Button Grid.Column="0" Content="重置为默认值"
+                <Button Grid.Column="0" Content="{Binding LblButtonReset}"
                         Width="120" Height="32" FontSize="13"
                         Command="{Binding ResetToDefaultsCommand}"
                         HorizontalAlignment="Left"
-                        ToolTip="将所有设置恢复为默认值" />
+                        ToolTip="{Binding LblButtonResetTooltip}" />
 
                 <!-- 右侧：确定 / 取消 / 应用 -->
                 <Button Grid.Column="1" Content="{Binding LblBtnOK}"

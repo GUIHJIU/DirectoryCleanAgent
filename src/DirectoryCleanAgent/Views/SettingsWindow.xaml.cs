@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using DirectoryCleanAgent.Core.Logging;
@@ -77,12 +78,14 @@ public partial class SettingsWindow : Window
         }
     }
 
-    /// <summary>窗口关闭前记录日志</summary>
+    /// <summary>窗口关闭前记录日志并释放 ViewModel 资源</summary>
     private void SettingsWindow_Closing(object? sender, CancelEventArgs e)
     {
         try
         {
             _logger.LogInformation("设置窗口关闭 (DialogResult={Result})", DialogResult);
+            // 释放 ViewModel 的事件订阅，防止 Singleton 服务持有引用导致泄漏
+            (_viewModel as IDisposable)?.Dispose();
         }
         catch (Exception ex)
         {
@@ -160,12 +163,28 @@ public partial class SettingsWindow : Window
     // ================================================================
 
     /// <summary>
-    /// 限制 TextBox 只能输入数字字符。
-    /// 用于隔离区大小、保留天数、每日限额等数值输入框。
+    /// 限制 TextBox 只能输入整数数字字符（0-9）。
+    /// 用于每日限额、保留天数等整数值输入框。
     /// </summary>
-    private void NumericOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    private void IntegerOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
     {
-        // 仅允许数字字符通过
         e.Handled = !e.Text.All(char.IsDigit);
+    }
+
+    /// <summary>
+    /// 限制 TextBox 只能输入数字和小数点（最多一个小数点）。
+    /// 用于隔离区大小等小数值输入框。
+    /// </summary>
+    private void DecimalOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        // 允许数字
+        if (e.Text.All(char.IsDigit))
+            return;
+
+        // 允许一个小数点（当前文本中还没有小数点时）
+        if (e.Text == "." && sender is TextBox textBox && !textBox.Text.Contains('.'))
+            return;
+
+        e.Handled = true;
     }
 }

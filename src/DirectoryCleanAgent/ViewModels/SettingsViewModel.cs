@@ -18,7 +18,7 @@ namespace DirectoryCleanAgent.ViewModels;
 /// 取消时直接丢弃副本，确保不会产生部分修改。
 /// 语言和主题修改实时生效（无需点确认即可预览效果），其余设置需确认后生效。
 /// </summary>
-public class SettingsViewModel : ViewModelBase
+public class SettingsViewModel : ViewModelBase, IDisposable
 {
     // ============================================================
     // 依赖注入
@@ -203,6 +203,22 @@ public class SettingsViewModel : ViewModelBase
         set => SetProperty(ref _editAutoRefresh, value);
     }
 
+    private int _editMaxScanFiles = 100_000;
+    /// <summary>单次扫描最大文件数，0=不限制</summary>
+    public int EditMaxScanFiles
+    {
+        get => _editMaxScanFiles;
+        set => SetProperty(ref _editMaxScanFiles, Math.Max(0, value));
+    }
+
+    private int _editHashConcurrency;
+    /// <summary>SHA-256 哈希并发度，0=自动（使用 CPU 核心数）</summary>
+    public int EditHashConcurrency
+    {
+        get => _editHashConcurrency;
+        set => SetProperty(ref _editHashConcurrency, Math.Clamp(value, 0, 32));
+    }
+
     /// <summary>磁盘卷复选框集合（仅 NTFS 固定卷）</summary>
     public ObservableCollection<VolumeItem> IncludedVolumes { get; }
 
@@ -310,6 +326,9 @@ public class SettingsViewModel : ViewModelBase
         set => SetProperty(ref _excludedExtensionsText, value);
     }
 
+    /// <summary>当前是否为专家模式（用于控制专家选项可见性）</summary>
+    public bool IsExpertMode => _editConfig.UserMode == UserMode.Expert;
+
     /// <summary>隔离区大小单位 ComboBox 选项列表（MB / GB）</summary>
     public List<ComboItem> QuarantineSizeUnitOptions { get; private set; } = new();
 
@@ -357,7 +376,11 @@ public class SettingsViewModel : ViewModelBase
     public string LblDataPath => GetLoc("Settings.General.DataStorage");
     public string LblScanMode => GetLoc("Settings.Scan.ScanMode");
     public string LblDeleteMethod => GetLoc("Settings.Scan.DeleteMethod");
+    public string LblConfirmBeforeClean => GetLoc("Settings.Scan.ConfirmBeforeClean");
+    public string LblShowManualReview => GetLoc("Settings.Scan.ShowManualReview");
+    public string LblAutoRefresh => GetLoc("Settings.Scan.AutoRefresh");
     public string LblIncludedVolumes => GetLoc("Settings.Scan.IncludedVolumes");
+    public string LblAIEnable => GetLoc("Settings.AI.Enable");
     public string LblAIServiceType => GetLoc("Settings.AI.ServiceType");
     public string LblAIApiUrl => GetLoc("Settings.AI.ApiUrl");
     public string LblAIApiKey => GetLoc("Settings.AI.ApiKey");
@@ -369,6 +392,22 @@ public class SettingsViewModel : ViewModelBase
     public string LblExcludedExtensions => GetLoc("Settings.Exclusions.ExcludedExtensions");
     public string LblQuarantineSize => GetLoc("Settings.Exclusions.QuarantineMaxSize");
     public string LblQuarantineRetention => GetLoc("Settings.Exclusions.QuarantineRetention");
+    public string LblMaxScanFiles => GetLoc("Settings.Scan.MaxScanFiles");
+    public string LblHashConcurrency => GetLoc("Settings.Scan.HashConcurrency");
+    public string LblAdvancedOptions => GetLoc("Settings.Scan.AdvancedOptions");
+    public string LblNtfsOnlyHint => GetLoc("Settings.Scan.NtfsOnlyHint");
+    public string LblNoNtfsWarning => GetLoc("Settings.Scan.NoNtfsWarning");
+    public string LblAddButton => GetLoc("Settings.Exclusions.AddButton");
+    public string LblWildcardHint => GetLoc("Settings.Exclusions.WildcardHint");
+    public string LblExtensionHint => GetLoc("Settings.Exclusions.ExtensionHint");
+    public string LblQuarantineSizeDefault => GetLoc("Settings.Exclusions.QuarantineSizeDefault");
+    public string LblRetentionHint => GetLoc("Settings.Exclusions.RetentionHint");
+    public string LblAutomationDescription => GetLoc("Settings.Automation.Description");
+    public string LblVSSDescription => GetLoc("Settings.VSS.Description");
+    public string LblButtonBrowse => GetLoc("Settings.Button.Browse");
+    public string LblButtonReset => GetLoc("Settings.Button.Reset");
+    public string LblButtonResetTooltip => GetLoc("Settings.Button.ResetTooltip");
+    public string LblWindowTitle => GetLoc("Settings.Title");
 
     /// <summary>带回退的本地化字符串获取</summary>
     private string GetLoc(string key) => _localization.GetString(key);
@@ -558,9 +597,16 @@ public class SettingsViewModel : ViewModelBase
                 return;
             }
 
-            // 创建全新的默认配置副本（保留系统运行时字段如 FRN_AVAILABLE）
+            // 创建全新的默认配置副本（保留系统运行时字段）
             var frnAvailable = _editConfig.FRN_AVAILABLE;
-            var freshConfig = new UserConfig { FRN_AVAILABLE = frnAvailable };
+            var ruleCacheVersion = _editConfig.RuleCacheVersion;
+            var isFirstRun = _editConfig.IsFirstRun;
+            var freshConfig = new UserConfig
+            {
+                FRN_AVAILABLE = frnAvailable,
+                RuleCacheVersion = ruleCacheVersion,
+                IsFirstRun = isFirstRun
+            };
 
             // 将 _editConfig 替换为默认副本
             CopyConfigFields(freshConfig, _editConfig);
@@ -622,6 +668,8 @@ public class SettingsViewModel : ViewModelBase
             current.ConfirmBeforeOneClickClean = _editConfirmBeforeClean;
             current.ShowManualReviewFiles = _editShowManualReview;
             current.AutoRefreshScanResults = _editAutoRefresh;
+            current.MaxScanFiles = Math.Max(0, _editMaxScanFiles);
+            current.HashConcurrency = Math.Clamp(_editHashConcurrency, 0, 32);
             // 从 UI 卷列表中收集勾选状态
             current.IncludedVolumes = IncludedVolumes
                 .Where(v => v.IsIncluded)
@@ -682,6 +730,8 @@ public class SettingsViewModel : ViewModelBase
         _editConfirmBeforeClean = _editConfig.ConfirmBeforeOneClickClean;
         _editShowManualReview = _editConfig.ShowManualReviewFiles;
         _editAutoRefresh = _editConfig.AutoRefreshScanResults;
+        _editMaxScanFiles = _editConfig.MaxScanFiles;
+        _editHashConcurrency = _editConfig.HashConcurrency;
 
         // AI 顾问
         _editAIEnabled = _editConfig.AIEnabled;
@@ -705,6 +755,7 @@ public class SettingsViewModel : ViewModelBase
         _quarantineSizeUnitIndex = unitIdx;
         _editQuarantineRetentionDays = _editConfig.QuarantineRetentionDays;
 
+        OnPropertyChanged(nameof(IsExpertMode));
         _logger.LogDebug("从编辑副本加载初始数据完成");
     }
 
@@ -841,59 +892,22 @@ public class SettingsViewModel : ViewModelBase
 
     /// <summary>
     /// 实时应用主题（不等待确认）。
-    /// 复用与 App.ApplyTheme 相同的 ResourceDictionary 切换逻辑。
+    /// 委托给 App.ApplyTheme 静态方法，避免代码重复。
     /// 若 Application.Current 为 null（单元测试场景），安全跳过。
     /// </summary>
     private static void ApplyThemeImmediately(ThemeType theme)
     {
         try
         {
-            var app = Application.Current;
-            if (app == null) return; // 单元测试环境
-
-            bool useDark = theme switch
+            if (Application.Current != null)
             {
-                ThemeType.Dark => true,
-                ThemeType.Light => false,
-                ThemeType.FollowSystem => IsWindowsDarkMode(),
-                _ => false
-            };
-
-            var themeUri = useDark
-                ? new Uri("Themes/DarkTheme.xaml", UriKind.Relative)
-                : new Uri("Themes/LightTheme.xaml", UriKind.Relative);
-
-            var oldTheme = app.Resources.MergedDictionaries
-                .FirstOrDefault(d => d.Source != null &&
-                    (d.Source.OriginalString.Contains("LightTheme") ||
-                     d.Source.OriginalString.Contains("DarkTheme")));
-            if (oldTheme != null)
-            {
-                app.Resources.MergedDictionaries.Remove(oldTheme);
+                App.ApplyTheme(theme);
             }
-
-            app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = themeUri });
         }
         catch (Exception ex)
         {
             // 主题切换失败不应阻塞用户操作（非关键路径）
             System.Diagnostics.Debug.WriteLine($"主题切换失败: {ex.Message}");
-        }
-    }
-
-    /// <summary>检测 Windows 系统深色模式</summary>
-    private static bool IsWindowsDarkMode()
-    {
-        try
-        {
-            const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
-            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(keyPath);
-            var value = key?.GetValue("AppsUseLightTheme");
-            return value is int intValue && intValue == 0;
-        }
-        catch
-        {
-            return false;
         }
     }
 
@@ -988,20 +1002,29 @@ public class SettingsViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// 将源 UserConfig 的所有字段值复制到目标实例（用于重置场景）。
+    /// 将源 UserConfig 的所有用户可配置字段值复制到目标实例（用于重置场景）。
+    /// 注意：运行时标记字段（RuleCacheVersion / FRN_AVAILABLE / IsFirstRun）不在此复制，
+    /// 由调用方 ExecuteResetToDefaults 显式保留原值。
     /// </summary>
     private static void CopyConfigFields(UserConfig source, UserConfig target)
     {
+        // --- 通用设置 ---
         target.StartupBehavior = source.StartupBehavior;
         target.Theme = source.Theme;
         target.Language = source.Language;
         target.DataStoragePath = source.DataStoragePath;
+
+        // --- 扫描与清理 ---
         target.ScanMode = source.ScanMode;
         target.DeleteMethod = source.DeleteMethod;
         target.ConfirmBeforeOneClickClean = source.ConfirmBeforeOneClickClean;
         target.ShowManualReviewFiles = source.ShowManualReviewFiles;
         target.AutoRefreshScanResults = source.AutoRefreshScanResults;
+        target.MaxScanFiles = source.MaxScanFiles;
+        target.HashConcurrency = source.HashConcurrency;
         target.IncludedVolumes = new List<string>(source.IncludedVolumes);
+
+        // --- AI 顾问 ---
         target.AIEnabled = source.AIEnabled;
         target.AIServiceType = source.AIServiceType;
         target.AIApiUrl = source.AIApiUrl;
@@ -1010,18 +1033,29 @@ public class SettingsViewModel : ViewModelBase
         target.AITrustLevel = source.AITrustLevel;
         target.AIDailyLimit = source.AIDailyLimit;
         target.AIAutoAnalyze = source.AIAutoAnalyze;
+
+        // --- 排除与保护 ---
         target.UserExcludedDirs = new List<string>(source.UserExcludedDirs);
         target.UserExcludedExtensions = new List<string>(source.UserExcludedExtensions);
         target.QuarantineMaxSizeBytes = source.QuarantineMaxSizeBytes;
         target.QuarantineRetentionDays = source.QuarantineRetentionDays;
+
+        // --- 用户画像 ---
+        target.UserMode = source.UserMode;
+        target.UserProfession = source.UserProfession;
+        target.DeviceUsage = source.DeviceUsage;
+
+        // 运行时标记字段（RuleCacheVersion / FRN_AVAILABLE / IsFirstRun）不在此复制
     }
 
     /// <summary>
-    /// 释放资源：取消订阅语言变更事件。
+    /// 释放资源：取消订阅语言变更事件，防止 Singleton ILocalizationService 持有本实例引用导致泄漏。
+    /// 幂等安全，重复调用无副作用。
     /// </summary>
     public void Dispose()
     {
         _localization.LanguageChanged -= OnLanguageChanged;
         _logger.LogDebug("SettingsViewModel 已释放");
+        GC.SuppressFinalize(this);
     }
 }

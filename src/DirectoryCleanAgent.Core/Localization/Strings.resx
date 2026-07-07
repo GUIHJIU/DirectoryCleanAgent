@@ -630,4 +630,53 @@
   <data name="App.ComingSoon" xml:space="preserve">
     <value>即将推出</value>
   </data>
+
+  <!-- ================================================================ -->
+  <!-- C4: 设置 — 补充本地化键 -->
+  <!-- ================================================================ -->
+  <data name="Settings.Scan.NtfsOnlyHint" xml:space="preserve">
+    <value>仅 NTFS 卷可被 Everything 索引，非 NTFS 卷不会显示在列表中。</value>
+  </data>
+  <data name="Settings.Scan.NoNtfsWarning" xml:space="preserve">
+    <value>未检测到 NTFS 格式的固定磁盘卷。请检查磁盘格式。</value>
+  </data>
+  <data name="Settings.Scan.MaxScanFiles" xml:space="preserve">
+    <value>最大扫描文件数</value>
+  </data>
+  <data name="Settings.Scan.HashConcurrency" xml:space="preserve">
+    <value>哈希并发度</value>
+  </data>
+  <data name="Settings.Scan.AdvancedOptions" xml:space="preserve">
+    <value>高级选项</value>
+  </data>
+  <data name="Settings.Exclusions.AddButton" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="Settings.Exclusions.WildcardHint" xml:space="preserve">
+    <value>支持通配符，如 C:\Users\*\Downloads\*</value>
+  </data>
+  <data name="Settings.Exclusions.ExtensionHint" xml:space="preserve">
+    <value>多个扩展名用逗号分隔，如 .pst, .ost, .vhd</value>
+  </data>
+  <data name="Settings.Exclusions.QuarantineSizeDefault" xml:space="preserve">
+    <value>默认上限 10 GB（实际以剩余磁盘空间为准）</value>
+  </data>
+  <data name="Settings.Exclusions.RetentionHint" xml:space="preserve">
+    <value>超过保留天数的隔离文件将被自动清理。</value>
+  </data>
+  <data name="Settings.Automation.Description" xml:space="preserve">
+    <value>自动化定时清理功能正在规划中，将在后续版本中提供。</value>
+  </data>
+  <data name="Settings.VSS.Description" xml:space="preserve">
+    <value>磁盘卷影副本感知功能将在 V3.8+ 版本推出，届时可智能识别并跳过 VSS 快照占用的空间。</value>
+  </data>
+  <data name="Settings.Button.Browse" xml:space="preserve">
+    <value>浏览...</value>
+  </data>
+  <data name="Settings.Button.Reset" xml:space="preserve">
+    <value>重置为默认值</value>
+  </data>
+  <data name="Settings.Button.ResetTooltip" xml:space="preserve">
+    <value>将所有设置恢复为默认值</value>
+  </data>
 </root>

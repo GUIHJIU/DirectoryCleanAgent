@@ -259,4 +259,96 @@ public class ConvertersTests
         var result = converter.Convert(string.Empty, typeof(string), null, CultureInfo.InvariantCulture);
         Assert.Equal(string.Empty, result);
     }
+
+    // ============================================================
+    // C4: CountToVisibilityConverter
+    // ============================================================
+
+    [Fact]
+    public void CountToVisibilityConverter_Zero_ReturnsVisible()
+    {
+        var converter = new CountToVisibilityConverter();
+        var result = converter.Convert(0, typeof(Visibility), null, CultureInfo.InvariantCulture);
+        Assert.Equal(Visibility.Visible, result);
+    }
+
+    [Fact]
+    public void CountToVisibilityConverter_Positive_ReturnsCollapsed()
+    {
+        var converter = new CountToVisibilityConverter();
+        var result = converter.Convert(5, typeof(Visibility), null, CultureInfo.InvariantCulture);
+        Assert.Equal(Visibility.Collapsed, result);
+    }
+
+    [Fact]
+    public void CountToVisibilityConverter_NonInt_ReturnsVisible()
+    {
+        var converter = new CountToVisibilityConverter();
+        var result = converter.Convert("not an int", typeof(Visibility), null, CultureInfo.InvariantCulture);
+        Assert.Equal(Visibility.Visible, result);
+    }
+
+    [Fact]
+    public void CountToVisibilityConverter_Inverse_Zero_ReturnsCollapsed()
+    {
+        var converter = new CountToVisibilityConverter();
+        var result = converter.Convert(0, typeof(Visibility), "Inverse", CultureInfo.InvariantCulture);
+        Assert.Equal(Visibility.Collapsed, result);
+    }
+
+    [Fact]
+    public void CountToVisibilityConverter_Inverse_Positive_ReturnsVisible()
+    {
+        var converter = new CountToVisibilityConverter();
+        var result = converter.Convert(3, typeof(Visibility), "Inverse", CultureInfo.InvariantCulture);
+        Assert.Equal(Visibility.Visible, result);
+    }
+
+    [Fact]
+    public void CountToVisibilityConverter_ConvertBack_ThrowsNotSupported()
+    {
+        var converter = new CountToVisibilityConverter();
+        Assert.Throws<NotSupportedException>(() =>
+            converter.ConvertBack(Visibility.Visible, typeof(int), null, CultureInfo.InvariantCulture));
+    }
+
+    // ============================================================
+    // C2: DepthToFontWeightConverter
+    // ============================================================
+
+    [Fact]
+    public void DepthToFontWeightConverter_Depth0_ReturnsSemiBold()
+    {
+        var converter = new DepthToFontWeightConverter();
+        var result = converter.Convert(0, typeof(FontWeight), null, CultureInfo.InvariantCulture);
+        Assert.Equal(FontWeights.SemiBold, result);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(10)]
+    public void DepthToFontWeightConverter_DepthGreaterThan0_ReturnsNormal(int depth)
+    {
+        var converter = new DepthToFontWeightConverter();
+        var result = converter.Convert(depth, typeof(FontWeight), null, CultureInfo.InvariantCulture);
+        Assert.Equal(FontWeights.Normal, result);
+    }
+
+    [Fact]
+    public void DepthToFontWeightConverter_NonInt_DefaultsTo0_ReturnsSemiBold()
+    {
+        var converter = new DepthToFontWeightConverter();
+        var result = converter.Convert("not an int", typeof(FontWeight), null, CultureInfo.InvariantCulture);
+        Assert.Equal(FontWeights.SemiBold, result);
+    }
+
+    [Fact]
+    public void DepthToFontWeightConverter_ConvertBack_ThrowsNotSupported()
+    {
+        var converter = new DepthToFontWeightConverter();
+        Assert.Throws<NotSupportedException>(() =>
+            converter.ConvertBack(FontWeights.Bold, typeof(int), null, CultureInfo.InvariantCulture));
+    }
 }
