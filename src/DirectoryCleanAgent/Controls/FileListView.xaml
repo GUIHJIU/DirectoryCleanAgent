@@ -11,6 +11,7 @@
         <converters:FileSizeConverter x:Key="FileSizeConverter" />
         <converters:FilePathToDisplayConverter x:Key="FilePathToDisplayConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:DepthToFontWeightConverter x:Key="DepthToFontWeightConverter" />
     </UserControl.Resources>
 
     <!-- ============================================================
@@ -57,7 +58,7 @@
                                 <StackPanel>
                                     <TextBlock Text="{Binding Label}"
                                                FontSize="13"
-                                               FontWeight="{Binding Depth, Converter={StaticResource FilePathToDisplayConverter}}" />
+                                               FontWeight="{Binding Depth, Converter={StaticResource DepthToFontWeightConverter}}" />
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding CountText}"
                                                    FontSize="11"
@@ -167,6 +168,7 @@
                           Visibility="{Binding HasData, Converter={StaticResource BoolToVisibilityConverter}}"
                           AutoGenerateColumns="False"
                           CanUserSortColumns="True"
+                          Sorting="DataGrid_Sorting"
                           SelectionMode="Extended"
                           SelectionUnit="FullRow"
                           GridLinesVisibility="Horizontal"

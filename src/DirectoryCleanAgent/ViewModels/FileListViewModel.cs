@@ -45,7 +45,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
     private readonly IAppStateService _appStateService;
 
     private CancellationTokenSource? _currentLoadCts;
-    private readonly ConcurrentDictionary<string, DateTime> _pendingFileChanges = new();
+    private readonly ConcurrentDictionary<string, FileChangeType> _pendingFileChanges = new();
     private Timer? _throttleTimer;
     private bool _disposed;
 
@@ -77,7 +77,10 @@ public class FileListViewModel : ViewModelBase, IDisposable
         {
             if (SetProperty(ref _groupByPrimaryIndex, value))
             {
-                _ = RebuildGroupTreeAsync(CancellationToken.None);
+                _currentLoadCts?.Cancel();
+                _currentLoadCts?.Dispose();
+                _currentLoadCts = new CancellationTokenSource();
+                _ = RebuildGroupTreeAsync(_currentLoadCts.Token);
             }
         }
     }
@@ -90,7 +93,10 @@ public class FileListViewModel : ViewModelBase, IDisposable
         {
             if (SetProperty(ref _groupBySecondaryIndex, value))
             {
-                _ = RebuildGroupTreeAsync(CancellationToken.None);
+                _currentLoadCts?.Cancel();
+                _currentLoadCts?.Dispose();
+                _currentLoadCts = new CancellationTokenSource();
+                _ = RebuildGroupTreeAsync(_currentLoadCts.Token);
             }
         }
     }
@@ -1037,7 +1043,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
                 if (files.Count >= 10000) break;
             }
 
-            // 转换为 UI 模型
+            // 转换为 UI 模型（全量模式未经过规则引擎裁决，统一标记为"未评估"）
             var items = files.Select(f =>
             {
                 var item = new FileListItem
@@ -1051,7 +1057,13 @@ public class FileListViewModel : ViewModelBase, IDisposable
                     LastWriteTimeText = f.LastWriteTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
                     Extension = f.Extension,
                     EverythingSortKey = f.EverythingSortKey,
-                    CacheKey = f.FilePath
+                    CacheKey = f.FilePath,
+                    // 全量模式下文件未经过规则引擎和决策引擎裁决，
+                    // 显式标记为 ManualReview 避免误导用户（非 AutoDelete）
+                    FinalAction = FinalAction.ManualReview,
+                    FinalActionText = "未评估",
+                    SemanticCategory = "—",
+                    SemanticCategoryIcon = "📄"
                 };
                 item.UpdateAiDisplay();
                 return item;
@@ -1142,8 +1154,12 @@ public class FileListViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            // 记录待处理变更
-            _pendingFileChanges[e.FilePath] = DateTime.UtcNow;
+            // 记录待处理变更，合并策略：Deleted 优先级最高
+            // （若同一文件短时间内多次变更，以 Deleted 为准）
+            _pendingFileChanges.AddOrUpdate(e.FilePath, e.ChangeType,
+                (_, existing) => existing == FileChangeType.Deleted
+                    ? FileChangeType.Deleted
+                    : e.ChangeType);
 
             // 节流：500ms 后批量处理（重置定时器）
             _throttleTimer?.Dispose();
@@ -1164,10 +1180,10 @@ public class FileListViewModel : ViewModelBase, IDisposable
     /// </summary>
     private async Task ProcessPendingChangesAsync()
     {
-        Dictionary<string, DateTime> pendingSnapshot;
+        Dictionary<string, FileChangeType> pendingSnapshot;
         lock (_pendingFileChanges)
         {
-            pendingSnapshot = new Dictionary<string, DateTime>(_pendingFileChanges);
+            pendingSnapshot = new Dictionary<string, FileChangeType>(_pendingFileChanges);
             _pendingFileChanges.Clear();
         }
 
@@ -1182,8 +1198,23 @@ public class FileListViewModel : ViewModelBase, IDisposable
                 foreach (var kvp in pendingSnapshot)
                 {
                     var filePath = kvp.Key;
+                    var changeType = kvp.Value;
 
-                    // 在 CurrentFileList 中查找并更新
+                    // 处理文件删除：从当前列表中移除
+                    if (changeType == FileChangeType.Deleted)
+                    {
+                        var toRemove = CurrentFileList
+                            .Where(f => f.FullPath == filePath || f.CacheKey == filePath)
+                            .ToList();
+                        foreach (var item in toRemove)
+                        {
+                            CurrentFileList.Remove(item);
+                        }
+                        _logger.LogDebug("增量刷新-移除: {Path}", filePath);
+                        continue;
+                    }
+
+                    // 处理文件修改/创建/重命名：在列表中查找并更新
                     var existingItem = CurrentFileList.FirstOrDefault(
                         f => f.FullPath == filePath || f.CacheKey == filePath);
 
@@ -1206,8 +1237,11 @@ public class FileListViewModel : ViewModelBase, IDisposable
                             existingItem.SemanticCategoryIcon =
                                 GetSemanticCategoryIcon(cacheEntry.SemanticCategory);
                             existingItem.UpdateAiDisplay();
+                            _logger.LogDebug("增量刷新-更新: {Path}, Type={ChangeType}", filePath, changeType);
                         }
                     }
+                    // 注：Created 场景下文件不在 CurrentFileList 中，暂不自动添加。
+                    // 新增文件需通过重新扫描发现（由用户手动刷新或规则热加载触发）。
                 }
             });
         }
