@@ -379,6 +379,25 @@
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
+
+            <!-- ========================================================
+                 Tab 6: VSS 卷影副本（禁用 — V3.8+ 推出）
+            ======================================================== -->
+            <TabItem Header="{Binding LblTabVSS}" IsEnabled="False">
+                <Grid Background="{StaticResource ContentBackgroundBrush}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="📸" FontSize="48"
+                                   HorizontalAlignment="Center" Margin="0,0,0,16" />
+                        <TextBlock Text="VSS 卷影副本感知"
+                                   FontSize="22" Foreground="{StaticResource PlaceholderForegroundBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="磁盘卷影副本感知功能将在 V3.8+ 版本推出，届时可智能识别并跳过 VSS 快照占用的空间。"
+                                   FontSize="14" Foreground="{StaticResource PlaceholderForegroundBrush}"
+                                   HorizontalAlignment="Center" Margin="0,12,0,0"
+                                   TextWrapping="Wrap" MaxWidth="420" />
+                    </StackPanel>
+                </Grid>
+            </TabItem>
         </TabControl>
 
         <!-- ============================================================

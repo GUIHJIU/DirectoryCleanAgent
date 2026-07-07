@@ -235,6 +235,9 @@
   <data name="Settings.Tab.Exclusions" xml:space="preserve">
     <value>排除与保护</value>
   </data>
+  <data name="Settings.Tab.VSS" xml:space="preserve">
+    <value>VSS 快照</value>
+  </data>
   <data name="Settings.Title" xml:space="preserve">
     <value>设置</value>
   </data>
@@ -318,6 +321,38 @@
   </data>
   <data name="Settings.ScanMode.AskDirectory" xml:space="preserve">
     <value>每次询问目录</value>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — AI 服务类型选项 -->
+  <!-- ================================================================ -->
+  <data name="Settings.AIService.OpenAI" xml:space="preserve">
+    <value>OpenAI（在线）</value>
+    <comment>AI 服务类型 — OpenAI 在线服务</comment>
+  </data>
+  <data name="Settings.AIService.Ollama" xml:space="preserve">
+    <value>Ollama（本地）</value>
+    <comment>AI 服务类型 — Ollama 本地部署</comment>
+  </data>
+  <data name="Settings.AIService.Custom" xml:space="preserve">
+    <value>自定义</value>
+    <comment>AI 服务类型 — 自定义 API</comment>
+  </data>
+
+  <!-- ================================================================ -->
+  <!-- 设置 — AI 信任度选项 -->
+  <!-- ================================================================ -->
+  <data name="Settings.AITrust.Low" xml:space="preserve">
+    <value>低 — 仅自动清理</value>
+    <comment>AI 信任度 — 低</comment>
+  </data>
+  <data name="Settings.AITrust.Medium" xml:space="preserve">
+    <value>中 — 可建议清理</value>
+    <comment>AI 信任度 — 中</comment>
+  </data>
+  <data name="Settings.AITrust.High" xml:space="preserve">
+    <value>高 — 所有操作需确认</value>
+    <comment>AI 信任度 — 高</comment>
   </data>
 
   <!-- ================================================================ -->

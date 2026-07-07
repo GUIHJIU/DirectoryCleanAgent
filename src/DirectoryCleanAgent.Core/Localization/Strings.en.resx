@@ -192,6 +192,9 @@
   <data name="Settings.Tab.Exclusions" xml:space="preserve">
     <value>Exclusions &amp; Protection</value>
   </data>
+  <data name="Settings.Tab.VSS" xml:space="preserve">
+    <value>VSS Snapshots</value>
+  </data>
   <data name="Settings.Title" xml:space="preserve">
     <value>Settings</value>
   </data>

@@ -10,8 +10,8 @@
 
     <!-- 黄色警告横幅：非管理员只读模式 / 索引未完成时显示 -->
     <Border x:Name="BannerBorder"
-            Background="#FFF8E1"
-            BorderBrush="#FFB300"
+            Background="{StaticResource WarningBannerBackgroundBrush}"
+            BorderBrush="{StaticResource WarningBannerBorderBrush}"
             BorderThickness="0,0,0,1"
             Visibility="{Binding ShowWarningBanner, Converter={StaticResource BoolToVisibility}}"
             CornerRadius="0">
@@ -28,7 +28,7 @@
 
             <!-- 警告文本 -->
             <TextBlock Grid.Column="1" Text="{Binding WarningMessage}"
-                       FontSize="13" Foreground="#E65100"
+                       FontSize="13" Foreground="{StaticResource WarningBannerForegroundBrush}"
                        VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis" />
         </Grid>

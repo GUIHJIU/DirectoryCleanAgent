@@ -342,32 +342,33 @@ public class SettingsViewModel : ViewModelBase
     // ============================================================
 
     public string LblTabGeneral => GetLoc("Settings.Tab.General");
-    public string LblTabScanClean => GetLoc("Settings.Tab.ScanClean");
-    public string LblTabAI => GetLoc("Settings.Tab.AI");
+    public string LblTabScanClean => GetLoc("Settings.Tab.ScanAndClean");
+    public string LblTabAI => GetLoc("Settings.Tab.AIAdvisor");
     public string LblTabAutomation => GetLoc("Settings.Tab.Automation");
-    public string LblTabExclusion => GetLoc("Settings.Tab.Exclusion");
-    public string LblBtnOK => GetLoc("Settings.Button.OK");
-    public string LblBtnCancel => GetLoc("Settings.Button.Cancel");
-    public string LblBtnApply => GetLoc("Settings.Button.Apply");
-    public string LblAutomationComingSoon => GetLoc("Settings.Automation.ComingSoon");
-    public string LblStartupBehavior => GetLoc("Settings.Label.StartupBehavior");
-    public string LblTheme => GetLoc("Settings.Label.Theme");
-    public string LblLanguage => GetLoc("Settings.Label.Language");
-    public string LblDataPath => GetLoc("Settings.Label.DataPath");
-    public string LblScanMode => GetLoc("Settings.Label.ScanMode");
-    public string LblDeleteMethod => GetLoc("Settings.Label.DeleteMethod");
-    public string LblIncludedVolumes => GetLoc("Settings.Label.IncludedVolumes");
-    public string LblAIServiceType => GetLoc("Settings.Label.AIServiceType");
-    public string LblAIApiUrl => GetLoc("Settings.Label.AIApiUrl");
-    public string LblAIApiKey => GetLoc("Settings.Label.AIApiKey");
-    public string LblAIModel => GetLoc("Settings.Label.AIModel");
-    public string LblAITrustLevel => GetLoc("Settings.Label.AITrustLevel");
-    public string LblAIDailyLimit => GetLoc("Settings.Label.AIDailyLimit");
-    public string LblProtectedDirs => GetLoc("Settings.Label.ProtectedDirs");
-    public string LblUserExcludedDirs => GetLoc("Settings.Label.UserExcludedDirs");
-    public string LblExcludedExtensions => GetLoc("Settings.Label.ExcludedExtensions");
-    public string LblQuarantineSize => GetLoc("Settings.Label.QuarantineSize");
-    public string LblQuarantineRetention => GetLoc("Settings.Label.QuarantineRetention");
+    public string LblTabExclusion => GetLoc("Settings.Tab.Exclusions");
+    public string LblTabVSS => GetLoc("Settings.Tab.VSS");
+    public string LblBtnOK => GetLoc("Common.OK");
+    public string LblBtnCancel => GetLoc("Common.Cancel");
+    public string LblBtnApply => GetLoc("Common.Apply");
+    public string LblAutomationComingSoon => GetLoc("App.ComingSoon");
+    public string LblStartupBehavior => GetLoc("Settings.General.StartupBehavior");
+    public string LblTheme => GetLoc("Settings.General.Theme");
+    public string LblLanguage => GetLoc("Settings.General.Language");
+    public string LblDataPath => GetLoc("Settings.General.DataStorage");
+    public string LblScanMode => GetLoc("Settings.Scan.ScanMode");
+    public string LblDeleteMethod => GetLoc("Settings.Scan.DeleteMethod");
+    public string LblIncludedVolumes => GetLoc("Settings.Scan.IncludedVolumes");
+    public string LblAIServiceType => GetLoc("Settings.AI.ServiceType");
+    public string LblAIApiUrl => GetLoc("Settings.AI.ApiUrl");
+    public string LblAIApiKey => GetLoc("Settings.AI.ApiKey");
+    public string LblAIModel => GetLoc("Settings.AI.Model");
+    public string LblAITrustLevel => GetLoc("Settings.AI.TrustLevel");
+    public string LblAIDailyLimit => GetLoc("Settings.AI.DailyLimit");
+    public string LblProtectedDirs => GetLoc("Settings.Exclusions.ProtectedDirs");
+    public string LblUserExcludedDirs => GetLoc("Settings.Exclusions.UserExcludedDirs");
+    public string LblExcludedExtensions => GetLoc("Settings.Exclusions.ExcludedExtensions");
+    public string LblQuarantineSize => GetLoc("Settings.Exclusions.QuarantineMaxSize");
+    public string LblQuarantineRetention => GetLoc("Settings.Exclusions.QuarantineRetention");
 
     /// <summary>带回退的本地化字符串获取</summary>
     private string GetLoc(string key) => _localization.GetString(key);
@@ -780,8 +781,8 @@ public class SettingsViewModel : ViewModelBase
     {
         StartupBehaviorOptions = new List<ComboItem>
         {
-            new() { Display = GetLoc("Settings.StartupBehavior.AutoScan"), Value = StartupBehavior.AutoScan },
-            new() { Display = GetLoc("Settings.StartupBehavior.ShowHome"), Value = StartupBehavior.ShowHome }
+            new() { Display = GetLoc("Settings.Startup.AutoScan"), Value = StartupBehavior.AutoScan },
+            new() { Display = GetLoc("Settings.Startup.ShowHome"), Value = StartupBehavior.ShowHome }
         };
         OnPropertyChanged(nameof(StartupBehaviorOptions));
 
@@ -802,8 +803,8 @@ public class SettingsViewModel : ViewModelBase
 
         ScanModeOptions = new List<ComboItem>
         {
-            new() { Display = GetLoc("Settings.ScanMode.SmartScan"), Value = ScanMode.SmartScanSystemDrive },
-            new() { Display = GetLoc("Settings.ScanMode.AskEachTime"), Value = ScanMode.AskDirectoryEveryTime }
+            new() { Display = GetLoc("Settings.ScanMode.Smart"), Value = ScanMode.SmartScanSystemDrive },
+            new() { Display = GetLoc("Settings.ScanMode.AskDirectory"), Value = ScanMode.AskDirectoryEveryTime }
         };
         OnPropertyChanged(nameof(ScanModeOptions));
 

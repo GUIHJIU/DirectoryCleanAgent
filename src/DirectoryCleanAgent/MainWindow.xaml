@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:DirectoryCleanAgent.Controls"
         xmlns:converters="clr-namespace:DirectoryCleanAgent.Converters"
-        Title="智能磁盘清理" Height="720" Width="1100"
+        Title="智能磁盘清理 V3.7" Height="720" Width="1100"
         MinHeight="600" MinWidth="900"
         WindowStartupLocation="CenterScreen"
         Loaded="MainWindow_Loaded">
@@ -14,7 +14,6 @@
         <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
-        <converters:AppStateToBoolConverter x:Key="AppStateToBoolConverter" />
     </Window.Resources>
 
     <!-- ============================================================
@@ -155,13 +154,15 @@
                 <Separator Grid.Column="5" Visibility="Hidden" />
 
                 <!-- 分组依据下拉框（C2：绑定到 FileListViewModel） -->
-                <TextBlock Grid.Column="6" Text="分组依据:" FontSize="13"
-                           Foreground="{StaticResource CardTextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="0,0,6,0" />
-                <ComboBox Grid.Column="6" Style="{StaticResource GroupByComboBoxStyle}"
-                          ItemsSource="{Binding FileListViewModel.GroupByModes}"
-                          SelectedIndex="{Binding FileListViewModel.GroupByPrimaryIndex}"
-                          IsEnabled="{Binding FileListViewModel.IsGroupedView}" />
+                <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="分组依据:" FontSize="13"
+                               Foreground="{StaticResource CardTextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox Style="{StaticResource GroupByComboBoxStyle}"
+                              ItemsSource="{Binding FileListViewModel.GroupByModes}"
+                              SelectedIndex="{Binding FileListViewModel.GroupByPrimaryIndex}"
+                              IsEnabled="{Binding FileListViewModel.IsGroupedView}" />
+                </StackPanel>
 
                 <!-- "显示所有文件"切换开关（C2：绑定到 FileListViewModel） -->
                 <CheckBox Grid.Column="7" Content="显示所有文件"
