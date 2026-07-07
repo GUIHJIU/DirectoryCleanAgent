@@ -1307,8 +1307,9 @@ public partial class SetupWizardWindow : Window
 
             try
             {
-                // 调用真实 AI 服务验证连接
+                // 调用真实 AI 服务验证连接（全部使用传入参数，不依赖当前配置）
                 var success = await _aiAdvisorService.TestConnectionAsync(
+                    _viewModel.AIServiceType ?? "custom",
                     _viewModel.AIApiUrl,
                     _viewModel.AIApiKey ?? string.Empty,
                     _viewModel.AIModel ?? string.Empty);

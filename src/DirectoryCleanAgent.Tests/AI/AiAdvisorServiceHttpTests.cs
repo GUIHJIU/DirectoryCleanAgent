@@ -300,7 +300,7 @@ public class AiAdvisorServiceHttpTests : IDisposable
             httpClient);
 
         var result = await service.TestConnectionAsync(
-            "https://test.example.com/v1", "key123", "model-v1");
+            "custom", "https://test.example.com/v1", "key123", "model-v1");
 
         Assert.True(result);
     }
@@ -321,7 +321,7 @@ public class AiAdvisorServiceHttpTests : IDisposable
             httpClient);
 
         var result = await service.TestConnectionAsync(
-            "https://test.example.com/v1", "key123", "model-v1");
+            "custom", "https://test.example.com/v1", "key123", "model-v1");
 
         Assert.False(result);
     }
@@ -349,7 +349,7 @@ public class AiAdvisorServiceHttpTests : IDisposable
             httpClient);
 
         var result = await service.TestConnectionAsync(
-            "https://test.example.com/v1", "key123", "model-v1");
+            "custom", "https://test.example.com/v1", "key123", "model-v1");
 
         Assert.False(result);
     }

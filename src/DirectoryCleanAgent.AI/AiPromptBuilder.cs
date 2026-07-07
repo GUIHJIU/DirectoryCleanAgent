@@ -27,6 +27,15 @@ internal sealed class AiPromptBuilder
         "safe", "unknown", "risky"
     };
 
+    // 中文标签 → 英文标签映射（防御性处理：部分 AI 模型可能输出中文标签）
+    private static readonly Dictionary<string, string> ChineseLabelMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "安全", "safe" },
+        { "未知", "unknown" },
+        { "风险", "risky" },
+        { "危险", "risky" }
+    };
+
     // 用于防御性解析的正则：匹配第一个 JSON 对象
     private static readonly Regex JsonObjectRegex = new(
         @"\{[^{}]*""label""[^{}]*""confidence""[^{}]*""explanation""[^{}]*\}",
@@ -241,10 +250,23 @@ internal sealed class AiPromptBuilder
             return "unknown";
         }
 
-        var trimmed = label.Trim().ToLowerInvariant();
+        var trimmed = label.Trim();
 
+        // 策略1：直接匹配英文标签（不区分大小写）
         if (ValidLabels.Contains(trimmed))
-            return trimmed;
+            return trimmed.ToLowerInvariant();
+
+        // 策略2：中文标签 → 英文标签映射（防御性处理 AI 模型偶尔输出中文标签的情况）
+        if (ChineseLabelMap.TryGetValue(trimmed, out var mapped))
+        {
+            _logger.LogInformation("AI 返回中文标签 '{Raw}' → 映射为 '{Mapped}'", label, mapped);
+            return mapped;
+        }
+
+        // 策略3：小写后再试一次（兼容 "SAFE" / "Safe" 等纯大小写变体）
+        var lowered = trimmed.ToLowerInvariant();
+        if (ValidLabels.Contains(lowered))
+            return lowered;
 
         _logger.LogWarning("AI 返回未识别的标签 '{Raw}'，校正为 'unknown'（合法值: safe/unknown/risky）", label);
         return "unknown";

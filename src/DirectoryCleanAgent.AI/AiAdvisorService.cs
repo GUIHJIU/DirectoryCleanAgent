@@ -120,53 +120,85 @@ public sealed class AiAdvisorService : IAiAdvisorService, IDisposable
                 return null;
             }
 
-            // 从操作系统获取文件元数据（构建提示词需要）
-            FileInfo? fileInfo = null;
+            // 步骤1：检查熔断器（Open→HalfOpen 转换在此发生）
+            _circuitBreaker.EnsureNotOpen();
+
+            // 步骤2：获取速率令牌和并发槽位
+            var acquired = await _rateLimiter.TryAcquireAsync(ct);
+            if (!acquired)
+                return null;
+
             try
             {
-                fileInfo = new FileInfo(filePath);
-                if (!fileInfo.Exists)
+                // 步骤3：检查日限
+                if (_usageTracker.IsLimitReached)
                 {
-                    _logger.LogWarning("文件不存在，无法分析: {Path}", filePath);
+                    _logger.LogWarning("AI 日限已达 ({Used}/{Limit})，跳过单文件分析: {Path}",
+                        _usageTracker.UsedCount, _configService.Current.AIDailyLimit, filePath);
+                    return AiAnalysisResult.Failure(filePath, "每日 AI 调用次数已达上限");
+                }
+
+                // 从操作系统获取文件元数据（构建提示词需要）
+                FileInfo? fileInfo = null;
+                try
+                {
+                    fileInfo = new FileInfo(filePath);
+                    if (!fileInfo.Exists)
+                    {
+                        _logger.LogWarning("文件不存在，无法分析: {Path}", filePath);
+                        return null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "获取文件信息失败: {Path}", filePath);
                     return null;
                 }
+
+                // 尝试获取已有缓存（若存在则更新，不存在则仅返回分析结果）
+                var cache = await _cacheRepo.GetByFilePathAsync(filePath, ct);
+
+                // 构建提示词
+                var userPrompt = _promptBuilder.BuildUserPrompt(filePath, fileInfo.Length, fileInfo.LastWriteTimeUtc);
+
+                // 步骤4-5：执行 AI 调用并解析响应
+                var aiResponse = await CallAiApiWithPipelineAsync(userPrompt, ct);
+
+                if (aiResponse == null)
+                {
+                    return AiAnalysisResult.Failure(filePath, "AI API 调用失败或响应解析失败");
+                }
+
+                // 步骤6：验证标签
+                var label = _promptBuilder.ValidateLabel(aiResponse.Label);
+
+                // 若存在缓存则更新
+                if (cache != null)
+                {
+                    var config = _configService.Current;
+                    ApplyResultToCache(cache, label, aiResponse.Confidence, aiResponse.Explanation,
+                        config.AIEnabled, config.AITrustLevel);
+                }
+
+                // 步骤7：递增日限计数
+                await _usageTracker.IncrementAsync();
+
+                var result = AiAnalysisResult.Success(filePath, label, aiResponse.Confidence, aiResponse.Explanation);
+                _logger.LogInformation("AI 单文件分析成功: {Path} → {Label} (置信度={Confidence:P})",
+                    filePath, label, aiResponse.Confidence);
+
+                return result;
             }
-            catch (Exception ex)
+            finally
             {
-                _logger.LogWarning(ex, "获取文件信息失败: {Path}", filePath);
-                return null;
+                // 释放并发槽位
+                _rateLimiter.Release();
             }
-
-            // 尝试获取已有缓存（若存在则更新，不存在则仅返回分析结果）
-            var cache = await _cacheRepo.GetByFilePathAsync(filePath, ct);
-
-            // 构建提示词
-            var userPrompt = _promptBuilder.BuildUserPrompt(filePath, fileInfo.Length, fileInfo.LastWriteTimeUtc);
-
-            // 执行 AI 调用
-            var aiResponse = await CallAiApiWithPipelineAsync(userPrompt, ct);
-
-            if (aiResponse == null)
-            {
-                return AiAnalysisResult.Failure(filePath, "AI API 调用失败或响应解析失败");
-            }
-
-            // 验证标签
-            var label = _promptBuilder.ValidateLabel(aiResponse.Label);
-
-            // 若存在缓存则更新
-            if (cache != null)
-            {
-                var config = _configService.Current;
-                ApplyResultToCache(cache, label, aiResponse.Confidence, aiResponse.Explanation,
-                    config.AIEnabled, config.AITrustLevel);
-            }
-
-            var result = AiAnalysisResult.Success(filePath, label, aiResponse.Confidence, aiResponse.Explanation);
-            _logger.LogInformation("AI 单文件分析成功: {Path} → {Label} (置信度={Confidence:P})",
-                filePath, label, aiResponse.Confidence);
-
-            return result;
+        }
+        catch (CircuitBreakerOpenException ex)
+        {
+            _logger.LogWarning("熔断器打开，跳过单文件分析: {Path} —— {Message}", filePath, ex.Message);
+            return AiAnalysisResult.Failure(filePath, ex.Message);
         }
         catch (OperationCanceledException)
         {
@@ -290,14 +322,14 @@ public sealed class AiAdvisorService : IAiAdvisorService, IDisposable
 
     /// <inheritdoc />
     public async Task<bool> TestConnectionAsync(
-        string apiUrl, string apiKey, string model, CancellationToken ct = default)
+        string serviceType, string apiUrl, string apiKey, string model, CancellationToken ct = default)
     {
-        _logger.LogMethodEntry($"URL={apiUrl}, Model={model}");
+        _logger.LogMethodEntry($"Type={serviceType}, URL={apiUrl}, Model={model}");
 
         try
         {
             var (systemPrompt, userPrompt) = _promptBuilder.BuildTestPrompt();
-            var url = BuildApiUrl(_configService.Current.AIServiceType, apiUrl);
+            var url = BuildApiUrl(serviceType, apiUrl);
 
             using var request = BuildHttpRequest(url, apiKey, model, systemPrompt, userPrompt);
 
@@ -352,12 +384,11 @@ public sealed class AiAdvisorService : IAiAdvisorService, IDisposable
 
             try
             {
-                // 步骤3：检查日限
+                // 步骤3：检查日限（日限达到是应用层配额限制，不计入熔断器失败计数）
                 if (_usageTracker.IsLimitReached)
                 {
                     _logger.LogWarning("AI 日限已达 ({Used}/{Limit})，跳过: {Path}",
                         _usageTracker.UsedCount, _configService.Current.AIDailyLimit, cache.FilePath);
-                    _circuitBreaker.RecordFailure();
                     return AiAnalysisResult.Failure(cache.FilePath, "每日 AI 调用次数已达上限");
                 }
 

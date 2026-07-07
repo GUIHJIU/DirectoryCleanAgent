@@ -86,11 +86,12 @@ public interface IAiAdvisorService
     /// 使用传入参数而非当前配置（因为配置尚未保存）。
     /// 发送简单问询，验证 API 端点和密钥的有效性。
     /// </summary>
+    /// <param name="serviceType">AI 服务类型：openai / ollama / custom</param>
     /// <param name="apiUrl">API 端点 URL</param>
     /// <param name="apiKey">API 密钥（可选，Ollama 不需要）</param>
     /// <param name="model">模型名称</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>连接测试是否成功（收到有效 HTTP 200 响应）</returns>
-    Task<bool> TestConnectionAsync(string apiUrl, string apiKey, string model,
+    Task<bool> TestConnectionAsync(string serviceType, string apiUrl, string apiKey, string model,
         CancellationToken ct = default);
 }

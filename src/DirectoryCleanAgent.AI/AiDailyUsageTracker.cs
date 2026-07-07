@@ -49,15 +49,14 @@ internal sealed class AiDailyUsageTracker : IDisposable
         _logger.LogDebug("AI 每日用量追踪器初始化: 文件={Path}, 日限={Limit}", _filePath, _dailyLimit);
     }
 
-    /// <summary>今日已用调用次数</summary>
+    /// <summary>今日已用调用次数（线程安全，与异步方法共用 SemaphoreSlim）</summary>
     public int UsedCount
     {
         get
         {
-            lock (_lock)
-            {
-                return _currentCount;
-            }
+            _lock.Wait();
+            try { return _currentCount; }
+            finally { _lock.Release(); }
         }
     }
 
