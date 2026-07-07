@@ -45,6 +45,9 @@ public partial class SetupWizardWindow : Window
     // Step4 AI 测试连接状态
     private TextBlock? _aiTestResultText;
 
+    // Step0 检测结果摘要文本
+    private TextBlock? _step0ResultSummaryText;
+
     public SetupWizardWindow(
         SetupWizardViewModel viewModel,
         IAiAdvisorService aiAdvisorService,
@@ -301,7 +304,21 @@ public partial class SetupWizardWindow : Window
             Height = 34,
             FontSize = 13
         };
-        exitButton.Click += (s, e) => Application.Current.Shutdown();
+        exitButton.Click += (s, e) =>
+        {
+            var result = MessageBox.Show(
+                "Everything 搜索引擎未就绪，本工具无法正常运行。\n\n" +
+                "是否退出应用？\n" +
+                "（下次启动时将重新进入此向导）",
+                "确认退出",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                Application.Current.Shutdown();
+            }
+        };
         retryPanel.Children.Add(retryButton);
         retryPanel.Children.Add(exitButton);
 
@@ -386,7 +403,49 @@ public partial class SetupWizardWindow : Window
             _step0InstallStatusText.Text = _viewModel.InstallStatusText;
         }
 
+        // 更新检测结果摘要
+        UpdateDetectionResultSummary();
+
         RefreshNavigationButtons();
+    }
+
+    /// <summary>更新 Step0 检测结果摘要面板的文本内容</summary>
+    private void UpdateDetectionResultSummary()
+    {
+        if (_step0ResultSummaryText == null)
+            return;
+
+        if (!_viewModel.IsDetectionComplete || _viewModel.DetectionResult == null)
+        {
+            _step0ResultSummaryText.Text = "检测结果将在检测完成后显示。";
+            _step0ResultSummaryText.Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
+            return;
+        }
+
+        var result = _viewModel.DetectionResult;
+        var sb = new System.Text.StringBuilder();
+
+        if (result.CanProceedToMainUI)
+        {
+            sb.AppendLine("✓ Everything 服务运行正常");
+            sb.AppendLine($"  版本: {result.VersionString}");
+            sb.AppendLine($"  FRN 支持: {(result.FRN_AVAILABLE ? "可用" : "不可用（指纹降级）")}");
+            sb.AppendLine($"  索引状态: {(result.IsIndexing ? "构建中" : "已就绪")}");
+            sb.AppendLine($"  检测耗时: {result.ElapsedMilliseconds}ms");
+            _step0ResultSummaryText.Foreground = new SolidColorBrush(Color.FromRgb(0x10, 0x7C, 0x10));
+        }
+        else
+        {
+            sb.AppendLine("✕ Everything 依赖检测未通过");
+            sb.AppendLine($"  失败原因: {result.FailureReason ?? "未知错误"}");
+            if (!string.IsNullOrEmpty(result.InstallSuggestion))
+            {
+                sb.AppendLine($"  建议操作: {(result.InstallSuggestion == "install" ? "安装 Everything" : "升级 Everything")}");
+            }
+            _step0ResultSummaryText.Foreground = new SolidColorBrush(Color.FromRgb(0xD1, 0x34, 0x38));
+        }
+
+        _step0ResultSummaryText.Text = sb.ToString().TrimEnd();
     }
 
     /// <summary>构建检测结果摘要面板</summary>
@@ -404,13 +463,14 @@ public partial class SetupWizardWindow : Window
 
         var resultStack = new StackPanel();
 
-        // 根据实际检测结果更新（SetResultSummary 在 UpdateStep0UI 中调用）
-        resultStack.Children.Add(new TextBlock
+        // 检测结果摘要文本（UpdateStep0UI 中根据实际结果更新）
+        _step0ResultSummaryText = new TextBlock
         {
             Text = "检测结果将在检测完成后显示。",
             FontSize = 13,
             Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99))
-        });
+        };
+        resultStack.Children.Add(_step0ResultSummaryText);
 
         resultBorder.Child = resultStack;
         panel.Children.Add(resultBorder);
@@ -688,7 +748,21 @@ public partial class SetupWizardWindow : Window
             Height = 34,
             FontSize = 13
         };
-        exitBtn.Click += (s, e) => Application.Current.Shutdown();
+        exitBtn.Click += (s, e) =>
+        {
+            var result = MessageBox.Show(
+                "Everything 搜索引擎未安装，本工具无法正常运行。\n\n" +
+                "是否退出应用？\n" +
+                "（下次启动时将重新进入此向导）",
+                "确认退出",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                Application.Current.Shutdown();
+            }
+        };
 
         btnPanel.Children.Add(installBtn);
         btnPanel.Children.Add(exitBtn);
@@ -1080,6 +1154,52 @@ public partial class SetupWizardWindow : Window
             FontSize = 13,
             Margin = new Thickness(8, 0, 0, 0)
         };
+        // 已添加排除目录列表（带删除按钮）
+        var dirListPanel = new StackPanel { Margin = new Thickness(0, 8, 0, 16) };
+
+        void RefreshDirList()
+        {
+            dirListPanel.Children.Clear();
+            foreach (var dir in _viewModel.UserConfig.UserExcludedDirs)
+            {
+                var row = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
+
+                var removeBtn = new Button
+                {
+                    Content = "✕",
+                    Width = 28,
+                    Height = 24,
+                    FontSize = 11,
+                    ToolTip = $"移除 {dir}",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Background = new SolidColorBrush(Color.FromRgb(0xE8, 0x11, 0x23)),
+                    Foreground = Brushes.White
+                };
+                var capturedDir = dir;
+                removeBtn.Click += (_, _) =>
+                {
+                    _viewModel.UserConfig.UserExcludedDirs.Remove(capturedDir);
+                    RefreshDirList();
+                    _logger.LogInformation("移除排除目录: {Path}", capturedDir);
+                };
+                DockPanel.SetDock(removeBtn, Dock.Right);
+                row.Children.Add(removeBtn);
+
+                row.Children.Add(new TextBlock
+                {
+                    Text = $"📁 {dir}",
+                    FontSize = 12,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55)),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    ToolTip = dir,
+                    Margin = new Thickness(0, 0, 8, 0)
+                });
+
+                dirListPanel.Children.Add(row);
+            }
+        }
+
         addBtn.Click += (s, e) =>
         {
             var path = excludeInput.Text.Trim();
@@ -1087,12 +1207,17 @@ public partial class SetupWizardWindow : Window
             {
                 _viewModel.UserConfig.UserExcludedDirs.Add(path);
                 excludeInput.Text = "";
+                RefreshDirList();
                 _logger.LogInformation("添加排除目录: {Path}", path);
             }
         };
         excludeGrid.Children.Add(addBtn);
         Grid.SetColumn(addBtn, 1);
         panel.Children.Add(excludeGrid);
+
+        // 初始化已添加目录列表
+        RefreshDirList();
+        panel.Children.Add(dirListPanel);
 
         panel.Children.Add(new TextBlock
         {
@@ -1120,11 +1245,33 @@ public partial class SetupWizardWindow : Window
             Padding = new Thickness(8, 0, 8, 0),
             Margin = new Thickness(0, 0, 0, 4)
         };
+
+        // 恢复已保存的排除扩展名
+        if (_viewModel.UserConfig.UserExcludedExtensions.Count > 0)
+        {
+            extInput.Text = string.Join(", ", _viewModel.UserConfig.UserExcludedExtensions);
+        }
+
+        // LostFocus 时保存排除扩展名列表
+        extInput.LostFocus += (s, e) =>
+        {
+            var exts = extInput.Text
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim().TrimStart('.'))
+                .Where(x => x.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            _viewModel.UserConfig.UserExcludedExtensions.Clear();
+            _viewModel.UserConfig.UserExcludedExtensions.AddRange(exts);
+
+            _logger.LogInformation("排除扩展名已更新: {Count} 项", exts.Count);
+        };
         panel.Children.Add(extInput);
 
         panel.Children.Add(new TextBlock
         {
-            Text = "多个扩展名用逗号分隔，如 .pst, .ost, .vhd",
+            Text = "多个扩展名用逗号分隔，如 pst, ost, vhd",
             FontSize = 12,
             Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99))
         });
@@ -1251,27 +1398,34 @@ public partial class SetupWizardWindow : Window
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(0, 0, 0, 14)
         };
+        // 显示名 → 标识符映射（AiAdvisorService.BuildApiUrl 期望 "openai"/"ollama"/"custom"）
         serviceCombo.Items.Add("OpenAI API");
         serviceCombo.Items.Add("本地 Ollama");
         serviceCombo.Items.Add("自定义 API");
         serviceCombo.SelectionChanged += (s, e) =>
         {
-            if (serviceCombo.SelectedItem is ComboBoxItem item)
-                _viewModel.AIServiceType = item.Content?.ToString() ?? "custom";
-            else if (serviceCombo.SelectedItem is string str)
-                _viewModel.AIServiceType = str;
+            var displayName = serviceCombo.SelectedItem?.ToString() ?? "";
+            _viewModel.AIServiceType = displayName switch
+            {
+                "OpenAI API" => "openai",
+                "本地 Ollama" => "ollama",
+                "自定义 API" => "custom",
+                _ => "custom"
+            };
         };
+        // 回显已保存的服务类型（根据标识符匹配显示名）
         if (!string.IsNullOrEmpty(_viewModel.AIServiceType))
         {
-            // 尝试匹配已保存的服务类型
-            for (int i = 0; i < serviceCombo.Items.Count; i++)
+            var displayName = _viewModel.AIServiceType.ToLowerInvariant() switch
             {
-                if (serviceCombo.Items[i] is ComboBoxItem cbi &&
-                    cbi.Content?.ToString()?.Contains(_viewModel.AIServiceType, StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    serviceCombo.SelectedIndex = i;
-                    break;
-                }
+                "openai" => "OpenAI API",
+                "ollama" => "本地 Ollama",
+                "custom" => "自定义 API",
+                _ => null
+            };
+            if (displayName != null)
+            {
+                serviceCombo.SelectedItem = displayName;
             }
         }
         panel.Children.Add(serviceCombo);
@@ -1533,7 +1687,7 @@ public partial class SetupWizardWindow : Window
         // 下一步/完成按钮
         NextButton.Content = _viewModel.NextButtonText;
         NextButton.Visibility = (_viewModel.CanGoNext || _viewModel.IsLastStep)
-            && !_viewModel.IsDetecting && !string.IsNullOrEmpty(_viewModel.DetectionError) == false
+            && !_viewModel.IsDetecting && string.IsNullOrEmpty(_viewModel.DetectionError)
             ? Visibility.Visible : Visibility.Collapsed;
 
         // 跳过此步骤按钮
