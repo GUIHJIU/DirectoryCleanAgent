@@ -287,6 +287,7 @@ public class DeletionHistoryViewModel : ViewModelBase
                 {
                     DeleteMethod.RecycleBin => "回收站",
                     DeleteMethod.Permanent => "永久删除",
+                    DeleteMethod.Quarantine => "隔离区",
                     _ => b.Method.ToString()
                 },
                 IsRollbackable = b.IsRollbackable
@@ -506,12 +507,17 @@ public class DeletionHistoryViewModel : ViewModelBase
                 var icon = result.IsFullySuccessful ? MessageBoxImage.Information : MessageBoxImage.Warning;
                 var title = result.IsFullySuccessful ? "回滚完成" : "回滚完成（部分失败）";
 
+                // 回滚操作是恢复文件占用空间，FreedBytes 为 0 时语义不同
+                var sizeInfo = result.FreedBytes > 0
+                    ? $"释放空间（回退）: {FormatBytes(result.FreedBytes)}"
+                    : "空间占用无变化";
+
                 MessageBox.Show(
                     $"回滚操作完成:\n\n" +
                     $"✅ 成功恢复: {result.SuccessCount} 个文件\n" +
                     $"❌ 失败: {result.FailedCount} 个文件\n" +
                     $"⚠️ 需人工处理: {result.ManualReviewCount} 个文件\n" +
-                    $"释放空间（回退）: {FormatBytes(result.FreedBytes)}\n" +
+                    $"{sizeInfo}\n" +
                     $"耗时: {result.Elapsed:hh\\:mm\\:ss}",
                     title,
                     MessageBoxButton.OK,

@@ -112,6 +112,53 @@ public sealed class AuditLogRepository : IAuditLogRepository, IDisposable
     }
 
     /// <inheritdoc/>
+    public async Task<int> QueryCountAsync(
+        DateTime? from = null,
+        DateTime? to = null,
+        string? userSid = null,
+        string? operationType = null,
+        CancellationToken ct = default)
+    {
+        // 构建与 QueryAsync 相同的 WHERE 条件（参数化查询防注入）
+        var conditions = new List<string>();
+        using var cmd = new SqliteCommand();
+
+        if (from.HasValue)
+        {
+            conditions.Add("timestamp >= @from");
+            cmd.Parameters.AddWithValue("@from", from.Value.ToString("O"));
+        }
+        if (to.HasValue)
+        {
+            conditions.Add("timestamp <= @to");
+            cmd.Parameters.AddWithValue("@to", to.Value.ToString("O"));
+        }
+        if (!string.IsNullOrEmpty(userSid))
+        {
+            conditions.Add("user_sid = @sid");
+            cmd.Parameters.AddWithValue("@sid", userSid);
+        }
+        if (!string.IsNullOrEmpty(operationType))
+        {
+            conditions.Add("operation_type = @opType");
+            cmd.Parameters.AddWithValue("@opType", operationType);
+        }
+
+        var whereClause = conditions.Count > 0
+            ? "WHERE " + string.Join(" AND ", conditions)
+            : "";
+
+        var sql = $"SELECT COUNT(*) FROM AuditLog {whereClause}";
+
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct).ConfigureAwait(false);
+        cmd.Connection = connection;
+        cmd.CommandText = sql;
+
+        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        return Convert.ToInt32(result);
+    }
+
+    /// <inheritdoc/>
     public Task FlushAsync(CancellationToken ct = default) => _writeQueue.FlushAsync(ct);
 
     /// <summary>批量插入处理函数</summary>

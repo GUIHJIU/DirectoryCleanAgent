@@ -813,7 +813,28 @@ public partial class App : System.Windows.Application
         // 释放 Everything SDK
         EverythingDependencyDetector.Cleanup();
 
-        // 释放 DI 容器
+        // 显式刷新数据层批量写入队列，确保审计日志和删除记录不丢失
+        // （虽然 DI 容器的 Dispose 链会触发 BatchWriteQueue.Dispose → final Flush，
+        //   但显式调用更健壮：避免容器释放顺序问题导致 flush 失败）
+        try
+        {
+            var auditRepo = _serviceProvider?.GetService<Data.IAuditLogRepository>();
+            if (auditRepo != null)
+                auditRepo.FlushAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+            var deletionRepo = _serviceProvider?.GetService<Data.IDeletionRecordRepository>();
+            if (deletionRepo != null)
+                deletionRepo.FlushAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+            _logger?.LogInformation("数据层批量写入队列已显式刷新");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "退出时刷新数据队列失败（Dispose 链将二次保障）");
+        }
+
+        // 释放 DI 容器（Singleton 仓储的 Dispose 会二次调用 BatchWriteQueue.Dispose，
+        // 此时队列已空，FlushCoreAsync 检测 batch.Count==0 直接返回，幂等安全）
         if (_serviceProvider is IDisposable disposable)
         {
             disposable.Dispose();

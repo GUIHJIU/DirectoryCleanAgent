@@ -34,6 +34,21 @@ public interface IAuditLogRepository
         int offset = 0,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// 按条件查询审计日志总数（用于分页精确计数）。
+    /// 查询条件与 QueryAsync 保持一致。
+    /// </summary>
+    /// <param name="from">起始时间（含），null 表示不限制</param>
+    /// <param name="to">截止时间（含），null 表示不限制</param>
+    /// <param name="userSid">按用户 SID 筛选，null 表示不筛选</param>
+    /// <param name="operationType">按操作类型筛选，null 表示不筛选</param>
+    Task<int> QueryCountAsync(
+        DateTime? from = null,
+        DateTime? to = null,
+        string? userSid = null,
+        string? operationType = null,
+        CancellationToken ct = default);
+
     /// <summary>强制刷新待写入队列</summary>
     Task FlushAsync(CancellationToken ct = default);
 

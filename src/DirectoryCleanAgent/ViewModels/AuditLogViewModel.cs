@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Security.Principal;
 using System.Windows;
 using Microsoft.Extensions.Logging;
+using DirectoryCleanAgent.Core.Constants;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Logging;
 using DirectoryCleanAgent.Data;
@@ -37,21 +38,8 @@ public class AuditLogViewModel : ViewModelBase
     /// <summary>过滤条件（双向绑定到过滤栏控件）</summary>
     public AuditLogFilter Filter { get; } = new();
 
-    /// <summary>操作类型下拉列表选项</summary>
-    public static ObservableCollection<string> OperationTypes { get; } = new()
-    {
-        "(全部)",
-        "SCAN_STARTED",
-        "SCAN_COMPLETED",
-        "FILE_DELETED",
-        "CONFIG_CHANGED",
-        "RULE_UPDATED",
-        "ROLLBACK_EXECUTED",
-        "QUARANTINE_CLEANED",
-        "AI_ANALYSIS",
-        "APP_STARTUP",
-        "APP_SHUTDOWN"
-    };
+    /// <summary>操作类型下拉列表选项（引用集中定义的常量）</summary>
+    public static ObservableCollection<string> OperationTypes { get; } = new(AuditOperationTypes.AllForFilter);
 
     private int _currentPage = 1;
     private int _totalPages = 1;
@@ -194,13 +182,24 @@ public class AuditLogViewModel : ViewModelBase
             string? operationType = Filter.OperationType == "(全部)" ? null : Filter.OperationType;
 
             // 调用数据层查询（实时从 SQLite 读取，无缓存）
-            var entries = await _auditLogRepo.QueryAsync(
+            // 并行执行数据查询和计数查询，提升分页精确性
+            var entriesTask = _auditLogRepo.QueryAsync(
                 from: Filter.From,
                 to: Filter.To,
                 userSid: Filter.UserSid,
                 operationType: operationType,
                 limit: PageSize,
                 offset: offset);
+            var countTask = _auditLogRepo.QueryCountAsync(
+                from: Filter.From,
+                to: Filter.To,
+                userSid: Filter.UserSid,
+                operationType: operationType);
+
+            await Task.WhenAll(entriesTask, countTask);
+
+            var entries = entriesTask.Result;
+            var totalCount = countTask.Result;
 
             // 将 AuditLogEntry 映射为 UI 展示模型
             var displayItems = entries.Select(MapToDisplayItem).ToList();
@@ -220,16 +219,11 @@ public class AuditLogViewModel : ViewModelBase
                 }
             });
 
-            // 估算总页数：若当前页满则可能有更多
-            if (entries.Count == PageSize)
-            {
-                TotalPages = CurrentPage + 1; // 乐观估算，下一页加载时会修正
-            }
-            else
-            {
-                TotalPages = CurrentPage;
-            }
-            TotalCount = (CurrentPage - 1) * PageSize + entries.Count;
+            // 精确计算总页数
+            TotalCount = totalCount;
+            TotalPages = totalCount > 0
+                ? (int)Math.Ceiling((double)totalCount / PageSize)
+                : 0;
 
             _logger.LogInformation("审计日志搜索完成: 返回 {Count} 条, Page={Page}", entries.Count, CurrentPage);
         }
