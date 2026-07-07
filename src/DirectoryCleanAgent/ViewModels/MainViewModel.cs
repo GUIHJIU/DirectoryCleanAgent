@@ -829,6 +829,7 @@ public class MainViewModel : ViewModelBase
                 _cachedSimulationResult.QueryParams,
                 _cachedSimulationResult.AiEnabled,
                 _cachedSimulationResult.AiTrustLevel,
+                progress,
                 ct);
 
             // 调用导出器生成报告文件

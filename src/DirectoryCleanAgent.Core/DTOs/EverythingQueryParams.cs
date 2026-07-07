@@ -23,7 +23,10 @@ public record EverythingQueryParams
     /// <summary>是否降序排列，默认升序</summary>
     public bool SortDescending { get; init; } = false;
 
-    /// <summary>要扫描的卷列表（盘符，如 "C:"），为空表示仅扫描系统盘</summary>
+    /// <summary>
+    /// 要扫描的卷列表（盘符，如 "C:"）。为 null 时行为由调用方决定——
+    /// UI 层默认回退为 ["C:"]（取自 UserConfig.IncludedVolumes），其他调用方需自行提供默认值。
+    /// </summary>
     public IReadOnlyList<string>? Volumes { get; init; }
 
     /// <summary>路径过滤前缀（\\?\ 格式），仅返回该路径下的文件，为 null 表示不限制</summary>

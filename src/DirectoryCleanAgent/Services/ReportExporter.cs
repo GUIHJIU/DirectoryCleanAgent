@@ -23,6 +23,8 @@ public class ReportExporter : IReportExporter
 {
     private readonly ILogger<ReportExporter> _logger;
 
+    private const int ExportProgressReportInterval = 200;
+
     public ReportExporter(ILogger<ReportExporter> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -114,8 +116,8 @@ public class ReportExporter : IReportExporter
             groupData.Add(entry);
             totalConsumed++;
 
-            // 进度报告（每 500 条报告一次，导出过程可能较长）
-            if (totalConsumed % 500 == 0)
+            // 进度报告（每 200 条报告一次，与 SimulationService 保持协调）
+            if (totalConsumed % ExportProgressReportInterval == 0)
             {
                 progress?.Report(new SimulationProgress
                 {
@@ -192,8 +194,8 @@ public class ReportExporter : IReportExporter
             await writer.WriteLineAsync(FormatCsvRow(entry));
             totalWritten++;
 
-            // 进度报告（每 1000 条报告一次）
-            if (totalWritten % 1000 == 0)
+            // 进度报告（每 200 条报告一次，与 SimulationService 保持协调）
+            if (totalWritten % ExportProgressReportInterval == 0)
             {
                 progress?.Report(new SimulationProgress
                 {

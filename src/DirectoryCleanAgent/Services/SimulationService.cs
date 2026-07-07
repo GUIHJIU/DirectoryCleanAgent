@@ -7,6 +7,7 @@ using DirectoryCleanAgent.Core.Enums;
 using DirectoryCleanAgent.Core.Interfaces;
 using DirectoryCleanAgent.Core.Localization;
 using DirectoryCleanAgent.Core.Logging;
+using DirectoryCleanAgent.Data;
 
 namespace DirectoryCleanAgent.Services;
 
@@ -28,6 +29,7 @@ public class SimulationService : ISimulationService
     private readonly IOperationExecutor _operationExecutor;
     private readonly IConfigService _configService;
     private readonly ILocalizationService _localization;
+    private readonly IFileDecisionCacheRepository _cacheRepo;
     private readonly ILogger<SimulationService> _logger;
 
     // 进度报告节流：每处理此数量的文件报告一次进度
@@ -43,6 +45,7 @@ public class SimulationService : ISimulationService
         IOperationExecutor operationExecutor,
         IConfigService configService,
         ILocalizationService localization,
+        IFileDecisionCacheRepository cacheRepo,
         ILogger<SimulationService> logger)
     {
         _fileListProvider = fileListProvider ?? throw new ArgumentNullException(nameof(fileListProvider));
@@ -51,6 +54,7 @@ public class SimulationService : ISimulationService
         _operationExecutor = operationExecutor ?? throw new ArgumentNullException(nameof(operationExecutor));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         _localization = localization ?? throw new ArgumentNullException(nameof(localization));
+        _cacheRepo = cacheRepo ?? throw new ArgumentNullException(nameof(cacheRepo));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -95,6 +99,9 @@ public class SimulationService : ISimulationService
             // ============================================================
             progress?.Report(SimulationProgress.Enumerating());
 
+            // 清空旧缓存，准备写入新一轮扫描的决策结果
+            await _cacheRepo.ClearAsync(ct);
+
             var groups = new Dictionary<(string Category, FinalAction Action), GroupAccumulator>();
             int totalProcessed = 0;
             long totalProcessedBytes = 0;
@@ -114,7 +121,7 @@ public class SimulationService : ISimulationService
                 try
                 {
                     // B2: 规则引擎裁决 + B3: 决策引擎仲裁
-                    var entry = ProcessSingleFile(fileItem, userConfig, aiEnabled, aiTrustLevel);
+                    var (entry, cache) = ProcessSingleFile(fileItem, userConfig, aiEnabled, aiTrustLevel);
 
                     // 跳过未命中规则的文件（KEEP 且 SemanticCategory == "未分类"）
                     // 这些文件无需清理，也不在报告中展示
@@ -122,6 +129,9 @@ public class SimulationService : ISimulationService
                     {
                         continue;
                     }
+
+                    // 将决策结果写入缓存，供 FileListViewModel 加载文件列表
+                    _cacheRepo.Upsert(cache);
 
                     // 聚合到分组
                     var key = (entry.SemanticCategory, entry.FinalAction);
@@ -159,6 +169,9 @@ public class SimulationService : ISimulationService
                 }
             }
 
+            // 刷新缓存写入队列，确保 FileListViewModel 能读到完整数据
+            await _cacheRepo.FlushAsync(ct);
+
             // ============================================================
             // 阶段3：构建 SimulationResult
             // ============================================================
@@ -193,6 +206,7 @@ public class SimulationService : ISimulationService
                 SuggestDeleteCount = suggestDeleteCount,
                 ManualReviewCount = manualReviewCount,
                 ProtectedCount = protectedCount,
+                SkippedErrorCount = skippedErrors,
                 RecycleBinCapacity = recycleBinCapacity,
                 QueryParams = queryParams,
                 AiEnabled = aiEnabled,
@@ -238,6 +252,7 @@ public class SimulationService : ISimulationService
         EverythingQueryParams queryParams,
         bool aiEnabled,
         AITrustLevel aiTrustLevel,
+        IProgress<SimulationProgress>? progress,
         [EnumeratorCancellation] CancellationToken ct)
     {
         _logger.LogMethodEntry();
@@ -256,7 +271,7 @@ public class SimulationService : ISimulationService
             try
             {
                 // B2 + B3: 规则裁决 + 决策仲裁
-                entry = ProcessSingleFile(fileItem, userConfig, aiEnabled, aiTrustLevel);
+                (entry, _) = ProcessSingleFile(fileItem, userConfig, aiEnabled, aiTrustLevel);
 
                 // 跳过未命中规则的文件
                 if (entry.RuleVerdict == RuleVerdict.Keep)
@@ -272,6 +287,12 @@ public class SimulationService : ISimulationService
             }
 
             yieldedCount++;
+            // 进度节流：每 100 条报告一次
+            if (yieldedCount % ProgressReportInterval == 0)
+            {
+                progress?.Report(SimulationProgress.Analyzing(
+                    yieldedCount, 0, fileItem.FilePath));
+            }
             yield return entry;
         }
 
@@ -283,7 +304,7 @@ public class SimulationService : ISimulationService
     /// 不计算 SHA-256 哈希——模拟运行和流式分析的仲裁使用单文件快速仲裁（Arbitrate），
     /// 而非批量快照生成（DecideAndSnapshotAsync）。
     /// </summary>
-    private SimulationFileEntry ProcessSingleFile(
+    private (SimulationFileEntry Entry, FileDecisionCache Cache) ProcessSingleFile(
         FileItem fileItem,
         UserConfig userConfig,
         bool aiEnabled,
@@ -292,7 +313,7 @@ public class SimulationService : ISimulationService
         // B2: 规则引擎裁决（逐文件调用，无 I/O、无锁）
         var ruleResult = _ruleEngine.Evaluate(fileItem, userConfig);
 
-        // 构建临时 FileDecisionCache 供决策引擎仲裁使用
+        // 构建 FileDecisionCache 供决策引擎仲裁使用
         var cache = new FileDecisionCache
         {
             FilePath = fileItem.FilePath,
@@ -307,7 +328,7 @@ public class SimulationService : ISimulationService
         // B3: 决策引擎仲裁（单文件，不计算哈希）
         var arbitrated = _decisionEngine.Arbitrate(cache, aiEnabled, aiTrustLevel);
 
-        return new SimulationFileEntry
+        var entry = new SimulationFileEntry
         {
             FilePath = fileItem.FilePath,
             SizeBytes = fileItem.SizeBytes,
@@ -319,6 +340,8 @@ public class SimulationService : ISimulationService
             AiLabel = arbitrated.AiLabel,
             AiConfidence = arbitrated.AiConfidence
         };
+
+        return (entry, arbitrated);
     }
 
     /// <summary>

@@ -45,6 +45,9 @@ public record SimulationResult
     /// <summary>Protected 文件数量</summary>
     public int ProtectedCount { get; init; }
 
+    /// <summary>因异常被跳过的文件数量（逐文件异常隔离统计，供 UI 展示警告）</summary>
+    public int SkippedErrorCount { get; init; }
+
     /// <summary>回收站容量信息（信息性获取，可能为 null 表示获取失败）</summary>
     public RecycleBinCapacity? RecycleBinCapacity { get; init; }
 

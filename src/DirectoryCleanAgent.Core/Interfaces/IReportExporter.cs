@@ -23,7 +23,8 @@ public interface IReportExporter
     /// <param name="summary">模拟运行摘要（用于 HTML 顶部的统计汇总区域）</param>
     /// <param name="fileStream">
     /// 文件分析结果异步流。导出器逐条消费此流：
-    /// - HTML 模式下按 SemanticCategory 分组缓存（内存中仅累积当前组）
+    /// - HTML 模式下消费全部条目到分组字典中，每组仅保留 MaxSampleFilesPerGroup 条样本
+    ///   （2M 文件 × ~80 组 × 10 样本 ≈ 内存 &lt; 1MB，远低于 200MB 硬约束）
     /// - CSV 模式下逐条写入，不累积任何条目
     /// </param>
     /// <param name="options">导出选项（格式、路径、语言、是否包含受保护文件等）</param>

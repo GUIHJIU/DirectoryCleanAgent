@@ -52,12 +52,14 @@ public interface ISimulationService
     /// <param name="queryParams">Everything 查询参数（应与 SimulateAsync 使用相同的参数以保持一致性）</param>
     /// <param name="aiEnabled">AI 启用状态</param>
     /// <param name="aiTrustLevel">AI 信任等级</param>
+    /// <param name="progress">进度报告（SimulationProgress 类型），为 null 时不报告</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>SimulationFileEntry 异步流，逐条产出每个文件的模拟分析结果</returns>
     IAsyncEnumerable<SimulationFileEntry> StreamAnalysisAsync(
         EverythingQueryParams queryParams,
         bool aiEnabled,
         AITrustLevel aiTrustLevel,
+        IProgress<SimulationProgress>? progress,
         CancellationToken ct);
 }
 
