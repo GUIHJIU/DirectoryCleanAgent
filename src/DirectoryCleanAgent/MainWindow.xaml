@@ -236,7 +236,7 @@
 
                 <!-- 操作阶段状态文本（操作进行中时显示，C8） -->
                 <TextBlock Grid.Column="6"
-                           Text="{Binding OperationStatusText}"
+                           Text="{Binding StatusInfo.OperationStatusText}"
                            Visibility="{Binding IsOperating, Converter={StaticResource BoolToVisibilityConverter}}"
                            FontSize="12"
                            Foreground="{StaticResource StatusBarForegroundBrush}"

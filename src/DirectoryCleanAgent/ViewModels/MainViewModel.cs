@@ -39,6 +39,7 @@ public class MainViewModel : ViewModelBase
     private readonly IRuleEngine _ruleEngine;                   // C8: 规则引擎（B2）
 
     private CancellationTokenSource? _currentCts; // 当前操作的取消令牌源
+    private DateTime _lastProgressUpdate = DateTime.MinValue; // C8: 进度报告节流（200ms 最小间隔）
     private SimulationResult? _cachedSimulationResult; // C5: 最近一次模拟运行结果，供导出使用
     private AppState _appState = AppState.Initializing;
     private bool _isAdmin;
@@ -47,7 +48,6 @@ public class MainViewModel : ViewModelBase
     private string? _warningMessage;
     private bool _isDarkTheme;
     private OperationProgress _operationProgress;
-    private string _operationStatusText = string.Empty;    // C8: 操作阶段中文描述
 
     private readonly FileListViewModel _fileListViewModel;
 
@@ -207,13 +207,6 @@ public class MainViewModel : ViewModelBase
             _operationProgress = value;
             OnPropertyChanged();
         }
-    }
-
-    /// <summary>当前操作阶段的中文描述文本（C8: 绑定到状态栏）</summary>
-    public string OperationStatusText
-    {
-        get => _operationStatusText;
-        set => SetProperty(ref _operationStatusText, value);
     }
 
     /// <summary>应用模式（Normal / ReadOnly）</summary>
@@ -385,7 +378,7 @@ public class MainViewModel : ViewModelBase
                     var confirmResult = MessageBox.Show(
                         $"待清理文件总大小约为 {ByteFormatter.Format(totalSize)}，" +
                         $"超出回收站可用容量 ({ByteFormatter.Format(capacity.AvailableBytes)})。\n\n" +
-                        "超出部分将直接永久删除。是否继续？",
+                        "回收站空间不足，超出容量的文件将删除失败并标记为需人工处理。是否继续？",
                         "回收站容量不足", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
                     if (confirmResult != MessageBoxResult.Yes)
@@ -976,8 +969,9 @@ public class MainViewModel : ViewModelBase
         _logger.LogMethodEntry("用户触发取消操作");
         try
         {
-            // 立即更新 UI 状态文本，让用户知道取消请求已收到
-            OperationStatusText = "正在取消...";
+            // 立即更新 UI 状态文本，让用户知道取消请求已收到（C8: 修改 StatusInfo 路径以匹配 XAML 绑定）
+            StatusInfo.OperationStatusText = "正在取消...";
+            OnPropertyChanged(nameof(StatusInfo));
             _currentCts?.Cancel();
             _logger.LogWarning("已发送取消请求");
         }
@@ -1309,22 +1303,27 @@ public class MainViewModel : ViewModelBase
                 candidates.Add(arbitrated);
             }
 
-            // 每 100 个文件向 UI 线程报告一次进度，避免高频刷新
+            // 每 100 个文件向 UI 线程报告一次进度，200ms 最小间隔防止高频刷新
             if (processedCount % 100 == 0)
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                var now = DateTime.Now;
+                if ((now - _lastProgressUpdate).TotalMilliseconds >= 200)
                 {
-                    OperationProgress = new OperationProgress
+                    _lastProgressUpdate = now;
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        Phase = OperationPhase.Simulating,
-                        CompletedCount = processedCount,
-                        TotalCount = -1,
-                        ProcessedBytes = 0,
-                        CurrentFilePath = file.FilePath
-                    };
-                    StatusInfo.UpdateStatusText(OperationProgress);
-                    OnPropertyChanged(nameof(StatusInfo));
-                });
+                        OperationProgress = new OperationProgress
+                        {
+                            Phase = OperationPhase.Simulating,
+                            CompletedCount = processedCount,
+                            TotalCount = -1,
+                            ProcessedBytes = 0,
+                            CurrentFilePath = file.FilePath
+                        };
+                        StatusInfo.UpdateStatusText(OperationProgress);
+                        OnPropertyChanged(nameof(StatusInfo));
+                    });
+                }
             }
         }
 
