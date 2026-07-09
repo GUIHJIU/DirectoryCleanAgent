@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Windows;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryCleanAgent.Services;
@@ -17,7 +16,7 @@ namespace DirectoryCleanAgent.Services;
 public class TrayIconService : IDisposable
 {
     private readonly ILogger<TrayIconService> _logger;
-    private readonly nint _windowHandle;
+    private nint _windowHandle;
     private readonly uint _callbackMessage;
 
     private bool _isVisible;
@@ -58,7 +57,6 @@ public class TrayIconService : IDisposable
     public TrayIconService(ILogger<TrayIconService> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _windowHandle = GetMainWindowHandle();
         _callbackMessage = WM_TRAYICON;
     }
 
@@ -68,13 +66,17 @@ public class TrayIconService : IDisposable
     /// <summary>
     /// 显示托盘图标。
     /// </summary>
+    /// <param name="ownerHandle">拥有托盘图标的窗口句柄（Shell_NotifyIcon 将消息发送到此窗口）</param>
     /// <param name="tooltip">鼠标悬停提示文本</param>
     /// <param name="balloonTitle">气泡通知标题（可选）</param>
     /// <param name="balloonText">气泡通知内容（可选）</param>
-    public void Show(string tooltip, string? balloonTitle = null, string? balloonText = null)
+    /// <returns>true 表示托盘图标创建成功；false 表示失败</returns>
+    public bool Show(nint ownerHandle, string tooltip, string? balloonTitle = null, string? balloonText = null)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(TrayIconService));
+
+        _windowHandle = ownerHandle;
 
         try
         {
@@ -101,16 +103,17 @@ public class TrayIconService : IDisposable
             if (!Shell_NotifyIcon(NIM_ADD, ref nid))
             {
                 _logger.LogWarning("Shell_NotifyIcon(NIM_ADD) 失败, 错误码: {Error}", Marshal.GetLastWin32Error());
+                return false;
             }
-            else
-            {
-                _isVisible = true;
-                _logger.LogInformation("托盘图标已创建");
-            }
+
+            _isVisible = true;
+            _logger.LogInformation("托盘图标已创建, HWND=0x{Handle:X}", _windowHandle);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "创建托盘图标异常");
+            return false;
         }
     }
 
@@ -274,8 +277,9 @@ public class TrayIconService : IDisposable
                 handled = true;
                 break;
 
-            case NIN_BALLOONTIMEOUT: // 气泡通知超时自动消失（仅记录，无需操作）
+            case NIN_BALLOONTIMEOUT: // 气泡通知超时自动消失
                 _logger.LogTrace("托盘气泡通知超时消失");
+                handled = true;
                 break;
         }
     }
@@ -289,17 +293,6 @@ public class TrayIconService : IDisposable
     {
         // 使用系统 Application 图标（IDI_APPLICATION = 32512）
         return LoadIcon(IntPtr.Zero, (nint)32512);
-    }
-
-    /// <summary>获取 WPF 主窗口的 Win32 句柄</summary>
-    private static nint GetMainWindowHandle()
-    {
-        if (Application.Current?.MainWindow != null)
-        {
-            return new System.Windows.Interop.WindowInteropHelper(
-                Application.Current.MainWindow).Handle;
-        }
-        return IntPtr.Zero;
     }
 
     /// <summary>截断字符串到指定长度（以 null 结尾）</summary>

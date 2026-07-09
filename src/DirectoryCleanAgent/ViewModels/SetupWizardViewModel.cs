@@ -639,6 +639,7 @@ public class SetupWizardViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "后台索引等待异常");
+            HandleSkipIndex();    // 标记 Step0 完成，允许用户继续向导（警告模式）
             IsBackgroundWaiting = false;
             OnPropertyChanged(nameof(IsBackgroundWaiting));
             // 异常时也通知 App 层清理托盘状态

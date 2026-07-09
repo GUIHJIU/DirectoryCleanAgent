@@ -43,6 +43,7 @@ public partial class App : System.Windows.Application
 
     // 托盘图标 — 后台等待模式时使用
     private TrayIconService? _trayIconService;
+    private HwndSource? _trayHookSource;
     private SetupWizardWindow? _wizardWindow;
     private MainWindow? _mainWindow;
 
@@ -285,6 +286,25 @@ public partial class App : System.Windows.Application
     {
         CleanupTrayIcon();
 
+        // 获取向导窗口句柄（必须与 WndProcHook 注册的窗口一致）
+        nint wizardHandle = IntPtr.Zero;
+        if (_wizardWindow != null)
+        {
+            var helper = new WindowInteropHelper(_wizardWindow);
+            wizardHandle = helper.Handle;
+        }
+
+        if (wizardHandle == IntPtr.Zero)
+        {
+            _logger?.LogError("无法获取向导窗口句柄，无法创建托盘图标");
+            return;
+        }
+
+        // 在向导窗口上注册 WndProcHook，拦截 Shell_NotifyIcon 回调消息
+        _trayHookSource = HwndSource.FromHwnd(wizardHandle);
+        _trayHookSource?.AddHook(WndProcHook);
+        _logger?.LogDebug("托盘消息钩子已注册到向导窗口, HWND=0x{Handle:X}", wizardHandle);
+
         _trayIconService = _serviceProvider!.GetRequiredService<TrayIconService>();
 
         // 托盘图标双击 → 若后台等待已完成则直接转换，否则恢复窗口
@@ -331,10 +351,19 @@ public partial class App : System.Windows.Application
             });
         };
 
-        _trayIconService.Show(
+        bool success = _trayIconService.Show(
+            ownerHandle: wizardHandle,
             tooltip: "智能磁盘清理 — 等待 Everything 索引完成…",
             balloonTitle: "智能磁盘清理",
             balloonText: "正在后台等待 Everything 索引完成，完成后将自动进入主界面。");
+
+        if (!success)
+        {
+            _logger?.LogWarning("托盘图标创建失败，恢复向导窗口");
+            CleanupTrayIcon();
+            _wizardWindow?.RestoreFromTray();
+            return;
+        }
 
         _logger?.LogInformation("托盘图标已创建");
     }
@@ -346,6 +375,14 @@ public partial class App : System.Windows.Application
         {
             // 停止后台等待完成定时器（防止在清理后触发转换）
             StopBackgroundWaitTimer();
+
+            // 注销向导窗口的 WndProcHook
+            if (_trayHookSource != null)
+            {
+                _trayHookSource.RemoveHook(WndProcHook);
+                _trayHookSource = null;
+                _logger?.LogDebug("托盘消息钩子已从向导窗口注销");
+            }
 
             _trayIconService?.Dispose();
             _trayIconService = null;
@@ -644,7 +681,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IReportExporter, ReportExporter>();
 
         // ---- C3: 首次启动向导 ----
-        services.AddSingleton<TrayIconService>();
+        services.AddTransient<TrayIconService>();
         services.AddTransient<SetupWizardViewModel>();
         services.AddTransient<SetupWizardWindow>();
 
