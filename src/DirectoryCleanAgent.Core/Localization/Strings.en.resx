@@ -127,7 +127,8 @@
     <value>Cancelled</value>
   </data>
   <data name="Status.ReadOnlyMode" xml:space="preserve">
-    <value>Read-only mode — Run as administrator to enable cleanup features</value>
+    <value>⚠️ Read-only mode — Run as administrator to enable cleanup features (data analysis remains available in non-admin mode)</value>
+    <comment>Non-admin read-only mode banner text</comment>
   </data>
   <data name="Status.LastScan" xml:space="preserve">
     <value>Last Scan</value>
@@ -161,7 +162,8 @@
 
   <!-- Warning Messages -->
   <data name="Warning.IndexingIncomplete" xml:space="preserve">
-    <value>Index building in progress. Results may be incomplete. Consider refreshing later.</value>
+    <value>⏳ Index building in progress. Search results may be incomplete. Consider waiting for indexing to complete and refresh.</value>
+    <comment>Banner shown when Everything index is not yet complete</comment>
   </data>
   <data name="Warning.RecycleBinFull" xml:space="preserve">
     <value>Recycle bin space is insufficient. Excess files will be permanently deleted. Continue?</value>

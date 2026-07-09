@@ -226,9 +226,9 @@ public class QuarantineViewModel : ViewModelBase
     /// <summary>C9: 是否应显示只读模式警告横幅</summary>
     public bool ShowReadOnlyWarning => !_appStateService.IsAdmin;
 
-    /// <summary>C9: 只读模式警告文本</summary>
+    /// <summary>C9: 只读模式警告文本（通过本地化服务获取，支持中英文切换）</summary>
     public string ReadOnlyWarningMessage =>
-        "⚠️ 只读模式 — 请以管理员身份重新运行以启用清理功能（非管理员模式下数据分析功能仍可正常使用）";
+        _localization.GetString("Status.ReadOnlyMode");
 
     /// <summary>C9: 是否可以恢复选中文件（管理员 + 有选中项 + 不在操作中）</summary>
     public bool CanRestore =>

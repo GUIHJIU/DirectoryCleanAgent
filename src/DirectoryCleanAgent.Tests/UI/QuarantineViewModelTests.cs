@@ -40,6 +40,13 @@ public class QuarantineViewModelTests
         _appStateServiceMock.Setup(s => s.IsAdmin).Returns(true);
         _appStateServiceMock.Setup(s => s.AppMode).Returns(AppMode.Normal);
 
+        // C9: Mock 本地化服务 — ReadOnlyWarningMessage 所需的键
+        _localizationMock.Setup(s => s.GetString("Status.ReadOnlyMode"))
+            .Returns("⚠️ 只读模式 — 请以管理员身份重新运行以启用清理功能（非管理员模式下数据分析功能仍可正常使用）");
+        // 构造函数中调用的本地化键（Ensure Mock returns non-null for Status.Ready）
+        _localizationMock.Setup(s => s.GetString("Status.Ready"))
+            .Returns("就绪");
+
         // Mock 隔离区统计返回默认值
         _quarantineManagerMock.Setup(q => q.GetQuarantineStatsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new QuarantineStats

@@ -70,6 +70,12 @@ public class MainViewModelTests
         _appStateServiceMock.Setup(s => s.AppMode).Returns(AppMode.Normal);
         _appStateServiceMock.Setup(s => s.TransitionTo(It.IsAny<AppState>())).Returns(true);
 
+        // C9: Mock 本地化服务，返回只读模式和索引警告文本
+        _localizationMock.Setup(s => s.GetString("Status.ReadOnlyMode"))
+            .Returns("⚠️ 只读模式 — 请以管理员身份重新运行以启用清理功能（非管理员模式下数据分析功能仍可正常使用）");
+        _localizationMock.Setup(s => s.GetString("Warning.IndexingIncomplete"))
+            .Returns("⏳ 索引构建中，搜索结果可能不完整，建议等待索引完成后刷新");
+
         // C5: Mock 配置服务，返回默认 UserConfig
         _configServiceMock.Setup(c => c.Current).Returns(new UserConfig
         {

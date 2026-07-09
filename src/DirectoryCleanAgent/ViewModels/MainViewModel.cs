@@ -1338,11 +1338,11 @@ public class MainViewModel : ViewModelBase
     {
         if (!IsAdmin)
         {
-            WarningMessage = "⚠️ 只读模式 — 请以管理员身份重新运行以启用清理功能（非管理员模式下数据分析功能仍可正常使用）";
+            WarningMessage = _localization.GetString("Status.ReadOnlyMode");
         }
         else if (!IsIndexReady)
         {
-            WarningMessage = "⏳ 索引构建中，搜索结果可能不完整，建议等待索引完成后刷新";
+            WarningMessage = _localization.GetString("Warning.IndexingIncomplete");
         }
         else
         {
