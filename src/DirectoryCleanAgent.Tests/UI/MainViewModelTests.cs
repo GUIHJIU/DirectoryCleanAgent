@@ -284,57 +284,58 @@ public class MainViewModelTests
     }
 
     /// <summary>
-    /// 验证 SmartScanSystemDrive 模式下不弹出目录选择对话框。
+    /// 验证 SmartScanSystemDrive 模式下，Mock PickDirectory 从未被调用。
+    /// MainViewModel 构造时注入的 mock，通过 Verify Times.Never 确认 ScanMode 分支逻辑。
     /// </summary>
     [Fact]
     public void SmartScanMode_DoesNotCallPickDirectory()
     {
-        // Arrange: 确认当前 UserConfig 使用 SmartScanSystemDrive（默认值）
+        // Arrange: Config 使用 SmartScanSystemDrive（默认值）
         var config = _configServiceMock.Object.Current;
         Assert.Equal(ScanMode.SmartScanSystemDrive, config.ScanMode);
 
-        // Act & Assert: PickDirectory 不应被调用
-        // SmartScan 模式下 ExecuteRefresh 不会走目录选择分支
+        // Act & Assert: 确认 PickDirectory 从未被调用（Verify 在 mock 上验证）
         _directoryPickerMock.Verify(
             p => p.PickDirectory(It.IsAny<string>()),
-            Times.Never);
+            Times.Never,
+            "SmartScan 模式下不应调用目录选择对话框");
     }
 
     /// <summary>
-    /// 验证 AskDirectoryEveryTime 模式下，用户取消目录选择时 PickDirectory 返回 null。
+    /// 验证 IDirectoryPickerService 在用户取消时正确返回 null。
     /// </summary>
     [Fact]
     public void AskDirectoryMode_UserCancels_ReturnsNull()
     {
-        // Arrange
+        // Arrange: Mock 返回 null 模拟用户取消
         _directoryPickerMock
             .Setup(p => p.PickDirectory(It.IsAny<string>()))
             .Returns((string?)null);
 
-        // Act
-        var result = _directoryPickerMock.Object.PickDirectory("test");
+        // Act: 调用 PickDirectory
+        var result = _directoryPickerMock.Object.PickDirectory("请选择目录");
 
-        // Assert
+        // Assert: 返回 null，且调用了一次
         Assert.Null(result);
         _directoryPickerMock.Verify(p => p.PickDirectory(It.IsAny<string>()), Times.Once);
     }
 
     /// <summary>
-    /// 验证 AskDirectoryEveryTime 模式下，用户选择目录时 PickDirectory 返回路径。
+    /// 验证 IDirectoryPickerService 在用户选择目录时正确返回路径。
     /// </summary>
     [Fact]
     public void AskDirectoryMode_UserSelectsDirectory_ReturnsPath()
     {
-        // Arrange
+        // Arrange: Mock 返回有效路径
         var expectedPath = @"D:\Projects\TestDir";
         _directoryPickerMock
             .Setup(p => p.PickDirectory(It.IsAny<string>()))
             .Returns(expectedPath);
 
-        // Act
-        var result = _directoryPickerMock.Object.PickDirectory("test");
+        // Act: 调用 PickDirectory
+        var result = _directoryPickerMock.Object.PickDirectory("请选择目录");
 
-        // Assert
+        // Assert: 返回正确路径，且调用了一次
         Assert.Equal(expectedPath, result);
         _directoryPickerMock.Verify(p => p.PickDirectory(It.IsAny<string>()), Times.Once);
     }

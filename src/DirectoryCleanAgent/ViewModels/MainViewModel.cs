@@ -871,12 +871,10 @@ public class MainViewModel : ViewModelBase
 
         try
         {
-            AppState = AppState.Scanning;
-            IsOperating = true;
-
             var config = _configService.Current;
 
             // ScanMode: 每次询问目录 → 弹出目录选择对话框
+            // NOTE: 必须在设置 AppState.Scanning 之前执行，确保用户取消时不改变状态
             string? pickedPath = null;
             if (config.ScanMode == ScanMode.AskDirectoryEveryTime)
             {
@@ -889,6 +887,9 @@ public class MainViewModel : ViewModelBase
                 }
                 _logger.LogInformation("用户选择了扫描目录: {Path}", pickedPath);
             }
+
+            AppState = AppState.Scanning;
+            IsOperating = true;
 
             var queryParams = new EverythingQueryParams
             {
@@ -903,7 +904,9 @@ public class MainViewModel : ViewModelBase
             {
                 queryParams = queryParams with
                 {
-                    PathFilter = PathNormalizer.Normalize(pickedPath)
+                    PathFilter = PathNormalizer.Normalize(pickedPath),
+                    // 使用所选目录所在的卷，避免与 IncludedVolumes 冲突
+                    Volumes = new List<string> { System.IO.Path.GetPathRoot(pickedPath)!.TrimEnd('\\') }
                 };
             }
 
