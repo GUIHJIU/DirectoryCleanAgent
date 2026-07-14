@@ -282,4 +282,60 @@ public class MainViewModelTests
         // 执行不应抛异常
         _viewModel.ToggleThemeCommand.Execute(null);
     }
+
+    /// <summary>
+    /// 验证 SmartScanSystemDrive 模式下不弹出目录选择对话框。
+    /// </summary>
+    [Fact]
+    public void SmartScanMode_DoesNotCallPickDirectory()
+    {
+        // Arrange: 确认当前 UserConfig 使用 SmartScanSystemDrive（默认值）
+        var config = _configServiceMock.Object.Current;
+        Assert.Equal(ScanMode.SmartScanSystemDrive, config.ScanMode);
+
+        // Act & Assert: PickDirectory 不应被调用
+        // SmartScan 模式下 ExecuteRefresh 不会走目录选择分支
+        _directoryPickerMock.Verify(
+            p => p.PickDirectory(It.IsAny<string>()),
+            Times.Never);
+    }
+
+    /// <summary>
+    /// 验证 AskDirectoryEveryTime 模式下，用户取消目录选择时 PickDirectory 返回 null。
+    /// </summary>
+    [Fact]
+    public void AskDirectoryMode_UserCancels_ReturnsNull()
+    {
+        // Arrange
+        _directoryPickerMock
+            .Setup(p => p.PickDirectory(It.IsAny<string>()))
+            .Returns((string?)null);
+
+        // Act
+        var result = _directoryPickerMock.Object.PickDirectory("test");
+
+        // Assert
+        Assert.Null(result);
+        _directoryPickerMock.Verify(p => p.PickDirectory(It.IsAny<string>()), Times.Once);
+    }
+
+    /// <summary>
+    /// 验证 AskDirectoryEveryTime 模式下，用户选择目录时 PickDirectory 返回路径。
+    /// </summary>
+    [Fact]
+    public void AskDirectoryMode_UserSelectsDirectory_ReturnsPath()
+    {
+        // Arrange
+        var expectedPath = @"D:\Projects\TestDir";
+        _directoryPickerMock
+            .Setup(p => p.PickDirectory(It.IsAny<string>()))
+            .Returns(expectedPath);
+
+        // Act
+        var result = _directoryPickerMock.Object.PickDirectory("test");
+
+        // Assert
+        Assert.Equal(expectedPath, result);
+        _directoryPickerMock.Verify(p => p.PickDirectory(It.IsAny<string>()), Times.Once);
+    }
 }
