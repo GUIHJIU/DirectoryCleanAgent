@@ -10,6 +10,7 @@ using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Enums;
 using DirectoryCleanAgent.Core.Interfaces;
 using DirectoryCleanAgent.Core.Localization;
+using DirectoryCleanAgent.Core.PathHandling;
 using DirectoryCleanAgent.Core.Logging;
 using DirectoryCleanAgent.Core.Formatting;
 using DirectoryCleanAgent.Models;
@@ -37,6 +38,7 @@ public class MainViewModel : ViewModelBase
     private readonly IDecisionEngine _decisionEngine;           // C8: 决策引擎（B3）
     private readonly IFileListProvider _fileListProvider;       // C8: 文件列表提供器（B1）
     private readonly IRuleEngine _ruleEngine;                   // C8: 规则引擎（B2）
+    private readonly IDirectoryPickerService _directoryPicker;  // ScanMode: 目录选择器
 
     private CancellationTokenSource? _currentCts; // 当前操作的取消令牌源
     private DateTime _lastProgressUpdate = DateTime.MinValue; // C8: 进度报告节流（200ms 最小间隔）
@@ -64,6 +66,7 @@ public class MainViewModel : ViewModelBase
         IDecisionEngine decisionEngine,
         IFileListProvider fileListProvider,
         IRuleEngine ruleEngine,
+        IDirectoryPickerService directoryPicker,
         FileListViewModel fileListViewModel)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -78,6 +81,7 @@ public class MainViewModel : ViewModelBase
         _decisionEngine = decisionEngine ?? throw new ArgumentNullException(nameof(decisionEngine));
         _fileListProvider = fileListProvider ?? throw new ArgumentNullException(nameof(fileListProvider));
         _ruleEngine = ruleEngine ?? throw new ArgumentNullException(nameof(ruleEngine));
+        _directoryPicker = directoryPicker ?? throw new ArgumentNullException(nameof(directoryPicker));
         _fileListViewModel = fileListViewModel ?? throw new ArgumentNullException(nameof(fileListViewModel));
 
         // 初始化集合
@@ -96,7 +100,6 @@ public class MainViewModel : ViewModelBase
         NavigateToQuarantineCommand = new RelayCommand(ExecuteNavigateToQuarantine);
         NavigateToHelpCommand = new RelayCommand(ExecuteNavigateToHelp);
         ToggleThemeCommand = new RelayCommand(ExecuteToggleTheme);
-        ToggleShowAllCommand = new RelayCommand(ExecuteToggleShowAll);
 
         // 订阅全局状态变更
         _appStateService.StateChanged += OnAppStateChanged;
@@ -227,7 +230,6 @@ public class MainViewModel : ViewModelBase
     public RelayCommand NavigateToHistoryCommand { get; }
     public RelayCommand NavigateToQuarantineCommand { get; }
     public RelayCommand ToggleThemeCommand { get; }
-    public RelayCommand ToggleShowAllCommand { get; }
 
     /// <summary>一键清理按钮是否可用</summary>
     public bool CanQuickClean =>
@@ -873,6 +875,21 @@ public class MainViewModel : ViewModelBase
             IsOperating = true;
 
             var config = _configService.Current;
+
+            // ScanMode: 每次询问目录 → 弹出目录选择对话框
+            string? pickedPath = null;
+            if (config.ScanMode == ScanMode.AskDirectoryEveryTime)
+            {
+                pickedPath = _directoryPicker.PickDirectory(
+                    _localization.GetString("Main.Scan.SelectDirectory"));
+                if (pickedPath == null)
+                {
+                    _logger.LogDebug("用户取消了目录选择，扫描未启动");
+                    return;
+                }
+                _logger.LogInformation("用户选择了扫描目录: {Path}", pickedPath);
+            }
+
             var queryParams = new EverythingQueryParams
             {
                 Volumes = config.IncludedVolumes.Count > 0
@@ -880,6 +897,15 @@ public class MainViewModel : ViewModelBase
                     : new List<string> { "C:" },
                 MaxResults = config.MaxScanFiles > 0 ? config.MaxScanFiles : null
             };
+
+            // ScanMode: 目录模式下使用 PathFilter 精确限定扫描范围
+            if (config.ScanMode == ScanMode.AskDirectoryEveryTime && pickedPath != null)
+            {
+                queryParams = queryParams with
+                {
+                    PathFilter = PathNormalizer.Normalize(pickedPath)
+                };
+            }
 
             // 构建进度适配器
             var progress = new Progress<SimulationProgress>(sp =>
@@ -1100,22 +1126,6 @@ public class MainViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "打开帮助失败");
-        }
-    }
-
-    /// <summary>
-    /// 切换"显示所有文件"模式（代理到 FileListViewModel）。
-    /// </summary>
-    private void ExecuteToggleShowAll()
-    {
-        _logger.LogMethodEntry("用户触发显示所有文件切换");
-        try
-        {
-            _fileListViewModel.IsShowAllFiles = !_fileListViewModel.IsShowAllFiles;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "显示所有文件切换失败");
         }
     }
 
