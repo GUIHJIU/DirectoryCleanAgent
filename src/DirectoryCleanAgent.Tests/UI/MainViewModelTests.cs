@@ -31,6 +31,7 @@ public class MainViewModelTests
     private readonly Mock<IDecisionEngine> _decisionEngineMock;
     private readonly Mock<IFileListProvider> _fileListProviderMock;
     private readonly Mock<IRuleEngine> _ruleEngineMock;
+    private readonly Mock<IDirectoryPickerService> _directoryPickerMock;
     private readonly Mock<FileListViewModel> _fileListViewModelMock;
     private readonly MainViewModel _viewModel;
 
@@ -48,6 +49,7 @@ public class MainViewModelTests
         _decisionEngineMock = new Mock<IDecisionEngine>();
         _fileListProviderMock = new Mock<IFileListProvider>();
         _ruleEngineMock = new Mock<IRuleEngine>();
+        _directoryPickerMock = new Mock<IDirectoryPickerService>();
 
         // Mock FileListViewModel — 构造函数需要 8 个依赖项
         // SemanticLabelLocalizer 也是具体类，需提供构造函数参数
@@ -110,6 +112,7 @@ public class MainViewModelTests
             _decisionEngineMock.Object,
             _fileListProviderMock.Object,
             _ruleEngineMock.Object,
+            _directoryPickerMock.Object,
             _fileListViewModelMock.Object);
     }
 
