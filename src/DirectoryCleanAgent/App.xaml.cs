@@ -680,6 +680,9 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ISimulationService, SimulationService>();
         services.AddSingleton<IReportExporter, ReportExporter>();
 
+        // ---- ScanMode: 目录选择器 ----
+        services.AddTransient<IDirectoryPickerService, DirectoryPickerService>();
+
         // ---- C3: 首次启动向导 ----
         services.AddTransient<TrayIconService>();
         services.AddTransient<SetupWizardViewModel>();
