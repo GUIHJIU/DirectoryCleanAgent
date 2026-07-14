@@ -21,6 +21,11 @@
     <ProjectReference Include="..\DirectoryCleanAgent.Operations\DirectoryCleanAgent.Operations.csproj" />
   </ItemGroup>
 
+  <!-- FolderBrowserDialog 需要 System.Windows.Forms 程序集引用 -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
