@@ -270,6 +270,10 @@
     <value>Ask for Directory Each Time</value>
   </data>
 
+  <data name="Main.Scan.SelectDirectory" xml:space="preserve">
+    <value>Select directory to scan:</value>
+  </data>
+
   <!-- Settings - AI Service Type Options -->
   <data name="Settings.AIService.OpenAI" xml:space="preserve">
     <value>OpenAI (Cloud)</value>
