@@ -106,6 +106,16 @@ public static class AiServiceRegistration
                 httpClient);
         });
 
+        // 7. IAiAnalysisCoordinator / AiAnalysisCoordinator — 协调器（单例）
+        services.AddSingleton<IAiAnalysisCoordinator>(sp =>
+        {
+            var aiAdvisor = sp.GetRequiredService<IAiAdvisorService>();
+            var configService = sp.GetRequiredService<IConfigService>();
+            var logger = sp.GetRequiredService<ILogger<AiAnalysisCoordinator>>();
+
+            return new AiAnalysisCoordinator(aiAdvisor, configService, logger);
+        });
+
         return services;
     }
 }
