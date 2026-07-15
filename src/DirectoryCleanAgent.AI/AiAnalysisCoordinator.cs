@@ -185,9 +185,50 @@ public sealed class AiAnalysisCoordinator : IAiAnalysisCoordinator, IDisposable
             return Array.Empty<AiAnalysisResult>();
         }
 
-        // 委托给 AI 服务执行筛选和分析
-        var results = await _aiAdvisor.AutoAnalyzeUncategorizedAsync(allFiles, ct);
-        return results;
+        // 筛选未分类大文件（与 IAiAdvisorService.AutoAnalyzeUncategorizedAsync 筛选规则一致）
+        var pending = allFiles
+            .Where(f => string.IsNullOrEmpty(f.SemanticCategory)
+                     || f.SemanticCategory.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))
+            .Where(f => f.SizeBytes > 100L * 1024 * 1024)       // > 100 MB
+            .Where(f => string.IsNullOrEmpty(f.AiLabel))         // 跳过已分析
+            .OrderByDescending(f => f.SizeBytes)                 // 按大小降序
+            .Take(AutoAnalyzeMaxFiles)                           // 最多 AutoAnalyzeMaxFiles 个
+            .ToList();
+
+        if (pending.Count == 0)
+        {
+            _logger.LogInformation("自动分析: 没有符合条件的未分类大文件（>100MB 且未分析）");
+            return Array.Empty<AiAnalysisResult>();
+        }
+
+        _logger.LogInformation("自动分析: 筛选出 {Count} 个未分类大文件（>100MB），开始批量分析", pending.Count);
+
+        // 去重 — 过滤已分析过的文件（去重字典）
+        var deduped = pending
+            .Where(f => _fileStates.TryAdd(f.FilePath, AnalysisState.Pending))
+            .ToList();
+
+        if (deduped.Count == 0)
+            return Array.Empty<AiAnalysisResult>();
+
+        // 通过统一的批量管道执行，确保进度事件、取消支持和完成通知的一致性
+        return await RunBatchWithProgressAsync(deduped, ct);
+    }
+
+    // ============================================================
+    // 去重状态管理
+    // ============================================================
+
+    private const int AutoAnalyzeMaxFiles = 500; // 自动分析单次最多 500 文件
+
+    /// <summary>
+    /// 清除内部去重状态字典。新扫描开始时调用，防止 _fileStates 无限增长。
+    /// 线程安全：ConcurrentDictionary.Clear() 是原子操作。
+    /// </summary>
+    public void ClearFileStates()
+    {
+        _fileStates.Clear();
+        _logger.LogDebug("文件分析状态字典已清除");
     }
 
     // ============================================================

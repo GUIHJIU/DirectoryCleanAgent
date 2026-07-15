@@ -57,6 +57,12 @@ public interface IAiAnalysisCoordinator
     /// </summary>
     void CancelCurrentAnalysis();
 
+    /// <summary>
+    /// 清除内部去重状态字典。
+    /// 新扫描开始时调用，确保旧文件的状态不会影响新扫描的去重判断。
+    /// </summary>
+    void ClearFileStates();
+
     // ============================================================
     // 状态查询
     // ============================================================

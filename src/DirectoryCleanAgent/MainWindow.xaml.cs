@@ -13,6 +13,7 @@ public partial class MainWindow : Window
 {
     private readonly ILogger<MainWindow> _logger;
     private readonly MainViewModel _viewModel;
+    private System.Windows.Forms.NotifyIcon? _notifyIcon;
 
     /// <summary>
     /// 构造函数：接收 DI 注入的 MainViewModel 和 ILogger。
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
         {
             InitializeComponent();
             DataContext = _viewModel;
+            Closed += OnMainWindowClosed;
             _logger.LogInformation("MainWindow 初始化完成，DataContext 已绑定");
         }
         catch (Exception ex)
@@ -41,12 +43,23 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 窗口加载完成后初始化 ViewModel（加载仪表板数据、设置初始状态）。
+    /// 窗口加载完成后初始化 ViewModel，并创建系统托盘 NotifyIcon 以供 AI Toast 通知使用。
     /// </summary>
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         try
         {
+            // 创建 WinForms NotifyIcon 实例并注册到 App 静态字段，
+            // 使 MainViewModel.ShowAiAnalysisToast 的 App.ShowBalloonTip 调用生效
+            _notifyIcon = new System.Windows.Forms.NotifyIcon
+            {
+                Icon = System.Drawing.SystemIcons.Application,
+                Visible = true,
+                Text = "智能磁盘清理"
+            };
+            App.SetNotifyIcon(_notifyIcon);
+            _logger.LogDebug("NotifyIcon 已创建并注册到 App");
+
             _logger.LogMethodEntry("MainWindow 加载完成，开始初始化 ViewModel");
             await _viewModel.InitializeAsync();
             _logger.LogMethodExit("MainWindow 启动流程结束");
@@ -59,6 +72,20 @@ public partial class MainWindow : Window
                 "启动异常",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// 窗口关闭时释放 NotifyIcon 资源。
+    /// </summary>
+    private void OnMainWindowClosed(object? sender, EventArgs e)
+    {
+        if (_notifyIcon != null)
+        {
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
+            _notifyIcon = null;
+            _logger.LogDebug("NotifyIcon 已释放");
         }
     }
 }

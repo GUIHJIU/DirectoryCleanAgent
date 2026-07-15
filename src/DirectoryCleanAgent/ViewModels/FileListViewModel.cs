@@ -386,7 +386,11 @@ public class FileListViewModel : ViewModelBase, IDisposable
 
         try
         {
+            // 清除 AI 分析去重状态，确保新扫描的文件可以重新分析
+            _aiCoordinator.ClearFileStates();
+
             _currentLoadCts?.Cancel();
+            _currentLoadCts?.Dispose();
             _currentLoadCts = new CancellationTokenSource();
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _currentLoadCts.Token);
 
@@ -1390,10 +1394,13 @@ public class FileListViewModel : ViewModelBase, IDisposable
     /// </summary>
     private async Task ExecuteAnalyzeSelectedFilesAsync()
     {
+        // selectedItems 需要在 try 和 catch 中都可见，用于异常后重置状态
+        List<FileListItem>? selectedItems = null;
+
         try
         {
             // 收集所有勾选的文件
-            var selectedItems = CurrentFileList.Where(f => f.IsChecked).ToList();
+            selectedItems = CurrentFileList.Where(f => f.IsChecked).ToList();
             if (selectedItems.Count == 0)
             {
                 _logger.LogInformation("没有勾选的文件，跳过批量 AI 分析");
@@ -1435,10 +1442,34 @@ public class FileListViewModel : ViewModelBase, IDisposable
                     item.UpdateAiDisplay();
                 }
             }
+
+            // 重置未返回结果的文件状态（防御性：确保 stuck "analyzing" 不会残留）
+            foreach (var item in selectedItems)
+            {
+                if (item.AiLabel == "analyzing" &&
+                    results.All(r => r.FilePath != item.CacheKey))
+                {
+                    item.AiLabel = null;
+                    item.UpdateAiDisplay();
+                }
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "批量 AI 分析异常");
+            // 异常发生后重置所有 stuck 在 "analyzing" 状态的行
+            // selectedItems 可能因初始化异常为 null
+            if (selectedItems is { Count: > 0 })
+            {
+                foreach (var item in selectedItems)
+                {
+                    if (item.AiLabel == "analyzing")
+                    {
+                        item.AiLabel = null;
+                        item.UpdateAiDisplay();
+                    }
+                }
+            }
         }
     }
 
@@ -1462,6 +1493,9 @@ public class FileListViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(AiProgressPercentage));
 
             // 更新当前正在分析的行状态
+            // 注意：当前 ProgressChanged 暂未推送 per-file 路径（CurrentFilePath 为 null），
+            // 此处为将来按文件粒度标记 "analyzing" 状态的预留代码。
+            // 当前 per-file 标记逻辑在 ExecuteAnalyzeSelectedFilesAsync 中统一处理。
             if (progress.CurrentFilePath != null)
             {
                 var item = CurrentFileList.FirstOrDefault(f => f.CacheKey == progress.CurrentFilePath);
