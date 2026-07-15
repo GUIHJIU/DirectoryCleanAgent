@@ -39,13 +39,16 @@ public abstract class CancellableOperationBase : IDisposable
         CancelAndDisposeCts();
 
         var effectiveTimeout = timeout ?? DefaultTimeout;
-        _cts = new CancellationTokenSource(effectiveTimeout);
 
         if (externalToken != CancellationToken.None)
         {
-            // 链接外部令牌和超时令牌：任一触发即取消
-            _cts = CancellationTokenSource.CreateLinkedTokenSource(
-                _cts.Token, externalToken);
+            // 链接外部令牌后设置超时：避免先创建 CTS 再被覆盖的浪费
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
+            _cts.CancelAfter(effectiveTimeout);
+        }
+        else
+        {
+            _cts = new CancellationTokenSource(effectiveTimeout);
         }
 
         Logger.LogDebug("CancellationTokenSource 已创建，超时={Timeout}s，链接外部Token={HasExternal}",

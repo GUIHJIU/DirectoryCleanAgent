@@ -69,6 +69,8 @@ public abstract class IntegrationTestBase : IDisposable
     protected string CreateTestFile(string relativePath, byte[]? content = null, long sizeBytes = 1024)
     {
         string fullPath = Path.Combine(TestRoot, relativePath);
+        // 规范化路径分隔符，确保所有分隔符统一为 \
+        fullPath = Path.GetFullPath(fullPath);
         string? dir = Path.GetDirectoryName(fullPath);
         if (dir != null && !Directory.Exists(dir))
         {

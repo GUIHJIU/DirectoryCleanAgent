@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // ScanCancellationTests.cs
 // 功能: 扫描阶段取消操作集成测试
 // 覆盖: 流式枚举中途取消、枚举开始前取消
@@ -50,13 +50,11 @@ public class ScanCancellationTests : IntegrationTestBase
     /// 在流式枚举过程中取消，停止 yield return
     /// 抛出 OperationCanceledException 或提前终止循环
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_CancelDuringStream_StopsMidway()
     {
         var logger = CreateLogger<ScanCancellationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 扫描中途取消");
 

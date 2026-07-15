@@ -94,20 +94,28 @@ internal static partial class Shell32Native
 
     // ================================================================
     // 错误码常量（与 IFileOperation COM 共享）
+    //
+    // 注意：SHFileOperationW 在不同 Windows 版本上可能返回
+    // HRESULT（如 0x80070020）或原始 Win32 错误码（如 32）。
+    // 为兼容两种格式，同时定义两个版本，在 IsLockViolation 中使用
+    // 宏提取 HRESULT 的低 16 位与 Win32 错误码比较。
     // ================================================================
 
-    /// <summary>ERROR_SHARING_VIOLATION — 文件被其他进程占用</summary>
+    /// <summary>S_OK — 操作成功（HRESULT 和 Win32 均为 0）</summary>
+    internal const int S_OK = 0;
+
+    // Win32 原始错误码（SHFileOperationW 返回值格式）
+    internal const int WIN32_ERROR_SHARING_VIOLATION = 32;
+    internal const int WIN32_ERROR_LOCK_VIOLATION = 33;
+    internal const int WIN32_ERROR_ACCESS_DENIED = 5;
+    internal const int WIN32_ERROR_FILE_NOT_FOUND = 2;
+
+    // HRESULT 格式错误码（SHQueryRecycleBinW 等 COM API 返回值格式）
     internal const int ERROR_SHARING_VIOLATION = unchecked((int)0x80070020);
-
-    /// <summary>ERROR_LOCK_VIOLATION — 文件被锁定</summary>
     internal const int ERROR_LOCK_VIOLATION = unchecked((int)0x80070021);
-
-    /// <summary>ERROR_ACCESS_DENIED — 权限不足</summary>
     internal const int ERROR_ACCESS_DENIED = unchecked((int)0x80070005);
-
-    /// <summary>ERROR_FILE_NOT_FOUND — 文件不存在</summary>
     internal const int ERROR_FILE_NOT_FOUND = unchecked((int)0x80070002);
 
-    /// <summary>S_OK — 操作成功</summary>
-    internal const int S_OK = 0;
+    /// <summary>从 HRESULT 提取低 16 位（FACILITY_CODE），用于与原始 Win32 错误码比较</summary>
+    internal static int ExtractWin32ErrorCode(int hresult) => hresult & 0xFFFF;
 }

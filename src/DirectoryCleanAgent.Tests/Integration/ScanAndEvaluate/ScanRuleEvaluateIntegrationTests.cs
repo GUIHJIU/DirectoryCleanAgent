@@ -393,10 +393,10 @@ public class ScanRuleEvaluateIntegrationTests : IntegrationTestBase
     /// </summary>
     [Fact]
     [Trait("Category", "Integration")]
-    public void DecisionEngine_Arbitrate_WithoutAI_SuggestDelete_ReturnsManualReview()
+    public void DecisionEngine_Arbitrate_WithoutAI_SuggestDelete_ReturnsSuggestDelete()
     {
         var logger = CreateLogger<ScanRuleEvaluateIntegrationTests>();
-        logger.LogInformation("开始测试: AI禁用时SuggestDelete降级");
+        logger.LogInformation("开始测试: AI禁用时SuggestDelete原值透传");
 
         try
         {
@@ -415,13 +415,13 @@ public class ScanRuleEvaluateIntegrationTests : IntegrationTestBase
             // Act: AI 关闭
             var decided = _decisionEngine.Arbitrate(cache, aiEnabled: false, AITrustLevel.Medium);
 
-            // Assert: SuggestDelete + 无 AI → ManualReview
-            Assert.Equal(FinalAction.ManualReview, decided.FinalAction);
-            logger.LogInformation("AI禁用降级验证通过: SuggestDelete → ManualReview");
+            // Assert: SuggestDelete + 无 AI → SuggestDelete（设计文档V3.7 决策表情况4：AI禁用时原值透传）
+            Assert.Equal(FinalAction.SuggestDelete, decided.FinalAction);
+            logger.LogInformation("AI禁用透传验证通过: SuggestDelete → SuggestDelete");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "AI禁用降级测试失败");
+            logger.LogError(ex, "AI禁用透传测试失败");
             throw;
         }
     }

@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // EverythingDetectionIntegrationTests.cs
 // 功能: Everything SDK 5步启动检测集成测试
 // 覆盖: 进程存活检查、版本检查、IPC Ping、FRN 能力探测、索引就绪检测
@@ -59,13 +59,11 @@ public class EverythingDetectionIntegrationTests : IntegrationTestBase
     /// 在真实 Everything 环境中验证完整的 5 步检测流程全部通过
     /// 步骤: 进程存活 → 版本检查 → IPC Ping → FRN 能力探测 → 索引就绪
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task DetectAsync_AllStepsPass_ReturnsSuccess()
     {
         var logger = CreateLogger<EverythingDetectionIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: Everything 完整5步检测（真实环境）");
 
@@ -103,13 +101,11 @@ public class EverythingDetectionIntegrationTests : IntegrationTestBase
     /// 此场景通过停止 Everything 服务来验证（若当前 Everything 在运行）
     /// 或通过模拟 Everything 不可用的配置验证
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task DetectAsync_Step1ProcessNotRunning_ReturnsFailure()
     {
         var logger = CreateLogger<EverythingDetectionIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 进程存活检查（步骤1）");
 
@@ -139,13 +135,11 @@ public class EverythingDetectionIntegrationTests : IntegrationTestBase
     /// Everything 版本低于 1.4.1 时应返回阻断失败
     /// 版本检查是步骤2，失败后阻止进入主界面
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task DetectAsync_Step2VersionCheck_ReturnsVersionString()
     {
         var logger = CreateLogger<EverythingDetectionIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 版本检查（步骤2）");
 
@@ -172,13 +166,11 @@ public class EverythingDetectionIntegrationTests : IntegrationTestBase
     /// <summary>
     /// IPC Ping 是步骤3，查询已知系统文件验证 IPC 通道可用
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task DetectAsync_Step3IpcPing_VerifiedBySuccess()
     {
         var logger = CreateLogger<EverythingDetectionIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: IPC Ping（步骤3）");
 
@@ -211,13 +203,11 @@ public class EverythingDetectionIntegrationTests : IntegrationTestBase
     /// 步骤4 FRN 能力探测：FRN 不可用时不阻断，但自动设置 FRN_AVAILABLE=false
     /// 墓碑匹配降级为 Size+LastWriteTime 指纹模式（3天过期）
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task DetectAsync_Step4FrnCapability_ResultReflectsState()
     {
         var logger = CreateLogger<EverythingDetectionIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: FRN 能力探测（步骤4）");
 
@@ -248,13 +238,11 @@ public class EverythingDetectionIntegrationTests : IntegrationTestBase
     /// <summary>
     /// 步骤5 索引就绪检测：索引构建中时不阻断但 IsIndexing=true
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task DetectAsync_Step5IsIndexing_ResultContainsIndexState()
     {
         var logger = CreateLogger<EverythingDetectionIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 索引就绪检测（步骤5）");
 
@@ -281,13 +269,11 @@ public class EverythingDetectionIntegrationTests : IntegrationTestBase
     /// 用户取消检测时抛出 OperationCanceledException
     /// 确保取消令牌正确传播到每一步检测
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task DetectAsync_CancelledDuringDetection_ThrowsOperationCanceled()
     {
         var logger = CreateLogger<EverythingDetectionIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 检测取消");
 
@@ -315,13 +301,11 @@ public class EverythingDetectionIntegrationTests : IntegrationTestBase
     /// <summary>
     /// 验证 CheckProcessAlive 可以检测到运行中的 Everything 进程
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public void CheckProcessAlive_WithRunningProcess_ReturnsTrue()
     {
         var logger = CreateLogger<EverythingDetectionIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 进程存活检测");
 

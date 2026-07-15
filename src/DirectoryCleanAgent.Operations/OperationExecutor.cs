@@ -307,7 +307,43 @@ public sealed class OperationExecutor : CancellableOperationBase, IOperationExec
                         // 无隔离区（或大文件绕过）：直接删除
                         var deleteHr = ExecuteDelete(entry.FilePath, method);
 
-                        if (deleteHr == Shell32Native.S_OK || deleteHr == Shell32Native.ERROR_FILE_NOT_FOUND)
+                        // 判断删除是否成功（兼容 HRESULT 和 Win32 错误码格式）
+                        var isSuccess = deleteHr == Shell32Native.S_OK
+                            || deleteHr == Shell32Native.WIN32_ERROR_FILE_NOT_FOUND
+                            || deleteHr == Shell32Native.ERROR_FILE_NOT_FOUND;
+
+                        // 回退：ShellFileOperation 失败时尝试 System.IO.File.Delete
+                        // SHFileOperationW 对 \\?\ 路径兼容性不一致，File.Delete 原生支持
+                        if (!isSuccess && !ShellFileOperation.IsLockViolation(deleteHr))
+                        {
+                            try
+                            {
+                                var denormPath = PathNormalizer.Denormalize(entry.FilePath);
+                                if (File.Exists(denormPath))
+                                {
+                                    File.Delete(denormPath);
+                                    Logger.LogDebug(
+                                        "ShellFileOperation 返回 0x{HR:X8}，File.Delete 回退成功: {Path}",
+                                        deleteHr, entry.FilePath);
+                                    isSuccess = true;
+                                }
+                                else
+                                {
+                                    // 文件已不存在 ← 等效于已删除
+                                    Logger.LogDebug(
+                                        "ShellFileOperation 返回 0x{HR:X8}，文件已不存在（等效已删除）: {Path}",
+                                        deleteHr, entry.FilePath);
+                                    isSuccess = true;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogWarning(ex,
+                                    "File.Delete 回退也失败: {Path}", entry.FilePath);
+                            }
+                        }
+
+                        if (isSuccess)
                         {
                             // 文件删除成功 或 文件已不存在（等效于已删除）
                             successCount++;

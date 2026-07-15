@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // IndexNotReadyIntegrationTests.cs
 // 功能: 索引未就绪三种策略集成测试
 // 覆盖: 等待策略(2秒轮询/120秒超时)、后台等待、跳过进入警告模式
@@ -54,13 +54,11 @@ public class IndexNotReadyIntegrationTests : IntegrationTestBase
     /// 等待策略：每2秒轮询一次，120秒超时
     /// 若索引在超时内就绪返回 true，表示可以进入主界面
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task WaitForIndex_Polling2sInterval_ReturnsSuccess()
     {
         var logger = CreateLogger<IndexNotReadyIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 索引等待策略（真实环境）");
 
@@ -166,7 +164,7 @@ public class IndexNotReadyIntegrationTests : IntegrationTestBase
 
             // Act: 用已取消的令牌延迟
             // 模拟用户在等待过程中点击取消
-            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
                 await Task.Delay(1000, cts.Token);
             });
@@ -282,13 +280,11 @@ public class IndexNotReadyIntegrationTests : IntegrationTestBase
     /// IsIndexingAsync 方法正确委托到 Everything 原生 API
     /// 返回 true/false 反映索引状态
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task IsIndexingAsync_DelegatesToNative_ReturnsBool()
     {
         var logger = CreateLogger<IndexNotReadyIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: IsIndexingAsync 原生委托");
 

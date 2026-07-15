@@ -217,6 +217,18 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
             _quarantineMock
                 .Setup(q => q.EnforceCapacityAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
+            // B6 重构后隔离区文件名构造委托给 IQuarantineManager
+            _quarantineMock
+                .Setup(q => q.ConstructQuarantineFileName(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns((string hash, string name) =>
+                {
+                    var prefix = hash.Length >= 16 ? hash[..16] : hash;
+                    var unixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                    return $"{prefix}_{name}_{unixSeconds}.quarantine";
+                });
+            _quarantineMock
+                .Setup(q => q.IsLargeFileForQuarantineAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
 
             var testFiles = _fileGenerator.GenerateRandom(5, "quarantine_test");
             var operationId = Guid.NewGuid().ToString("N");
@@ -483,7 +495,7 @@ public class DeleteExecuteIntegrationTests : IntegrationTestBase
             await using var connection = await _connectionFactory.CreateConnectionAsync();
             using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT COUNT(*) FROM AuditLog WHERE operation_type = @type";
-            cmd.Parameters.AddWithValue("@type", "Delete");
+            cmd.Parameters.AddWithValue("@type", "FILE_DELETED");
 
             var count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
             Assert.True(count > 0, "删除操作必须写入审计日志");

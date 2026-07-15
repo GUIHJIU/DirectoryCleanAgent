@@ -251,7 +251,7 @@ public class ExecutionCancellationTests : IntegrationTestBase
             await Task.Delay(50);
             await cts.CancelAsync();
 
-            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
                 await pollingTask;
             });

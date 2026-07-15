@@ -119,7 +119,9 @@ public class BackupManagerTests : IDisposable
         var quarantineFileName = $"{sha256Prefix}_{originalFileName}_{unixSeconds}.quarantine";
 
         var quarantinePath = Path.Combine(_quarantineDir, quarantineFileName);
-        File.WriteAllText(quarantinePath, $"quarantine content {Guid.NewGuid():N}");
+        // 复制原始文件内容到隔离区，确保哈希一致
+        var denormalized = PathNormalizer.Denormalize(originalFilePath);
+        File.Copy(denormalized, quarantinePath, overwrite: true);
         return quarantinePath;
     }
 
@@ -620,18 +622,20 @@ public class BackupManagerTests : IDisposable
         Directory.CreateDirectory(originalDir);
         var originalPath = PathNormalizer.Normalize(Path.Combine(originalDir, "important.txt"));
 
-        // 先向隔离区放入一个文件
+        // 先向隔离区放入一个文件，用实际哈希前缀命名
         var quarantineContent = "important data to be restored";
-        var sha256Prefix = "a1b2c3d4e5f6a7b8";
-        var fullHash = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2";
         var unixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // 先写入临时文件，计算实际哈希
+        var tempPath = Path.Combine(_quarantineDir, "temp_quarantine.tmp");
+        File.WriteAllText(tempPath, quarantineContent);
+        var actualHash = ComputeSha256ForFile(tempPath);
+
+        // 用实际哈希前缀命名
+        var sha256Prefix = actualHash[..16];
         var quarantineFileName = $"{sha256Prefix}_important.txt_{unixSeconds}.quarantine";
         var quarantinePath = Path.Combine(_quarantineDir, quarantineFileName);
-
-        File.WriteAllText(quarantinePath, quarantineContent);
-
-        // 重新计算实际哈希值
-        var actualHash = ComputeSha256ForFile(quarantinePath);
+        File.Move(tempPath, quarantinePath);
 
         var records = new List<DeletionRecord>
         {
@@ -682,13 +686,19 @@ public class BackupManagerTests : IDisposable
         // 在目标路径创建一个已存在的文件
         File.WriteAllText(PathNormalizer.Denormalize(originalPath), "existing file");
 
-        // 创建隔离区中的恢复源文件
-        var sha256Prefix = "b1c2d3e4f5g6h7i8";
+        // 创建隔离区中的恢复源文件，用实际哈希前缀命名
         var unixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // 先写入临时文件，计算实际哈希
+        var tempPath = Path.Combine(_quarantineDir, "temp_conflict.tmp");
+        File.WriteAllText(tempPath, "restored content");
+        var actualHash = ComputeSha256ForFile(tempPath);
+
+        // 用实际哈希前缀命名
+        var sha256Prefix = actualHash[..16];
         var quarantineFileName = $"{sha256Prefix}_conflict.txt_{unixSeconds}.quarantine";
         var quarantinePath = Path.Combine(_quarantineDir, quarantineFileName);
-        File.WriteAllText(quarantinePath, "restored content");
-        var actualHash = ComputeSha256ForFile(quarantinePath);
+        File.Move(tempPath, quarantinePath);
 
         var records = new List<DeletionRecord>
         {

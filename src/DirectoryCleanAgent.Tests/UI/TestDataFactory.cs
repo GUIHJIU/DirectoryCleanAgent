@@ -9,8 +9,6 @@ namespace DirectoryCleanAgent.Tests.UI;
 /// </summary>
 public static class TestDataFactory
 {
-    private static readonly DateTime Now = new(2026, 6, 23, 12, 0, 0, DateTimeKind.Utc);
-
     /// <summary>
     /// 混合 FinalAction 场景的预设缓存数据。
     /// 3 AutoDelete + 2 SuggestDelete + 1 ManualReview + 2 Protected = 8 条
@@ -44,7 +42,7 @@ public static class TestDataFactory
     /// <summary>
     /// 时间分组测试数据：覆盖 5 个时间桶
     /// </summary>
-    public static readonly List<FileDecisionCache> TimeGroupedCache = new()
+    public static List<FileDecisionCache> TimeGroupedCache => new()
     {
         CreateCache(@"\\?\C:\tmp\f1.tmp", "SystemTempFiles", FinalAction.AutoDelete, 1_000_000, 0),      // 今天
         CreateCache(@"\\?\C:\tmp\f2.tmp", "SystemTempFiles", FinalAction.AutoDelete, 2_000_000, -3),     // 最近7天
@@ -100,7 +98,7 @@ public static class TestDataFactory
             {
                 FilePath = $@"\\?\C:\tmp\file_{i:D5}.tmp",
                 SizeBytes = 1_000_000 + i * 1000,
-                LastWriteTime = Now.AddDays(-i),
+                LastWriteTime = DateTime.UtcNow.AddDays(-i),
                 Extension = ".tmp",
                 EverythingSortKey = $"{i:D8}"
             });
@@ -122,7 +120,7 @@ public static class TestDataFactory
         {
             FilePath = path,
             SizeBytes = sizeBytes,
-            LastWriteTime = Now.AddDays(daysAgo),
+            LastWriteTime = DateTime.UtcNow.AddDays(daysAgo),
             RuleVerdict = action == FinalAction.Protected ? RuleVerdict.Keep : RuleVerdict.SuggestDelete,
             SemanticCategory = semanticCategory,
             FinalAction = action,

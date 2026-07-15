@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using DirectoryCleanAgent.Core.Config;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Enums;
+using DirectoryCleanAgent.Core.PathHandling;
 using DirectoryCleanAgent.Decision;
 using DirectoryCleanAgent.Tests.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -171,7 +172,7 @@ public class DecisionSnapshotIntegrationTests : IntegrationTestBase
 
             var cache = new FileDecisionCache
             {
-                FilePath = @"\\?\" + testFile,
+                FilePath = PathNormalizer.Normalize(testFile),
                 SizeBytes = content.Length,
                 LastWriteTime = File.GetLastWriteTimeUtc(testFile),
                 RuleVerdict = RuleVerdict.SuggestDelete,
@@ -218,7 +219,7 @@ public class DecisionSnapshotIntegrationTests : IntegrationTestBase
             var testFile = CreateTestFile("immutable_test/original.dat", sizeBytes: 1024);
             var cache = new FileDecisionCache
             {
-                FilePath = @"\\?\" + testFile,
+                FilePath = PathNormalizer.Normalize(testFile),
                 SizeBytes = 1024,
                 LastWriteTime = DateTime.UtcNow,
                 RuleVerdict = RuleVerdict.SuggestDelete,
@@ -326,7 +327,7 @@ public class DecisionSnapshotIntegrationTests : IntegrationTestBase
             var testFile = CreateTestFile("json_test/serializable.dat", sizeBytes: 512);
             var cache = new FileDecisionCache
             {
-                FilePath = @"\\?\" + testFile,
+                FilePath = PathNormalizer.Normalize(testFile),
                 SizeBytes = 512,
                 LastWriteTime = DateTime.UtcNow,
                 RuleVerdict = RuleVerdict.AutoDelete,
@@ -348,10 +349,13 @@ public class DecisionSnapshotIntegrationTests : IntegrationTestBase
             Assert.Contains("\"action\"", json);
             Assert.Contains("\"op\"", json);
 
-            // 验证 JSON 可被反序列化
-            var deserialized = System.Text.Json.JsonSerializer.Deserialize<DecisionSnapshot>(json);
-            Assert.NotNull(deserialized);
-            Assert.Equal(snapshot.OperationId, deserialized.OperationId);
+            // 验证 JSON 可被解析（ToCompactJson 使用 wrapper 格式: op/files/frozen_at）
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            Assert.True(root.TryGetProperty("op", out var opProp));
+            Assert.Equal(snapshot.OperationId, opProp.GetString());
+            Assert.True(root.TryGetProperty("files", out _));
+            Assert.True(root.TryGetProperty("frozen_at", out _));
 
             logger.LogInformation("JSON序列化验证通过: 长度={Length}", json.Length);
         }

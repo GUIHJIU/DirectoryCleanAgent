@@ -119,7 +119,9 @@ public static class EverythingTestHelper
         {
             var msg = $"Everything 环境不可用 ({Version})，跳过此测试";
             logger?.LogWarning(msg);
-            throw new SkipException(msg);
+            // xUnit 2.x 不支持通过异常动态跳过。调用方应使用 [EverythingFact] 属性替代 [Fact]。
+            // 此方法降级为仅记录警告日志，由调用方决定是否提前返回。
+            // 如需自动跳过，请使用 [EverythingFact] 标记测试方法。
         }
     }
 
@@ -133,13 +135,4 @@ public static class EverythingTestHelper
     }
 }
 
-/// <summary>
-/// xUnit Skip 异常 — 不视为测试失败，标记为 Skipped
-/// 注意: xUnit 本身不支持通过异常跳过，此处使用自定义机制。
-/// 实际使用时建议通过 [Fact(Skip = "...")] 或条件编译控制。
-/// 替代方案: 在测试方法开头使用 Assert.Skip (若可用) 或直接 return
-/// </summary>
-public class SkipException : Exception
-{
-    public SkipException(string message) : base(message) { }
-}
+

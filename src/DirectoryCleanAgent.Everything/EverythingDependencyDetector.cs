@@ -214,7 +214,7 @@ public class EverythingDependencyDetector : IEverythingDetector
                 FRN_AVAILABLE = frnAvailable,
                 DBLoaded = EverythingNative.Everything_IsDBLoaded(),
                 IsIndexing = isIndexing,
-                RawVersion = EverythingNative.Everything_GetVersion(),
+                RawVersion = (uint)((major << 24) | (minor << 16) | (rev << 8) | build),
                 ElapsedMilliseconds = sw.ElapsedMilliseconds,
                 SdkVersion = sdkVersion,
                 ClientHandle = clientHandle,

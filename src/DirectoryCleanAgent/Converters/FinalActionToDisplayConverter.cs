@@ -24,7 +24,7 @@ public class FinalActionToDisplayConverter : IValueConverter
             {
                 FinalAction a => a,
                 int i when Enum.IsDefined(typeof(FinalAction), i) => (FinalAction)i,
-                _ => FinalAction.ManualReview
+                _ => throw new ArgumentException($"无法将值 '{value}' (类型: {value?.GetType().Name ?? "null"}) 转换为 FinalAction")
             };
 
             return action switch

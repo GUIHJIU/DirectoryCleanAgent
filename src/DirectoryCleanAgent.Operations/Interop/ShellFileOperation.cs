@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using DirectoryCleanAgent.Core.PathHandling;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryCleanAgent.Operations.Interop;
@@ -97,6 +98,9 @@ internal sealed class ShellFileOperation : IDisposable
     /// </returns>
     public int DeleteToRecycleBin(string filePath)
     {
+        // SHFileOperationW 对 \\?\ 前缀路径兼容性不一致，去规范化为传统 DOS 路径
+        filePath = PathNormalizer.Denormalize(filePath);
+
         // 源路径必须以双 null 结尾（SHFileOperationW 要求）
         var pFrom = filePath + "\0\0";
 
@@ -134,6 +138,9 @@ internal sealed class ShellFileOperation : IDisposable
     /// <returns>HRESULT，S_OK 表示成功</returns>
     public int DeletePermanently(string filePath)
     {
+        // SHFileOperationW 对 \\?\ 前缀路径兼容性不一致，去规范化为传统 DOS 路径
+        filePath = PathNormalizer.Denormalize(filePath);
+
         var pFrom = filePath + "\0\0";
 
         var fileOp = new SHFILEOPSTRUCTW
@@ -170,6 +177,10 @@ internal sealed class ShellFileOperation : IDisposable
     /// <returns>HRESULT，S_OK 表示成功</returns>
     public int MoveFile(string sourcePath, string destPath)
     {
+        // SHFileOperationW 对 \\?\ 前缀路径兼容性不一致，去规范化为传统 DOS 路径
+        sourcePath = PathNormalizer.Denormalize(sourcePath);
+        destPath = PathNormalizer.Denormalize(destPath);
+
         var pFrom = sourcePath + "\0\0";
         var pTo = destPath + "\0\0";
 
@@ -208,6 +219,10 @@ internal sealed class ShellFileOperation : IDisposable
     /// <returns>HRESULT，S_OK 表示成功</returns>
     public int CopyFile(string sourcePath, string destPath)
     {
+        // SHFileOperationW 对 \\?\ 前缀路径兼容性不一致，去规范化为传统 DOS 路径
+        sourcePath = PathNormalizer.Denormalize(sourcePath);
+        destPath = PathNormalizer.Denormalize(destPath);
+
         var pFrom = sourcePath + "\0\0";
         var pTo = destPath + "\0\0";
 
@@ -237,22 +252,39 @@ internal sealed class ShellFileOperation : IDisposable
 
     /// <summary>
     /// 判断 HRESULT 是否表示文件被锁定或占用。
+    /// SHFileOperationW 在不同 Windows 版本可能返回 HRESULT 或原始 Win32 错误码，
+    /// 因此同时检查两种格式。
     /// 这些错误码触发降级为 manual_review，而非直接报告失败。
     /// </summary>
-    public static bool IsLockViolation(int hresult) =>
-        hresult == Shell32Native.ERROR_SHARING_VIOLATION ||
-        hresult == Shell32Native.ERROR_LOCK_VIOLATION;
+    public static bool IsLockViolation(int hresult)
+    {
+        // 检查 HRESULT 格式
+        if (hresult == Shell32Native.ERROR_SHARING_VIOLATION ||
+            hresult == Shell32Native.ERROR_LOCK_VIOLATION)
+            return true;
+
+        // 检查原始 Win32 错误码（SHFileOperationW 在某些版本返回此格式）
+        if (hresult == Shell32Native.WIN32_ERROR_SHARING_VIOLATION ||
+            hresult == Shell32Native.WIN32_ERROR_LOCK_VIOLATION)
+            return true;
+
+        // 检查 HRESULT 的低 16 位是否匹配（通用提取）
+        var win32Code = Shell32Native.ExtractWin32ErrorCode(hresult);
+        return win32Code == Shell32Native.WIN32_ERROR_SHARING_VIOLATION ||
+               win32Code == Shell32Native.WIN32_ERROR_LOCK_VIOLATION;
+    }
 
     /// <summary>
-    /// 将 HRESULT 转换为用户可读的错误消息。
+    /// 将错误码转换为用户可读的错误消息。
+    /// 同时处理 HRESULT 和原始 Win32 错误码格式。
     /// </summary>
     public static string GetErrorMessage(int hresult) => hresult switch
     {
         Shell32Native.S_OK => "操作成功",
-        Shell32Native.ERROR_SHARING_VIOLATION => "文件被其他进程占用，无法访问",
-        Shell32Native.ERROR_LOCK_VIOLATION => "文件被锁定，无法操作",
-        Shell32Native.ERROR_ACCESS_DENIED => "权限不足，无法操作文件",
-        Shell32Native.ERROR_FILE_NOT_FOUND => "文件不存在",
+        Shell32Native.ERROR_SHARING_VIOLATION or Shell32Native.WIN32_ERROR_SHARING_VIOLATION => "文件被其他进程占用，无法访问",
+        Shell32Native.ERROR_LOCK_VIOLATION or Shell32Native.WIN32_ERROR_LOCK_VIOLATION => "文件被锁定，无法操作",
+        Shell32Native.ERROR_ACCESS_DENIED or Shell32Native.WIN32_ERROR_ACCESS_DENIED => "权限不足，无法操作文件",
+        Shell32Native.ERROR_FILE_NOT_FOUND or Shell32Native.WIN32_ERROR_FILE_NOT_FOUND => "文件不存在",
         _ => $"操作失败，错误码: 0x{hresult:X8}"
     };
 

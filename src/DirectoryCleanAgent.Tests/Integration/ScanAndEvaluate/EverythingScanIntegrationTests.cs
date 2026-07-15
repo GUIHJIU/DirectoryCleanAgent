@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // EverythingScanIntegrationTests.cs
 // 功能: Everything 真实扫描集成测试
 // 覆盖: 流式枚举、路径过滤、结果上限、取消中断、字段完整性、
@@ -52,13 +52,11 @@ public class EverythingScanIntegrationTests : IntegrationTestBase
     /// <summary>
     /// 使用真实 Everything 查询文件列表，验证返回非空结果且路径含 \\?\ 前缀
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_RealEverything_ReturnsFiles()
     {
         var logger = CreateLogger<EverythingScanIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: Everything 真实枚举");
 
@@ -110,13 +108,11 @@ public class EverythingScanIntegrationTests : IntegrationTestBase
     /// PathFilter 参数将搜索限制在指定目录下
     /// 返回的所有文件路径必须以 PathFilter 开头
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_RealEverything_PathFilterWorks()
     {
         var logger = CreateLogger<EverythingScanIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: PathFilter 过滤参数");
 
@@ -159,13 +155,11 @@ public class EverythingScanIntegrationTests : IntegrationTestBase
     /// MaxResults 参数正确限制 Everything 返回的文件数量
     /// 实际返回数 <= MaxResults
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_RealEverything_MaxResultsWorks()
     {
         var logger = CreateLogger<EverythingScanIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: MaxResults 上限参数");
 
@@ -208,13 +202,11 @@ public class EverythingScanIntegrationTests : IntegrationTestBase
     /// 在流式枚举过程中取消，应停止产出新文件
     /// 抛出 OperationCanceledException
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_RealEverything_CancellationStopsStream()
     {
         var logger = CreateLogger<EverythingScanIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 扫描取消");
 
@@ -261,13 +253,11 @@ public class EverythingScanIntegrationTests : IntegrationTestBase
     /// 真实枚举返回的 FileItem 各字段均有有效值
     /// SizeBytes、LastWriteTime、Extension 不能为默认值
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_RealEverything_FileItemFieldsPopulated()
     {
         var logger = CreateLogger<EverythingScanIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: FileItem 字段完整性");
 
@@ -311,13 +301,11 @@ public class EverythingScanIntegrationTests : IntegrationTestBase
     /// <summary>
     /// 流式枚举返回的结果中不应包含重复的文件路径
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_RealEverything_NoDuplicatePaths()
     {
         var logger = CreateLogger<EverythingScanIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 文件去重验证");
 
@@ -357,13 +345,11 @@ public class EverythingScanIntegrationTests : IntegrationTestBase
     /// 单例 IFileListProvider 在同一实例上并发调用不产生死锁
     /// SemaphoreSlim(1,1) 保护 SDK 访问但允许多个调用排队
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_ConcurrentAccess_NoDeadlock()
     {
         var logger = CreateLogger<EverythingScanIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: 并发访问安全性");
 
@@ -402,13 +388,11 @@ public class EverythingScanIntegrationTests : IntegrationTestBase
     /// SearchExpression 参数（如 "ext:log"）正确传递给 Everything 过滤结果
     /// 所有返回的文件扩展名必须匹配搜索条件
     /// </summary>
-    [Fact]
+    [EverythingFact]
     [Trait("Category", "Integration")]
-    [Trait("Requires", "Everything")]
     public async Task EnumerateFilesAsync_WithSearchExpression_FiltersResults()
     {
         var logger = CreateLogger<EverythingScanIntegrationTests>();
-        EverythingTestHelper.SkipIfUnavailable(logger);
 
         logger.LogInformation("开始测试: SearchExpression 过滤参数");
 

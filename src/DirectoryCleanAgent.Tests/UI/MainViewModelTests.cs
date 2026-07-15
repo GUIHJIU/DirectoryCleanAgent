@@ -9,6 +9,7 @@ using DirectoryCleanAgent.Data;
 using DirectoryCleanAgent.Models;
 using DirectoryCleanAgent.Services;
 using DirectoryCleanAgent.ViewModels;
+using DirectoryCleanAgent.AI;
 using Xunit;
 
 namespace DirectoryCleanAgent.Tests.UI;
@@ -32,6 +33,8 @@ public class MainViewModelTests
     private readonly Mock<IFileListProvider> _fileListProviderMock;
     private readonly Mock<IRuleEngine> _ruleEngineMock;
     private readonly Mock<IDirectoryPickerService> _directoryPickerMock;
+    private readonly Mock<IAiAnalysisCoordinator> _aiCoordinatorMock;
+    private readonly Mock<IFileDecisionCacheRepository> _cacheRepoMock;
     private readonly Mock<FileListViewModel> _fileListViewModelMock;
     private readonly MainViewModel _viewModel;
 
@@ -50,8 +53,10 @@ public class MainViewModelTests
         _fileListProviderMock = new Mock<IFileListProvider>();
         _ruleEngineMock = new Mock<IRuleEngine>();
         _directoryPickerMock = new Mock<IDirectoryPickerService>();
+        _aiCoordinatorMock = new Mock<IAiAnalysisCoordinator>();
+        _cacheRepoMock = new Mock<IFileDecisionCacheRepository>();
 
-        // Mock FileListViewModel — 构造函数需要 8 个依赖项
+        // Mock FileListViewModel — 构造函数需要 9 个依赖项
         // SemanticLabelLocalizer 也是具体类，需提供构造函数参数
         var semanticLabelLocalizer = new Mock<SemanticLabelLocalizer>(
             Mock.Of<ILogger<SemanticLabelLocalizer>>(),
@@ -64,7 +69,8 @@ public class MainViewModelTests
             _decisionEngineMock.Object,
             semanticLabelLocalizer,
             _configServiceMock.Object,
-            _appStateServiceMock.Object);
+            _appStateServiceMock.Object,
+            _aiCoordinatorMock.Object);
 
         // 设置默认 Mock 行为
         _appStateServiceMock.Setup(s => s.IsAdmin).Returns(true);
@@ -113,7 +119,9 @@ public class MainViewModelTests
             _fileListProviderMock.Object,
             _ruleEngineMock.Object,
             _directoryPickerMock.Object,
-            _fileListViewModelMock.Object);
+            _fileListViewModelMock.Object,
+            _aiCoordinatorMock.Object,
+            _cacheRepoMock.Object);
     }
 
     /// <summary>

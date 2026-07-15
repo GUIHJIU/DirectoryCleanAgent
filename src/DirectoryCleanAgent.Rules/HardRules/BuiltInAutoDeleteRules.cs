@@ -1,6 +1,7 @@
 using DirectoryCleanAgent.Core.Config;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Enums;
+using DirectoryCleanAgent.Core.PathHandling;
 
 namespace DirectoryCleanAgent.Rules.HardRules;
 
@@ -115,7 +116,9 @@ public static class BuiltInAutoDeleteRules
         {
             RuleName = ruleName;
             Reason = reason;
-            _targetPathUpper = targetPath.ToUpperInvariant();
+            // 标准化为 \\?\ 格式并追加目录分隔符，确保 StartsWith 精确匹配完整路径组件
+            _targetPathUpper = (PathNormalizer.Normalize(targetPath.TrimEnd('\\')) + "\\")
+                .ToUpperInvariant();
             _minAgeDays = minAgeDays;
             _extensionFilter = extensionFilter?.ToLowerInvariant();
         }
@@ -124,8 +127,8 @@ public static class BuiltInAutoDeleteRules
         {
             var filePathUpper = file.FilePath.ToUpperInvariant();
 
-            // 路径匹配：文件路径以目标目录开头
-            bool pathMatch = filePathUpper.Contains(_targetPathUpper);
+            // 路径匹配：精确前缀匹配（filePath 需以标准化后的目标目录开头）
+            bool pathMatch = filePathUpper.StartsWith(_targetPathUpper, StringComparison.Ordinal);
 
             if (!pathMatch)
                 return null;

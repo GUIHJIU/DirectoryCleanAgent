@@ -92,7 +92,7 @@ public class AiRateLimiterTests : IDisposable
     // 在单元测试层难以稳定运行，推迟到集成测试验证
     // ============================================================
 
-    [Fact(Skip = "需要长时间自旋等待，集成测试中验证")]
+    [Fact]
     public async Task TryAcquireAsync_FirstAcquire_ReturnsTrue()
     {
         using var limiter = new AiRateLimiter(_logger);
@@ -101,20 +101,27 @@ public class AiRateLimiterTests : IDisposable
         limiter.Release();
     }
 
-    [Fact(Skip = "30次令牌获取涉及大量等待，集成测试中验证")]
+    [Fact]
     public async Task TryAcquireAsync_MultipleAcquires_SucceedUpToMaxTokens()
     {
         using var limiter = new AiRateLimiter(_logger);
-        for (var i = 0; i < 30; i++)
+        // 信号量最大并发为 5，因此分批获取/释放避免死锁
+        // 30 令牌分 6 批，每批 5 次 acquire + 5 次 release
+        const int batchSize = 5;
+        const int batches = 6;
+        for (var batch = 0; batch < batches; batch++)
         {
-            var result = await limiter.TryAcquireAsync(CancellationToken.None);
-            Assert.True(result, $"第 {i + 1} 次获取应成功");
+            for (var i = 0; i < batchSize; i++)
+            {
+                var result = await limiter.TryAcquireAsync(CancellationToken.None);
+                Assert.True(result, $"第 {batch * batchSize + i + 1} 次获取应成功");
+            }
+            for (var i = 0; i < batchSize; i++)
+                limiter.Release();
         }
-        for (var i = 0; i < 30; i++)
-            limiter.Release();
     }
 
-    [Fact(Skip = "需要长时间自旋等待，集成测试中验证")]
+    [Fact]
     public async Task TryAcquireAsync_ExhaustsTokens_ThenReplenishesAfterDelay()
     {
         using var limiter = new AiRateLimiter(_logger);
@@ -127,7 +134,7 @@ public class AiRateLimiterTests : IDisposable
         try { await acquireTask; } catch (OperationCanceledException) { }
     }
 
-    [Fact(Skip = "涉及异步等待，集成测试中验证")]
+    [Fact]
     public async Task TryAcquireAsync_ReplenishDoesNotExceedMaxTokens()
     {
         using var limiter = new AiRateLimiter(_logger);
@@ -138,7 +145,7 @@ public class AiRateLimiterTests : IDisposable
         limiter.Release();
     }
 
-    [Fact(Skip = "并发获取涉及令牌等待，集成测试中验证")]
+    [Fact]
     public async Task TryAcquireAsync_ConcurrentAcquisitionsUpToMax_AllSucceed()
     {
         using var limiter = new AiRateLimiter(_logger);
@@ -151,7 +158,7 @@ public class AiRateLimiterTests : IDisposable
             limiter.Release();
     }
 
-    [Fact(Skip = "并发阻塞涉及信号量等待，集成测试中验证")]
+    [Fact]
     public async Task TryAcquireAsync_ConcurrentExceedsMax_Blocks()
     {
         using var limiter = new AiRateLimiter(_logger);
@@ -165,7 +172,7 @@ public class AiRateLimiterTests : IDisposable
             limiter.Release();
     }
 
-    [Fact(Skip = "取消等待涉及信号量阻塞，集成测试中验证")]
+    [Fact]
     public async Task TryAcquireAsync_CancelledDuringWait_ReleasesSemaphoreAndThrows()
     {
         using var limiter = new AiRateLimiter(_logger);
@@ -178,7 +185,7 @@ public class AiRateLimiterTests : IDisposable
             limiter.Release();
     }
 
-    [Fact(Skip = "需要长时间自旋等待，集成测试中验证")]
+    [Fact]
     public async Task TryAcquireAsync_CancelledAfterAcquiringSemaphore_ReleasesSlot()
     {
         using var limiter = new AiRateLimiter(_logger);
@@ -198,7 +205,7 @@ public class AiRateLimiterTests : IDisposable
             limiter.Release();
     }
 
-    [Fact(Skip = "信号量等待涉及异步时序，集成测试中验证")]
+    [Fact]
     public async Task Release_AfterAcquire_ReturnsTokenToPool()
     {
         using var limiter = new AiRateLimiter(_logger);

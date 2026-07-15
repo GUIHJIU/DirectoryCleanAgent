@@ -72,12 +72,12 @@ internal static partial class EverythingNative
     // 版本与状态
     // ================================================================
 
-    /// <summary>
-    /// 获取 Everything SDK 版本号。
-    /// 返回 DWORD：Bits 31-24=Major, 23-16=Minor, 15-8=Revision, 7-0=Build。
-    /// </summary>
-    [DllImport(DllName)]
-    internal static extern uint Everything_GetVersion();
+    // 注意：Everything64.dll 不导出 Everything_GetVersion 统一版本函数。
+    // SDK 版本号通过独立分量函数获取：Everything_GetMajorVersion + Everything_GetMinorVersion
+    // + Everything_GetRevision + Everything_GetBuildNumber。
+    // 统一版本号计算: RawVersion = (major << 24) | (minor << 16) | (rev << 8) | build。
+    //
+    // 以下声明使用 Everything SDK 的实际导出函数（参见 lib/Everything-SDK/src/Everything64.def）。
 
     /// <summary>获取 Everything 主版本号</summary>
     [DllImport(DllName)]

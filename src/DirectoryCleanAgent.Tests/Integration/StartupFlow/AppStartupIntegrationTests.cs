@@ -313,22 +313,28 @@ public class AppStartupIntegrationTests : IntegrationTestBase, IDisposable
     /// </summary>
     private static string FindProjectDir(string projectName)
     {
-        // 从测试程序集所在目录向上查找 src/{projectName} 目录
+        // 策略1: 主题文件通过 .csproj 配置已复制到测试输出目录，直接使用
         var baseDir = AppContext.BaseDirectory;
-        var dir = new DirectoryInfo(baseDir);
+        var lightThemeInOutput = Path.Combine(baseDir, "LightTheme.xaml");
+        if (File.Exists(lightThemeInOutput))
+            return baseDir;
 
+        // 策略2: 从测试程序集所在目录向上查找 src/{projectName} 目录，然后找 Themes 子目录
+        var dir = new DirectoryInfo(baseDir);
         while (dir != null)
         {
             var srcDir = Path.Combine(dir.FullName, "src", projectName);
             if (Directory.Exists(srcDir))
             {
-                return srcDir;
+                // 尝试 Themes 子目录
+                var themesDir = Path.Combine(srcDir, "Themes");
+                return Directory.Exists(themesDir) ? themesDir : srcDir;
             }
             dir = dir.Parent;
         }
 
-        // 回退：使用当前工作目录的相对路径
-        return Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", projectName));
+        // 策略3: 回退——使用路径相对遍历
+        return Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", "..", "src", projectName));
     }
 
     public new void Dispose()

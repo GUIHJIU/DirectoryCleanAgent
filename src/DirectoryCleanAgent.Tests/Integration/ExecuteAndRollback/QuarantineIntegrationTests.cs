@@ -30,7 +30,7 @@ public class QuarantineIntegrationTests : IntegrationTestBase
         var qLogger = NullLoggerFactory.Instance.CreateLogger<QuarantineManager>();
         _quarantineManager = new QuarantineManager(ConfigServiceMock.Object, qLogger);
 
-        _quarantineSim = new QuarantineSimulator(_quarantineDir);
+        _quarantineSim = new QuarantineSimulator(TestRoot);
     }
 
     // ================================================================

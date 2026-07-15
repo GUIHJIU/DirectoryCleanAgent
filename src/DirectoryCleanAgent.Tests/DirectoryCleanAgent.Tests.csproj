@@ -39,4 +39,14 @@
     <PackageReference Include="Moq" Version="4.20.70" />
   </ItemGroup>
 
+  <!-- 复制主题文件到测试输出目录，供主题加载集成测试使用 -->
+  <ItemGroup>
+    <Content Include="..\DirectoryCleanAgent\Themes\LightTheme.xaml" Link="LightTheme.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\DirectoryCleanAgent\Themes\DarkTheme.xaml" Link="DarkTheme.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
