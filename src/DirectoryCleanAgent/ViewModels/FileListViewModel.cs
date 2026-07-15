@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
@@ -11,6 +11,8 @@ using DirectoryCleanAgent.Core.Localization;
 using DirectoryCleanAgent.Core.Logging;
 using DirectoryCleanAgent.Data;
 using DirectoryCleanAgent.Models;
+using DirectoryCleanAgent.AI;
+using DirectoryCleanAgent.AI.Models;
 using DirectoryCleanAgent.Services;
 using DirectoryCleanAgent.ViewModels.Base;
 
@@ -47,7 +49,12 @@ public class FileListViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _currentLoadCts;
     private readonly ConcurrentDictionary<string, FileChangeType> _pendingFileChanges = new();
     private Timer? _throttleTimer;
+    private readonly IAiAnalysisCoordinator _aiCoordinator;
     private bool _disposed;
+
+    private string _aiProgressText = string.Empty;
+    private bool _isAiAnalyzing;
+    private bool _isAiAnalysisCancellable;
 
     // ============================================================
     // 集合（绑定到 UI）
@@ -271,10 +278,34 @@ public class FileListViewModel : ViewModelBase, IDisposable
     public string TotalFilesSummaryText => $"共 {TotalFilesShown} 个文件";
 
     // ============================================================
+    // AI 分析进度（绑定到状态栏）
+    // ============================================================
+
+    /// <summary>AI 分析进度文本（绑定到状态栏）</summary>
+    public string AiProgressText
+    {
+        get => _aiProgressText;
+        set => SetProperty(ref _aiProgressText, value);
+    }
+
+    /// <summary>是否有 AI 分析正在进行中（控制进度条和取消按钮可见性）</summary>
+    public bool IsAiAnalyzing
+    {
+        get => _isAiAnalyzing;
+        set => SetProperty(ref _isAiAnalyzing, value);
+    }
+
+    /// <summary>当前是否可取消 AI 分析</summary>
+    public bool IsAiAnalysisCancellable
+    {
+        get => _isAiAnalysisCancellable;
+        set => SetProperty(ref _isAiAnalysisCancellable, value);
+    }
+
+    // ============================================================
     // 命令
     // ============================================================
 
-    public RelayCommand ToggleShowAllCommand { get; }
     public RelayCommand<FileGroupNode> SelectGroupCommand { get; }
     public RelayCommand<string> SortByColumnCommand { get; }
     public RelayCommand RefreshListCommand { get; }
@@ -282,6 +313,8 @@ public class FileListViewModel : ViewModelBase, IDisposable
     public RelayCommand<FileListItem> ViewDetailCommand { get; }
     public RelayCommand<FileListItem> ToggleFileCheckCommand { get; }
     public RelayCommand<FileListItem> RequestAiAnalysisCommand { get; }
+    public RelayCommand AnalyzeSelectedFilesCommand { get; }
+    public RelayCommand CancelAiAnalysisCommand { get; }
 
     // ============================================================
     // 构造函数
@@ -295,7 +328,8 @@ public class FileListViewModel : ViewModelBase, IDisposable
         IDecisionEngine decisionEngine,
         SemanticLabelLocalizer labelLocalizer,
         IConfigService configService,
-        IAppStateService appStateService)
+        IAppStateService appStateService,
+        IAiAnalysisCoordinator aiCoordinator)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cacheRepo = cacheRepo ?? throw new ArgumentNullException(nameof(cacheRepo));
@@ -305,9 +339,9 @@ public class FileListViewModel : ViewModelBase, IDisposable
         _labelLocalizer = labelLocalizer ?? throw new ArgumentNullException(nameof(labelLocalizer));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         _appStateService = appStateService ?? throw new ArgumentNullException(nameof(appStateService));
+        _aiCoordinator = aiCoordinator ?? throw new ArgumentNullException(nameof(aiCoordinator));
 
         // 初始化命令
-        ToggleShowAllCommand = new RelayCommand(ExecuteToggleShowAll);
         SelectGroupCommand = new RelayCommand<FileGroupNode>(ExecuteSelectGroup);
         SortByColumnCommand = new RelayCommand<string>(ExecuteSortByColumn);
         RefreshListCommand = new RelayCommand(async () => await ExecuteRefreshAsync());
@@ -315,12 +349,18 @@ public class FileListViewModel : ViewModelBase, IDisposable
         ViewDetailCommand = new RelayCommand<FileListItem>(ExecuteViewDetail);
         ToggleFileCheckCommand = new RelayCommand<FileListItem>(ExecuteToggleFileCheck);
         RequestAiAnalysisCommand = new RelayCommand<FileListItem>(ExecuteRequestAiAnalysis);
+        AnalyzeSelectedFilesCommand = new RelayCommand(async () => await ExecuteAnalyzeSelectedFilesAsync());
+        CancelAiAnalysisCommand = new RelayCommand(ExecuteCancelAiAnalysis);
 
         // 订阅 Everything 文件变更事件（增量刷新）
         _fileProvider.FileChanged += OnFileChanged;
 
         // 订阅全局状态变更
         _appStateService.StateChanged += OnAppStateChanged;
+
+        // 订阅 AI 协调器进度和完成事件
+        _aiCoordinator.ProgressChanged += OnAiProgressChanged;
+        _aiCoordinator.AnalysisCompleted += OnAiAnalysisCompleted;
 
         _logger.LogMethodEntry("FileListViewModel 构造完成");
     }
@@ -374,7 +414,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "加载文件列表数据失败");
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await RunOnUIThreadAsync(() =>
             {
                 EmptyMessage = $"加载失败: {ex.Message}";
                 IsEmpty = true;
@@ -398,7 +438,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
     {
         if (_allActionableCache.Count == 0)
         {
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await RunOnUIThreadAsync(() =>
             {
                 GroupTree.Clear();
                 CurrentFileList.Clear();
@@ -411,7 +451,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
             var tree = await Task.Run(() =>
                 BuildGroupTree(_allActionableCache, _groupByPrimaryIndex, _groupBySecondaryIndex), ct);
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await RunOnUIThreadAsync(() =>
             {
                 GroupTree.Clear();
                 foreach (var node in tree)
@@ -1105,7 +1145,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
 
             if (fileKeys.Count == 0)
             {
-                await Application.Current.Dispatcher.InvokeAsync(() => CurrentFileList.Clear());
+                await RunOnUIThreadAsync(() => CurrentFileList.Clear());
                 return;
             }
 
@@ -1255,11 +1295,6 @@ public class FileListViewModel : ViewModelBase, IDisposable
     // 命令实现
     // ============================================================
 
-    private void ExecuteToggleShowAll()
-    {
-        IsShowAllFiles = !IsShowAllFiles;
-    }
-
     private void ExecuteSelectGroup(FileGroupNode? group)
     {
         if (group != null)
@@ -1301,18 +1336,150 @@ public class FileListViewModel : ViewModelBase, IDisposable
         item.IsChecked = !item.IsChecked;
     }
 
-    private void ExecuteRequestAiAnalysis(FileListItem? item)
+    private async void ExecuteRequestAiAnalysis(FileListItem? item)
     {
         if (item == null) return;
-        _logger.LogInformation("请求AI分析: {Path}", item.FullPath);
+
+        _logger.LogInformation("请求 AI 分析: {Path}", item.FullPath);
+
+        // 设置 analyzing 状态
         item.AiLabel = "analyzing";
         item.UpdateAiDisplay();
-        // TODO: B6 阶段实现 AI 分析请求
-        MessageBox.Show(
-            $"AI 分析请求已提交: {item.FilePath}\n\n此功能将在 AI 顾问模块就绪后生效。",
-            "AI 分析",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+
+        try
+        {
+            var result = await _aiCoordinator.AnalyzeSingleAsync(item.CacheKey);
+
+            if (result?.IsSuccess == true)
+            {
+                item.AiLabel = result.Label;
+                item.AiConfidence = result.Confidence;
+                item.AiExplanation = result.Explanation;
+                _logger.LogInformation("AI 单文件分析成功: {Path} → {Label} (置信度={Confidence:P})",
+                    item.FullPath, result.Label, result.Confidence);
+            }
+            else
+            {
+                // 分析失败或 AI 不可用 → 重置状态
+                item.AiLabel = null;
+                item.AiConfidence = null;
+                item.AiExplanation = null;
+                _logger.LogWarning("AI 单文件分析失败: {Path}, 错误={Error}",
+                    item.FullPath, result?.ErrorMessage ?? "服务不可用");
+            }
+        }
+        catch (Exception ex)
+        {
+            item.AiLabel = null;
+            _logger.LogError(ex, "AI 单文件分析异常: {Path}", item.FullPath);
+        }
+        finally
+        {
+            item.UpdateAiDisplay();
+        }
+    }
+
+    /// <summary>
+    /// 批量分析已勾选文件（工具栏按钮触发）。
+    /// </summary>
+    private async Task ExecuteAnalyzeSelectedFilesAsync()
+    {
+        try
+        {
+            // 收集所有勾选的文件
+            var selectedItems = CurrentFileList.Where(f => f.IsChecked).ToList();
+            if (selectedItems.Count == 0)
+            {
+                _logger.LogInformation("没有勾选的文件，跳过批量 AI 分析");
+                return;
+            }
+
+            _logger.LogInformation("批量 AI 分析: 选中 {Count} 个文件", selectedItems.Count);
+
+            // 从缓存中查找对应的 FileDecisionCache
+            var cacheEntries = _allActionableCache
+                .Where(c => selectedItems.Any(s => s.CacheKey == c.FilePath))
+                .ToList();
+
+            if (cacheEntries.Count == 0)
+            {
+                _logger.LogWarning("未在缓存中找到勾选文件的决策记录");
+                return;
+            }
+
+            // 标记所有选中行为 analyzing 状态
+            foreach (var item in selectedItems)
+            {
+                item.AiLabel = "analyzing";
+                item.UpdateAiDisplay();
+            }
+
+            // 调用协调器批量分析
+            var results = await _aiCoordinator.AnalyzeBatchAsync(cacheEntries, CancellationToken.None);
+
+            // 结果回写到 UI 行
+            foreach (var result in results)
+            {
+                var item = CurrentFileList.FirstOrDefault(f => f.CacheKey == result.FilePath);
+                if (item != null)
+                {
+                    item.AiLabel = result.Label;
+                    item.AiConfidence = result.Confidence;
+                    item.AiExplanation = result.Explanation;
+                    item.UpdateAiDisplay();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "批量 AI 分析异常");
+        }
+    }
+
+    private void ExecuteCancelAiAnalysis()
+    {
+        _logger.LogMethodEntry("用户取消 AI 分析");
+        _aiCoordinator.CancelCurrentAnalysis();
+    }
+
+    // ============================================================
+    // AI 协调器事件回调
+    // ============================================================
+
+    private void OnAiProgressChanged(object? sender, AiAnalysisProgress progress)
+    {
+        RunOnUIThreadAsync(() =>
+        {
+            AiProgressText = $"AI 分析中… {progress.CompletedCount}/{progress.TotalCount}";
+            IsAiAnalyzing = progress.CompletedCount < progress.TotalCount;
+            IsAiAnalysisCancellable = !progress.IsCancelRequested;
+
+            // 更新当前正在分析的行状态
+            if (progress.CurrentFilePath != null)
+            {
+                var item = CurrentFileList.FirstOrDefault(f => f.CacheKey == progress.CurrentFilePath);
+                if (item != null && item.AiLabel != "analyzing")
+                {
+                    item.AiLabel = "analyzing";
+                    item.UpdateAiDisplay();
+                }
+            }
+        });
+    }
+
+    private async void OnAiAnalysisCompleted(object? sender, AiAnalysisCompletedEventArgs e)
+    {
+        await RunOnUIThreadAsync(() =>
+        {
+            IsAiAnalyzing = false;
+            AiProgressText = e.WasCancelled
+                ? "AI 分析已取消"
+                : $"AI 分析完成：成功 {e.SuccessCount} 个"
+                  + (e.FailedCount > 0 ? $"，失败 {e.FailedCount} 个" : "");
+        });
+
+        // 刷新文件列表（AI 标签变更可能改变分组归属）
+        _ = LoadDataAsync();
     }
 
     // ============================================================
@@ -1354,6 +1521,24 @@ public class FileListViewModel : ViewModelBase, IDisposable
     }
 
     // ============================================================
+    // ============================================================
+    // UI 线程调度辅助（兼容单元测试场景）
+    // ============================================================
+
+    /// <summary>
+    /// 在 UI 线程上执行操作。若 Application.Current 不可用（单元测试场景），
+    /// 则直接在当前线程同步执行。参照 QuarantineViewModel 的 Dispatcher 安全模式。
+    /// </summary>
+    private async Task RunOnUIThreadAsync(Action action)
+    {
+        if (Application.Current?.Dispatcher != null)
+            await Application.Current.Dispatcher.InvokeAsync(action);
+        else
+            action();
+    }
+
+    // ============================================================
+
     // IDisposable
     // ============================================================
 
@@ -1367,6 +1552,8 @@ public class FileListViewModel : ViewModelBase, IDisposable
 
         _fileProvider.FileChanged -= OnFileChanged;
         _appStateService.StateChanged -= OnAppStateChanged;
+        _aiCoordinator.ProgressChanged -= OnAiProgressChanged;
+        _aiCoordinator.AnalysisCompleted -= OnAiAnalysisCompleted;
 
         _throttleTimer?.Dispose();
         _throttleTimer = null;

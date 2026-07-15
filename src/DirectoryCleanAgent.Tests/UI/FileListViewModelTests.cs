@@ -1,5 +1,6 @@
 using Moq;
 using Microsoft.Extensions.Logging.Abstractions;
+using DirectoryCleanAgent.AI;
 using DirectoryCleanAgent.Core.Config;
 using DirectoryCleanAgent.Core.DTOs;
 using DirectoryCleanAgent.Core.Enums;
@@ -55,7 +56,8 @@ public class FileListViewModelTests : IDisposable
             _mockDecisionEngine.Object,
             _labelLocalizer,
             _mockConfigService.Object,
-            _mockAppStateService.Object);
+            _mockAppStateService.Object,
+            Mock.Of<IAiAnalysisCoordinator>());
     }
 
     // ============================================================
@@ -372,13 +374,6 @@ public class FileListViewModelTests : IDisposable
     // ============================================================
     // 命令测试
     // ============================================================
-
-    [Fact]
-    public void ToggleShowAllCommand_Executes()
-    {
-        // ToggleShowAllCommand 应可执行
-        Assert.True(_viewModel.ToggleShowAllCommand.CanExecute(null));
-    }
 
     [Fact]
     public void RefreshListCommand_Executes()
