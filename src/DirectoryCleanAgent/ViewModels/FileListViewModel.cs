@@ -302,6 +302,12 @@ public class FileListViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _isAiAnalysisCancellable, value);
     }
 
+    /// <summary>AI 分析进度百分比（0-100），用于状态栏 ProgressBar 绑定</summary>
+    public double AiProgressPercentage =>
+        _aiCoordinator.CurrentProgress is { TotalCount: > 0 } p
+            ? (double)p.CompletedCount / p.TotalCount * 100
+            : 0;
+
     // ============================================================
     // 命令
     // ============================================================
@@ -1453,6 +1459,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
             AiProgressText = $"AI 分析中… {progress.CompletedCount}/{progress.TotalCount}";
             IsAiAnalyzing = progress.CompletedCount < progress.TotalCount;
             IsAiAnalysisCancellable = !progress.IsCancelRequested;
+            OnPropertyChanged(nameof(AiProgressPercentage));
 
             // 更新当前正在分析的行状态
             if (progress.CurrentFilePath != null)

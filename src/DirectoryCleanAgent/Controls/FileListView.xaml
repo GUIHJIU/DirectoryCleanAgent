@@ -184,6 +184,18 @@
                           BorderThickness="0"
                           Style="{StaticResource FileListDataGridStyle}">
 
+                    <DataGrid.ContextMenu>
+                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                            <MenuItem Header="🤖 AI 分析此文件"
+                                      Command="{Binding RequestAiAnalysisCommand}"
+                                      CommandParameter="{Binding PlacementTarget.SelectedItem,
+                                          RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                            <Separator />
+                            <MenuItem Header="🤖 AI 分析所有勾选文件"
+                                      Command="{Binding AnalyzeSelectedFilesCommand}" />
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+
                     <DataGrid.Resources>
                         <!-- 列头排序事件绑定 -->
                         <Style TargetType="DataGridColumnHeader">

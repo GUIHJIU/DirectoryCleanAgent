@@ -115,6 +115,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
@@ -150,11 +151,25 @@
                         Command="{Binding RefreshCommand}"
                         ToolTip="重新执行增量扫描，更新分析结果" />
 
+                <!-- AI 分析工具栏按钮 -->
+                <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="🤖 AI 分析选中项"
+                            Command="{Binding FileListViewModel.AnalyzeSelectedFilesCommand}"
+                            ToolTip="对勾选的文件执行 AI 安全分析"
+                            Width="130" Height="30" Margin="4,0"
+                            Visibility="{Binding FileListViewModel.IsAiAnalyzing, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                    <Button Content="取消分析"
+                            Command="{Binding FileListViewModel.CancelAiAnalysisCommand}"
+                            ToolTip="取消当前 AI 分析"
+                            Width="90" Height="30" Margin="4,0"
+                            Visibility="{Binding FileListViewModel.IsAiAnalysisCancellable, Converter={StaticResource BoolToVisibilityConverter}}" />
+                </StackPanel>
+
                 <!-- 分隔空间 -->
-                <Separator Grid.Column="5" Visibility="Hidden" />
+                <Separator Grid.Column="6" Visibility="Hidden" />
 
                 <!-- 分组依据下拉框（C2：绑定到 FileListViewModel） -->
-                <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="7" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="分组依据:" FontSize="13"
                                Foreground="{StaticResource CardTextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="0,0,6,0" />
@@ -165,10 +180,9 @@
                 </StackPanel>
 
                 <!-- "显示所有文件"切换开关（C2：绑定到 FileListViewModel） -->
-                <CheckBox Grid.Column="7" Content="显示所有文件"
+                <CheckBox Grid.Column="8" Content="显示所有文件"
                           Style="{StaticResource ShowAllToggleStyle}"
-                          IsChecked="{Binding FileListViewModel.IsShowAllFiles, Mode=TwoWay}"
-                          Command="{Binding ToggleShowAllCommand}" />
+                          IsChecked="{Binding FileListViewModel.IsShowAllFiles, Mode=TwoWay}" />
             </Grid>
         </Border>
 
@@ -194,6 +208,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -258,6 +273,19 @@
                         Command="{Binding CancelCommand}"
                         Visibility="{Binding IsOperating, Converter={StaticResource BoolToVisibilityConverter}}"
                         Cursor="Hand" />
+
+                <!-- AI 分析进度 -->
+                <StackPanel Grid.Column="9" Orientation="Horizontal" Margin="10,0,0,0"
+                            Visibility="{Binding FileListViewModel.IsAiAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <ProgressBar IsIndeterminate="False"
+                                 Minimum="0" Maximum="100"
+                                 Value="{Binding FileListViewModel.AiProgressPercentage}"
+                                 Width="120" Height="12"
+                                 Margin="0,0,6,0" />
+                    <TextBlock Text="{Binding FileListViewModel.AiProgressText}"
+                               Foreground="#0078D4" FontSize="12"
+                               VerticalAlignment="Center" />
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>
