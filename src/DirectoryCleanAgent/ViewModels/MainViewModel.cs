@@ -17,6 +17,9 @@ using DirectoryCleanAgent.Models;
 using DirectoryCleanAgent.Services;
 using DirectoryCleanAgent.ViewModels.Base;
 using DirectoryCleanAgent.Views;
+using DirectoryCleanAgent.AI;
+using DirectoryCleanAgent.AI.Models;
+using DirectoryCleanAgent.Data;
 
 namespace DirectoryCleanAgent.ViewModels;
 
@@ -50,8 +53,12 @@ public class MainViewModel : ViewModelBase
     private string? _warningMessage;
     private bool _isDarkTheme;
     private OperationProgress _operationProgress;
+    private string _aiProgressText = string.Empty;
+    private bool _isAiAnalyzing;
 
     private readonly FileListViewModel _fileListViewModel;
+    private readonly IAiAnalysisCoordinator _aiCoordinator;
+    private readonly IFileDecisionCacheRepository _cacheRepo;
 
     public MainViewModel(
         ILogger<MainViewModel> logger,
@@ -67,7 +74,9 @@ public class MainViewModel : ViewModelBase
         IFileListProvider fileListProvider,
         IRuleEngine ruleEngine,
         IDirectoryPickerService directoryPicker,
-        FileListViewModel fileListViewModel)
+        FileListViewModel fileListViewModel,
+        IAiAnalysisCoordinator aiCoordinator,
+        IFileDecisionCacheRepository cacheRepo)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _dataProvider = dataProvider ?? throw new ArgumentNullException(nameof(dataProvider));
@@ -83,6 +92,12 @@ public class MainViewModel : ViewModelBase
         _ruleEngine = ruleEngine ?? throw new ArgumentNullException(nameof(ruleEngine));
         _directoryPicker = directoryPicker ?? throw new ArgumentNullException(nameof(directoryPicker));
         _fileListViewModel = fileListViewModel ?? throw new ArgumentNullException(nameof(fileListViewModel));
+        _aiCoordinator = aiCoordinator ?? throw new ArgumentNullException(nameof(aiCoordinator));
+        _cacheRepo = cacheRepo ?? throw new ArgumentNullException(nameof(cacheRepo));
+
+        // 订阅 AI 协调器事件
+        _aiCoordinator.ProgressChanged += OnAiProgressChanged;
+        _aiCoordinator.AnalysisCompleted += OnAiAnalysisCompleted;
 
         // 初始化集合
         DashboardItems = new ObservableCollection<DashboardItem>();
@@ -214,6 +229,34 @@ public class MainViewModel : ViewModelBase
 
     /// <summary>应用模式（Normal / ReadOnly）</summary>
     public AppMode AppMode => _appStateService.AppMode;
+
+    /// <summary>AI 分析进度文本（绑定到状态栏）</summary>
+    public string AiProgressText
+    {
+        get => _aiProgressText;
+        set
+        {
+            if (_aiProgressText != value)
+            {
+                _aiProgressText = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>是否有 AI 分析正在进行中</summary>
+    public bool IsAiAnalyzing
+    {
+        get => _isAiAnalyzing;
+        set
+        {
+            if (_isAiAnalyzing != value)
+            {
+                _isAiAnalyzing = value;
+                OnPropertyChanged();
+            }
+        }
+    }
 
     // ============================================================
     // 命令（按钮绑定）
@@ -686,6 +729,24 @@ public class MainViewModel : ViewModelBase
 
             // 缓存结果供后续导出使用
             _cachedSimulationResult = result;
+
+            // 静默触发自动 AI 分析（不阻塞主流程）
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var config = _configService.Current;
+                    if (config.AIAutoAnalyze && config.UserMode == UserMode.Expert)
+                    {
+                        var allCache = await _cacheRepo.GetAllAsync(CancellationToken.None);
+                        await _aiCoordinator.TriggerAutoAnalyzeAsync(allCache, CancellationToken.None);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "自动 AI 分析触发失败");
+                }
+            });
 
             // 更新仪表板卡片（基于模拟结果的 FinalAction 分组统计）
             UpdateDashboardFromSimulation(result);
@@ -1401,5 +1462,56 @@ public class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(AppMode));
             _logger.LogInformation("UI 层收到模式变更: {Mode}", newMode);
         });
+    }
+
+    // ============================================================
+    // AI 分析事件回调
+    // ============================================================
+
+    private void OnAiProgressChanged(object? sender, AiAnalysisProgress progress)
+    {
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+            AiProgressText = $"AI 分析中… {progress.CompletedCount}/{progress.TotalCount}";
+            IsAiAnalyzing = progress.CompletedCount < progress.TotalCount;
+        });
+    }
+
+    private void OnAiAnalysisCompleted(object? sender, AiAnalysisCompletedEventArgs e)
+    {
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+            IsAiAnalyzing = false;
+            AiProgressText = e.WasCancelled
+                ? "AI 分析已取消"
+                : $"AI 分析完成：成功 {e.SuccessCount} 个"
+                  + (e.FailedCount > 0 ? $"，失败 {e.FailedCount} 个" : "");
+        });
+
+        // 应用在后台/最小化时弹出 Windows Toast
+        if (Application.Current?.MainWindow?.IsActive != true)
+        {
+            ShowAiAnalysisToast(e.SuccessCount, e.FailedCount, e.WasCancelled);
+        }
+    }
+
+    private void ShowAiAnalysisToast(int successCount, int failedCount, bool wasCancelled)
+    {
+        try
+        {
+            var message = wasCancelled
+                ? "AI 分析已取消"
+                : $"AI 分析完成：成功 {successCount} 个"
+                  + (failedCount > 0 ? $"，失败 {failedCount} 个" : "");
+
+            // 使用 NotifyIcon 气球提示（项目已有托盘图标基础设施）
+            // 实际发送由 App 层的 NotifyIcon 实例处理
+            // 此处通过 App 静态方法间接调用
+            App.ShowBalloonTip("AI 智能分析", message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "显示 AI 分析 Toast 通知失败");
+        }
     }
 }

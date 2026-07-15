@@ -41,6 +41,26 @@ public partial class App : System.Windows.Application
     /// <summary>全局 DI 容器访问点，供 View 层按需解析服务（如 MainViewModel 打开设置窗口）</summary>
     public static IServiceProvider? ServiceProvider { get; private set; }
 
+    private static System.Windows.Forms.NotifyIcon? _notifyIcon;
+
+    /// <summary>
+    /// 设置静态 NotifyIcon 实例，供 MainViewModel 的 AI 分析完成 Toast 使用。
+    /// 在 MainWindow 初始化时传入其系统托盘 NotifyIcon。
+    /// </summary>
+    public static void SetNotifyIcon(System.Windows.Forms.NotifyIcon notifyIcon)
+    {
+        _notifyIcon = notifyIcon;
+    }
+
+    /// <summary>
+    /// 通过 NotifyIcon 显示气球提示（AI 分析完成通知）。
+    /// 线程安全：内部判空，不抛异常。
+    /// </summary>
+    public static void ShowBalloonTip(string title, string message)
+    {
+        _notifyIcon?.ShowBalloonTip(3000, title, message, System.Windows.Forms.ToolTipIcon.Info);
+    }
+
     // 托盘图标 — 后台等待模式时使用
     private TrayIconService? _trayIconService;
     private HwndSource? _trayHookSource;
