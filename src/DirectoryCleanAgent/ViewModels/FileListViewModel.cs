@@ -84,6 +84,8 @@ public class FileListViewModel : ViewModelBase, IDisposable
         {
             if (SetProperty(ref _groupByPrimaryIndex, value))
             {
+                OnPropertyChanged(nameof(SubGroupHeaderText));
+                OnPropertyChanged(nameof(IsSubGroupEnabled));
                 _currentLoadCts?.Cancel();
                 _currentLoadCts?.Dispose();
                 _currentLoadCts = new CancellationTokenSource();
@@ -100,6 +102,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
         {
             if (SetProperty(ref _groupBySecondaryIndex, value))
             {
+                OnPropertyChanged(nameof(SubGroupHeaderText));
                 _currentLoadCts?.Cancel();
                 _currentLoadCts?.Dispose();
                 _currentLoadCts = new CancellationTokenSource();
@@ -119,6 +122,17 @@ public class FileListViewModel : ViewModelBase, IDisposable
     {
         "无", "时间", "类型", "操作建议", "语义标签"
     };
+
+    /// <summary>
+    /// 二级分组下拉框显示文本。
+    /// 路径模式(primaryMode==0)固定为"子目录"并禁用下拉选择；
+    /// 其他模式显示选中的 SubGroupModes 项。
+    /// </summary>
+    public string SubGroupHeaderText =>
+        _groupByPrimaryIndex == 0 ? "子目录" : SubGroupModes[_groupBySecondaryIndex];
+
+    /// <summary>二级分组下拉框是否可交互（路径模式下禁用）</summary>
+    public bool IsSubGroupEnabled => _groupByPrimaryIndex != 0;
 
     // ============================================================
     // 显示模式
