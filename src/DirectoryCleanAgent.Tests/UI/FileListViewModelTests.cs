@@ -242,6 +242,91 @@ public class FileListViewModelTests : IDisposable
     }
 
     // ============================================================
+    // 路径子目录钻取测试
+    // ============================================================
+
+    [Fact]
+    public async Task PathMode_AlwaysGeneratesSubdirectoryChildren()
+    {
+        // Arrange: 路径模式，secondaryMode=0（无），也应生成子目录分组
+        _mockCacheRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestDataFactory.PathSubDirCache);
+
+        _viewModel.GroupByPrimaryIndex = 0;   // 路径
+        _viewModel.GroupBySecondaryIndex = 0; // 无（路径模式下被忽略，固定子目录）
+        await _viewModel.LoadDataAsync();
+
+        // Assert: 两个一级节点（Windows, Users），按大小降序
+        Assert.Equal(2, _viewModel.GroupTree.Count);
+
+        // Users 有 Admin + Public = 150MB，应排在 Windows 前面
+        var firstGroup = _viewModel.GroupTree[0];
+        Assert.Equal("Users", firstGroup.Label);
+        Assert.NotEmpty(firstGroup.Children);
+        Assert.Equal(2, firstGroup.Children.Count); // Admin + Public
+
+        var secondGroup = _viewModel.GroupTree[1];
+        Assert.Equal("Windows", secondGroup.Label);
+        Assert.NotEmpty(secondGroup.Children);
+        // Temp + System32 + Logs + (根目录文件)，按大小降序：Logs 30M, System32 20M, Temp 15M, (根目录文件) 8M
+        Assert.Equal(4, secondGroup.Children.Count);
+
+        // 验证二级节点排序：按 TotalSizeBytes 降序
+        var windowsChildren = secondGroup.Children;
+        Assert.True(windowsChildren[0].TotalSizeBytes >= windowsChildren[1].TotalSizeBytes);
+        Assert.True(windowsChildren[1].TotalSizeBytes >= windowsChildren[2].TotalSizeBytes);
+        Assert.True(windowsChildren[2].TotalSizeBytes >= windowsChildren[3].TotalSizeBytes);
+
+        // 验证 Users 的 Admin 二级节点包含递归文件（admin 直属 + AppData 嵌套）
+        var adminNode = firstGroup.Children.First(c => c.Label == "Admin");
+        Assert.Equal(2, adminNode.ItemCount);          // file5.txt + file6.dat（递归）
+        Assert.Equal(90_000_000, adminNode.TotalSizeBytes); // 40MB + 50MB
+    }
+
+    [Fact]
+    public async Task PathMode_FilesDirectlyUnderTopDir_GoToPlaceholderNode()
+    {
+        // Arrange
+        _mockCacheRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestDataFactory.PathSubDirCache);
+
+        _viewModel.GroupByPrimaryIndex = 0;
+        await _viewModel.LoadDataAsync();
+
+        // Assert: Windows 有 4 个子节点，其中之一是"(根目录文件)"
+        var windowsGroup = _viewModel.GroupTree.First(g => g.Label == "Windows");
+        var placeholder = windowsGroup.Children.FirstOrDefault(c => c.Label == "(根目录文件)");
+        Assert.NotNull(placeholder);
+        Assert.Equal("📄", placeholder.Icon);   // 非目录图标
+        Assert.Equal(1, placeholder.ItemCount);  // root_file.dat
+        Assert.Equal(8_000_000, placeholder.TotalSizeBytes);
+    }
+
+    [Fact]
+    public async Task PathMode_SelectSecondaryNode_FiltersDataGrid()
+    {
+        // Arrange
+        _mockCacheRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestDataFactory.PathSubDirCache);
+
+        _viewModel.GroupByPrimaryIndex = 0;
+        await _viewModel.LoadDataAsync();
+
+        // Act: 点击 Windows → Temp 二级节点
+        var windowsGroup = _viewModel.GroupTree.First(g => g.Label == "Windows");
+        var tempNode = windowsGroup.Children.First(c => c.Label == "Temp");
+        tempNode.IsSelected = true;
+
+        await WaitForViewModelAsync();
+
+        // Assert: 右侧列表应显示 Temp 子目录树下所有文件（含嵌套 sub\file2.tmp）
+        Assert.Equal(tempNode.ItemCount, _viewModel.CurrentFileList.Count);
+        Assert.Equal(2, _viewModel.CurrentFileList.Count);
+        Assert.All(_viewModel.CurrentFileList,
+            item => Assert.Contains(@"Windows\Temp\", item.FullPath));
+    }
+
+    // ============================================================
     // 排序下推测试
     // ============================================================
 
@@ -434,6 +519,104 @@ public class FileListViewModelTests : IDisposable
     {
         Assert.Equal(5, FileListViewModel.SubGroupModes.Count);
         Assert.Contains("无", FileListViewModel.SubGroupModes);
+    }
+
+    // ============================================================
+    // 分组节点选中测试（TreeView 点击 → IsSelected 绑定 → 过滤列表）
+    // ============================================================
+
+    [Fact]
+    public async Task GroupNode_IsSelectedTrue_UpdatesSelectedGroupAndFiltersFileList()
+    {
+        // Arrange: 路径分组，两个顶层目录（Users 150MB / Windows 60MB，按大小降序）
+        _mockCacheRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestDataFactory.PathGroupedCache);
+        await _viewModel.LoadDataAsync();
+        Assert.Equal(2, _viewModel.GroupTree.Count);
+
+        var secondGroup = _viewModel.GroupTree[1];
+
+        // Act: 模拟 TreeView 点击（XAML 中 TreeViewItem.IsSelected 双向绑定到节点）
+        secondGroup.IsSelected = true;
+
+        // Assert: SelectedGroup 更新，右侧列表被过滤为该分组的文件
+        await WaitForConditionAsync(() =>
+            ReferenceEquals(_viewModel.SelectedGroup, secondGroup) &&
+            _viewModel.CurrentFileList.Count == secondGroup.ItemCount);
+
+        Assert.Same(secondGroup, _viewModel.SelectedGroup);
+        Assert.Equal(secondGroup.ItemCount, _viewModel.CurrentFileList.Count);
+        Assert.All(_viewModel.CurrentFileList,
+            item => Assert.Contains(item.FullPath, secondGroup.FileCacheKeys));
+    }
+
+    [Fact]
+    public async Task GroupByChanged_NewTreeNodes_ClickStillFiltersFileList()
+    {
+        // Arrange: 初始按路径分组加载
+        _mockCacheRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestDataFactory.PathGroupedCache);
+        await _viewModel.LoadDataAsync();
+
+        // Act 1: 切换分组依据 → 树重建（bug 报告场景）
+        _viewModel.GroupByPrimaryIndex = 2; // 大小
+        await WaitForConditionAsync(() =>
+            _viewModel.GroupTree.Count > 0 &&
+            _viewModel.GroupTree.Any(g => g.Label.Contains("MB") || g.Label.Contains("GB")));
+
+        // Act 2: 点击重建后的最后一个分组节点
+        var target = _viewModel.GroupTree[^1];
+        target.IsSelected = true;
+
+        // Assert: 右侧列表切换为该分组的文件
+        await WaitForConditionAsync(() =>
+            ReferenceEquals(_viewModel.SelectedGroup, target) &&
+            _viewModel.CurrentFileList.Count == target.ItemCount);
+
+        Assert.Same(target, _viewModel.SelectedGroup);
+        Assert.Equal(target.ItemCount, _viewModel.CurrentFileList.Count);
+    }
+
+    [Fact]
+    public async Task RebuildGroupTree_FirstNodeIsSelectedByDefault()
+    {
+        // Arrange & Act
+        _mockCacheRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestDataFactory.PathGroupedCache);
+        await _viewModel.LoadDataAsync();
+
+        // Assert: 第一个节点应处于选中状态（左侧高亮与右侧列表一致）
+        await WaitForConditionAsync(() =>
+            _viewModel.GroupTree.Count > 0 &&
+            _viewModel.GroupTree[0].IsSelected &&
+            _viewModel.CurrentFileList.Count == _viewModel.GroupTree[0].ItemCount);
+
+        Assert.True(_viewModel.GroupTree[0].IsSelected);
+        Assert.Equal(_viewModel.GroupTree[0].ItemCount, _viewModel.CurrentFileList.Count);
+    }
+
+    /// <summary>
+    /// 轮询等待异步链路（fire-and-forget 的 OnGroupSelectedAsync）完成，超时 2 秒。
+    /// </summary>
+    private static async Task WaitForConditionAsync(Func<bool> condition, int timeoutMs = 2000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (!condition() && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(25);
+        }
+    }
+
+    /// <summary>
+    /// 等待异步 ViewModel 操作（如 OnGroupSelectedAsync）完成，超时 2 秒。
+    /// </summary>
+    private static async Task WaitForViewModelAsync(int timeoutMs = 2000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(25);
+        }
     }
 
     // ============================================================
