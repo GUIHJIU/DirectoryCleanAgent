@@ -526,13 +526,15 @@ public class FileListViewModel : ViewModelBase, IDisposable
         };
 
         // Step 3: 应用二级分组
-        if (secondaryMode > 0)
+        // 路径模式(primaryMode==0)始终生成子目录二级分组，忽略 secondaryMode
+        // 其他模式仅在 secondaryMode > 0 时生成二级分组
+        if (primaryMode == 0 || secondaryMode > 0)
         {
             foreach (var group in primaryGroups)
             {
                 group.Children = ApplySubGrouping(actionable
                     .Where(f => BelongsToGroup(f, group, primaryMode))
-                    .ToList(), secondaryMode, group);
+                    .ToList(), secondaryMode, group, primaryMode);
             }
         }
 
@@ -686,9 +688,16 @@ public class FileListViewModel : ViewModelBase, IDisposable
     private ObservableCollection<FileGroupNode> ApplySubGrouping(
         IReadOnlyList<FileDecisionCache> files,
         int subMode,
-        FileGroupNode parent)
+        FileGroupNode parent,
+        int primaryMode)
     {
         if (files.Count == 0) return new ObservableCollection<FileGroupNode>();
+
+        // 路径模式：二级固定为子目录钻取，忽略 subMode
+        if (primaryMode == 0)
+        {
+            return BuildPathSubGroups(files, parent);
+        }
 
         var subGroups = subMode switch
         {
