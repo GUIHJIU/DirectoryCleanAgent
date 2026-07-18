@@ -653,6 +653,35 @@ public class FileListViewModel : ViewModelBase, IDisposable
             .ToList();
     }
 
+    /// <summary>
+    /// 路径模式专用二级分组：按第二级子目录分桶。
+    /// 文件直接在顶层目录下时归入"(根目录文件)"节点。
+    /// 每个二级节点的 ItemCount/TotalSizeBytes 为该子目录下所有嵌套文件的递归汇总。
+    /// </summary>
+    private static ObservableCollection<FileGroupNode> BuildPathSubGroups(
+        IReadOnlyList<FileDecisionCache> files,
+        FileGroupNode parent)
+    {
+        if (files.Count == 0) return new ObservableCollection<FileGroupNode>();
+
+        var subDirGroups = files
+            .GroupBy(f => GetSecondLevelDirectory(f.FilePath))
+            .Select(g => new FileGroupNode
+            {
+                Label = g.Key ?? "(根目录文件)",
+                Icon = g.Key != null ? "📁" : "📄",
+                ItemCount = g.Count(),
+                TotalSizeBytes = g.Sum(f => f.SizeBytes),
+                Depth = parent.Depth + 1,
+                Parent = parent,
+                FileCacheKeys = g.Select(f => f.FilePath).ToList()
+            })
+            .OrderByDescending(g => g.TotalSizeBytes)
+            .ToList();
+
+        return new ObservableCollection<FileGroupNode>(subDirGroups);
+    }
+
     /// <summary>应用二级分组到文件子集</summary>
     private ObservableCollection<FileGroupNode> ApplySubGrouping(
         IReadOnlyList<FileDecisionCache> files,
