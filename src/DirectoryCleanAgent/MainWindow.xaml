@@ -177,6 +177,21 @@
                               ItemsSource="{Binding FileListViewModel.GroupByModes}"
                               SelectedIndex="{Binding FileListViewModel.GroupByPrimaryIndex}"
                               IsEnabled="{Binding FileListViewModel.IsGroupedView}" />
+                    <!-- 二级分组下拉框 -->
+                    <TextBlock Text=" / 二级:"
+                               FontSize="13"
+                               Foreground="{StaticResource CardTextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="6,0,4,0" />
+                    <TextBlock Text="{Binding FileListViewModel.SubGroupHeaderText}"
+                               FontSize="13"
+                               Foreground="{StaticResource CardTextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="{Binding FileListViewModel.IsSubGroupEnabled, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                    <ComboBox Style="{StaticResource GroupByComboBoxStyle}"
+                              ItemsSource="{Binding FileListViewModel.SubGroupModes}"
+                              SelectedIndex="{Binding FileListViewModel.GroupBySecondaryIndex}"
+                              IsEnabled="{Binding FileListViewModel.IsSubGroupEnabled}"
+                              Visibility="{Binding FileListViewModel.IsSubGroupEnabled, Converter={StaticResource BoolToVisibilityConverter}}" />
                 </StackPanel>
 
                 <!-- "显示所有文件"切换开关（C2：绑定到 FileListViewModel） -->
@@ -279,7 +294,7 @@
                             Visibility="{Binding FileListViewModel.IsAiAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}">
                     <ProgressBar IsIndeterminate="False"
                                  Minimum="0" Maximum="100"
-                                 Value="{Binding FileListViewModel.AiProgressPercentage}"
+                                 Value="{Binding FileListViewModel.AiProgressPercentage, Mode=OneWay}"
                                  Width="120" Height="12"
                                  Margin="0,0,6,0" />
                     <TextBlock Text="{Binding FileListViewModel.AiProgressText}"
