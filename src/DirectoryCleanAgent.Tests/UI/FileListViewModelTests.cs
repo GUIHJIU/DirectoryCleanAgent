@@ -231,13 +231,18 @@ public class FileListViewModelTests : IDisposable
             .ReturnsAsync(TestDataFactory.PathGroupedCache);
 
         _viewModel.GroupByPrimaryIndex = 0;   // 路径
-        _viewModel.GroupBySecondaryIndex = 1; // 时间
+        _viewModel.GroupBySecondaryIndex = 1; // 被忽略，路径模式固定走子目录
         await _viewModel.LoadDataAsync();
 
-        // 每个一级节点应有子节点
+        // 路径模式下二级分组始终为子目录钻取
         foreach (var group in _viewModel.GroupTree)
         {
             Assert.NotEmpty(group.Children);
+            // 每个子节点的 Label 是二级目录名，不是时间桶标签
+            foreach (var child in group.Children)
+            {
+                Assert.DoesNotContain("天", child.Label); // 不应出现时间标签
+            }
         }
     }
 
