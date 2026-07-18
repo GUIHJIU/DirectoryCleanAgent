@@ -230,6 +230,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
     // ============================================================
 
     private FileGroupNode? _selectedGroup;
+    private CancellationTokenSource? _groupSelectCts;
 
     /// <summary>当前选中的分组节点（点击分组后过滤 DataGrid）</summary>
     public FileGroupNode? SelectedGroup
@@ -239,7 +240,11 @@ public class FileListViewModel : ViewModelBase, IDisposable
         {
             if (SetProperty(ref _selectedGroup, value) && value != null)
             {
-                _ = OnGroupSelectedAsync(value, CancellationToken.None);
+                // 取消上一次选中加载，保证"最后一次选中"胜出（避免快速切换时旧结果覆盖新结果）
+                _groupSelectCts?.Cancel();
+                _groupSelectCts?.Dispose();
+                _groupSelectCts = new CancellationTokenSource();
+                _ = OnGroupSelectedAsync(value, _groupSelectCts.Token);
             }
         }
     }
@@ -382,7 +387,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
     public async Task LoadDataAsync(CancellationToken ct = default)
     {
         _logger.LogMethodEntry("开始加载文件列表数据");
-        IsLoading = true;
+        await RunOnUIThreadAsync(() => IsLoading = true);
 
         try
         {
@@ -403,16 +408,19 @@ public class FileListViewModel : ViewModelBase, IDisposable
                 .Where(e => e.FinalAction != FinalAction.Protected)
                 .ToList();
 
-            // 3. 构建分组树
+            // 3. 构建分组树（内部已通过 RunOnUIThreadAsync 保护 UI 集合操作）
             await RebuildGroupTreeAsync(linkedCts.Token);
 
-            // 4. 更新状态
-            HasData = _allActionableCache.Count > 0;
-            IsEmpty = !HasData;
-            if (IsEmpty)
+            // 4. 更新 UI 绑定状态
+            await RunOnUIThreadAsync(() =>
             {
-                EmptyMessage = "暂无文件数据，请先执行磁盘扫描";
-            }
+                HasData = _allActionableCache.Count > 0;
+                IsEmpty = !HasData;
+                if (IsEmpty)
+                {
+                    EmptyMessage = "暂无文件数据，请先执行磁盘扫描";
+                }
+            });
 
             _logger.LogInformation("文件列表数据加载完成: 可操作={Actionable}, 总计={Total}",
                 _allActionableCache.Count, allEntries.Count);
@@ -433,7 +441,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            IsLoading = false;
+            await RunOnUIThreadAsync(() => IsLoading = false);
         }
     }
 
@@ -466,14 +474,16 @@ public class FileListViewModel : ViewModelBase, IDisposable
                 GroupTree.Clear();
                 foreach (var node in tree)
                 {
+                    SubscribeGroupNodeSelection(node);
                     GroupTree.Add(node);
                 }
 
-                // 默认展开第一个节点并加载其文件列表
+                // 默认展开并选中第一个节点（IsSelected 变更经订阅链路触发文件列表加载，
+                // 同时保证左侧高亮与右侧列表一致）
                 if (GroupTree.Count > 0)
                 {
                     GroupTree[0].IsExpanded = true;
-                    _ = OnGroupSelectedAsync(GroupTree[0], CancellationToken.None);
+                    GroupTree[0].IsSelected = true;
                 }
             });
         }
@@ -717,6 +727,30 @@ public class FileListViewModel : ViewModelBase, IDisposable
         catch
         {
             return "(未知)";
+        }
+    }
+
+    /// <summary>从 \\?\ 格式路径中提取第二级目录名（路径钻取用）</summary>
+    private static string? GetSecondLevelDirectory(string filePath)
+    {
+        try
+        {
+            string cleanPath = filePath.StartsWith(@"\\?\") ? filePath[4..] : filePath;
+            string? root = Path.GetPathRoot(cleanPath);
+            if (root == null) return null;
+
+            string relativePath = cleanPath[root.Length..].TrimStart(Path.DirectorySeparatorChar);
+            int firstSep = relativePath.IndexOf(Path.DirectorySeparatorChar);
+            if (firstSep < 0) return null; // 文件直接在根目录下，无第一级
+
+            // 跳过第一级目录，取第二级
+            string beyondFirst = relativePath[(firstSep + 1)..];
+            int secondSep = beyondFirst.IndexOf(Path.DirectorySeparatorChar);
+            return secondSep > 0 ? beyondFirst[..secondSep] : null; // null = 文件在一级目录的直属
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -1075,7 +1109,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
     /// </summary>
     private async Task LoadAllFilesFromEverythingAsync(CancellationToken ct)
     {
-        IsLoading = true;
+        await RunOnUIThreadAsync(() => IsLoading = true);
         try
         {
             // 构建查询参数（带当前排序设置）
@@ -1135,13 +1169,36 @@ public class FileListViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            IsLoading = false;
+            await RunOnUIThreadAsync(() => IsLoading = false);
         }
     }
 
     // ============================================================
     // 分组选中
     // ============================================================
+
+    /// <summary>
+    /// 递归订阅分组节点的 IsSelected 变更。
+    /// XAML 中 TreeViewItem.IsSelected 双向绑定到 FileGroupNode.IsSelected，
+    /// 用户点击节点时经此订阅更新 SelectedGroup，触发右侧列表过滤。
+    /// 节点在每次重建树时全部新建，旧节点连同订阅一起被 GC 回收，无需显式退订。
+    /// </summary>
+    private void SubscribeGroupNodeSelection(FileGroupNode node)
+    {
+        node.PropertyChanged += (sender, e) =>
+        {
+            if (e.PropertyName == nameof(FileGroupNode.IsSelected)
+                && sender is FileGroupNode { IsSelected: true } selected)
+            {
+                SelectedGroup = selected;
+            }
+        };
+
+        foreach (var child in node.Children)
+        {
+            SubscribeGroupNodeSelection(child);
+        }
+    }
 
     /// <summary>
     /// 用户点击分组树节点后，过滤 DataGrid 显示该分组下的文件。
@@ -1155,7 +1212,10 @@ public class FileListViewModel : ViewModelBase, IDisposable
 
             if (fileKeys.Count == 0)
             {
-                await RunOnUIThreadAsync(() => CurrentFileList.Clear());
+                await RunOnUIThreadAsync(() =>
+                {
+                    if (!ct.IsCancellationRequested) CurrentFileList.Clear();
+                });
                 return;
             }
 
@@ -1166,14 +1226,21 @@ public class FileListViewModel : ViewModelBase, IDisposable
 
             var items = await Task.Run(() => MapToFileListItems(matchedFiles), ct);
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await RunOnUIThreadAsync(() =>
             {
+                // 被更新的选中操作取消时放弃写入，避免旧结果覆盖新结果
+                if (ct.IsCancellationRequested) return;
+
                 CurrentFileList.Clear();
                 foreach (var item in items)
                 {
                     CurrentFileList.Add(item);
                 }
             });
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("分组选中加载被取消: Group={Group}", group.Label);
         }
         catch (Exception ex)
         {
@@ -1428,31 +1495,11 @@ public class FileListViewModel : ViewModelBase, IDisposable
             }
 
             // 调用协调器批量分析
-            var results = await _aiCoordinator.AnalyzeBatchAsync(cacheEntries, CancellationToken.None);
-
-            // 结果回写到 UI 行
-            foreach (var result in results)
-            {
-                var item = CurrentFileList.FirstOrDefault(f => f.CacheKey == result.FilePath);
-                if (item != null)
-                {
-                    item.AiLabel = result.Label;
-                    item.AiConfidence = result.Confidence;
-                    item.AiExplanation = result.Explanation;
-                    item.UpdateAiDisplay();
-                }
-            }
-
-            // 重置未返回结果的文件状态（防御性：确保 stuck "analyzing" 不会残留）
-            foreach (var item in selectedItems)
-            {
-                if (item.AiLabel == "analyzing" &&
-                    results.All(r => r.FilePath != item.CacheKey))
-                {
-                    item.AiLabel = null;
-                    item.UpdateAiDisplay();
-                }
-            }
+            // 注意：分析完成后，AiAnalysisCoordinator 触发 AnalysisCompleted 事件，
+            // FileListViewModel.OnAiAnalysisCompleted 负责完整的 UI 刷新流程
+            // （FlushAsync 确保 DB 持久化 + LoadDataAsync 重建列表），
+            // 因此这里不需要手动回写结果到 UI 行，避免与 LoadDataAsync 的竞态条件
+            await _aiCoordinator.AnalyzeBatchAsync(cacheEntries, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -1483,44 +1530,63 @@ public class FileListViewModel : ViewModelBase, IDisposable
     // AI 协调器事件回调
     // ============================================================
 
-    private void OnAiProgressChanged(object? sender, AiAnalysisProgress progress)
+    private async void OnAiProgressChanged(object? sender, AiAnalysisProgress progress)
     {
-        RunOnUIThreadAsync(() =>
+        try
         {
-            AiProgressText = $"AI 分析中… {progress.CompletedCount}/{progress.TotalCount}";
-            IsAiAnalyzing = progress.CompletedCount < progress.TotalCount;
-            IsAiAnalysisCancellable = !progress.IsCancelRequested;
-            OnPropertyChanged(nameof(AiProgressPercentage));
-
-            // 更新当前正在分析的行状态
-            // 注意：当前 ProgressChanged 暂未推送 per-file 路径（CurrentFilePath 为 null），
-            // 此处为将来按文件粒度标记 "analyzing" 状态的预留代码。
-            // 当前 per-file 标记逻辑在 ExecuteAnalyzeSelectedFilesAsync 中统一处理。
-            if (progress.CurrentFilePath != null)
+            await RunOnUIThreadAsync(() =>
             {
-                var item = CurrentFileList.FirstOrDefault(f => f.CacheKey == progress.CurrentFilePath);
-                if (item != null && item.AiLabel != "analyzing")
+                AiProgressText = $"AI 分析中… {progress.CompletedCount}/{progress.TotalCount}";
+                IsAiAnalyzing = progress.CompletedCount < progress.TotalCount;
+                IsAiAnalysisCancellable = !progress.IsCancelRequested;
+                OnPropertyChanged(nameof(AiProgressPercentage));
+
+                // 更新当前正在分析的行状态
+                // 注意：当前 ProgressChanged 暂未推送 per-file 路径（CurrentFilePath 为 null），
+                // 此处为将来按文件粒度标记 "analyzing" 状态的预留代码。
+                // 当前 per-file 标记逻辑在 ExecuteAnalyzeSelectedFilesAsync 中统一处理。
+                if (progress.CurrentFilePath != null)
                 {
-                    item.AiLabel = "analyzing";
-                    item.UpdateAiDisplay();
+                    var item = CurrentFileList.FirstOrDefault(f => f.CacheKey == progress.CurrentFilePath);
+                    if (item != null && item.AiLabel != "analyzing")
+                    {
+                        item.AiLabel = "analyzing";
+                        item.UpdateAiDisplay();
+                    }
                 }
-            }
-        });
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI 进度更新事件处理异常");
+        }
     }
 
     private async void OnAiAnalysisCompleted(object? sender, AiAnalysisCompletedEventArgs e)
     {
-        await RunOnUIThreadAsync(() =>
+        try
         {
-            IsAiAnalyzing = false;
-            AiProgressText = e.WasCancelled
-                ? "AI 分析已取消"
-                : $"AI 分析完成：成功 {e.SuccessCount} 个"
-                  + (e.FailedCount > 0 ? $"，失败 {e.FailedCount} 个" : "");
-        });
+            await RunOnUIThreadAsync(() =>
+            {
+                IsAiAnalyzing = false;
+                AiProgressText = e.WasCancelled
+                    ? "AI 分析已取消"
+                    : $"AI 分析完成：成功 {e.SuccessCount} 个"
+                      + (e.FailedCount > 0 ? $"，失败 {e.FailedCount} 个" : "");
+            });
 
-        // 刷新文件列表（AI 标签变更可能改变分组归属）
-        _ = LoadDataAsync();
+            // 强制刷新批量写入队列，确保 AI 结果已持久化到数据库
+            // 必须在 LoadDataAsync 之前调用：ApplyResultToCache 使用非阻塞 Upsert
+            // （入队到 500ms 定时刷新队列），若不刷新则 LoadDataAsync 会读到旧数据
+            await _cacheRepo.FlushAsync();
+
+            // 刷新文件列表（AI 标签变更可能改变分组归属）
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI 分析完成事件处理异常");
+        }
     }
 
     // ============================================================
@@ -1531,11 +1597,18 @@ public class FileListViewModel : ViewModelBase, IDisposable
     /// 响应全局 AppState 变更。
     /// 当扫描完成（Ready）时自动刷新文件列表。
     /// </summary>
-    private void OnAppStateChanged(object? sender, AppState newState)
+    private async void OnAppStateChanged(object? sender, AppState newState)
     {
         if (newState == AppState.Ready && _allActionableCache.Count == 0)
         {
-            _ = LoadDataAsync();
+            try
+            {
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AppState 变更刷新文件列表失败");
+            }
         }
     }
 
@@ -1568,15 +1641,26 @@ public class FileListViewModel : ViewModelBase, IDisposable
 
     /// <summary>
     /// 在 UI 线程上执行操作。若 Application.Current 不可用（单元测试场景），
-    /// 则直接在当前线程同步执行。参照 QuarantineViewModel 的 Dispatcher 安全模式。
+    /// 则在锁内同步执行以模拟 Dispatcher 的串行化语义（避免并发交错写 UI 集合）。
+    /// 参照 QuarantineViewModel 的 Dispatcher 安全模式。
     /// </summary>
     private async Task RunOnUIThreadAsync(Action action)
     {
         if (Application.Current?.Dispatcher != null)
+        {
             await Application.Current.Dispatcher.InvokeAsync(action);
+        }
         else
-            action();
+        {
+            lock (_uiFallbackLock)
+            {
+                action();
+            }
+        }
     }
+
+    /// <summary>单元测试场景下模拟 Dispatcher 串行化的锁对象</summary>
+    private readonly object _uiFallbackLock = new();
 
     // ============================================================
 
@@ -1601,6 +1685,9 @@ public class FileListViewModel : ViewModelBase, IDisposable
         _currentLoadCts?.Cancel();
         _currentLoadCts?.Dispose();
         _currentLoadCts = null;
+        _groupSelectCts?.Cancel();
+        _groupSelectCts?.Dispose();
+        _groupSelectCts = null;
 
         _logger.LogDebug("FileListViewModel 已释放");
     }
