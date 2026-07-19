@@ -207,7 +207,7 @@ private async Task<bool> PingIpcAsync(CancellationToken ct)
             finally { EverythingNative.Everything_SetMax(prevMax); }
         }
     }
-    catch (Exception) { return false; }
+    catch (Exception) when (ex is not OperationCanceledException) { return false; }
     finally { _sdkLock.Release(); }
 }
 ```
@@ -246,7 +246,7 @@ private async Task<bool> CheckIndexReadyAsync(CancellationToken ct)
             finally { EverythingNative.Everything_SetMax(prevMax); }
         }
     }
-    catch (Exception) { return false; }
+    catch (Exception) when (ex is not OperationCanceledException) { return false; }
     finally { _sdkLock.Release(); }
 }
 ```
@@ -363,9 +363,19 @@ public class ScanCancellationTests : IntegrationTestBase
 | `IsIndexingAsync` 加锁 | 不需要 | `IsDBLoaded()` 是只读操作，不修改 SDK 全局状态；调用频率低且不依赖查询上下文 |
 | `CheckVersion()` 加锁 | 不需要 | 纯读取 DLL 编译时常量，无副作用 |
 | `CheckProcessAlive()` 改造 | 不需要 | 只检查操作系统进程列表，不访问 SDK |
-| 现有测试适配 | 不需要 | `Mock<IEverythingSdk>` 自动处理新增的默认接口方法 |
+| 现有测试适配 | **需要适配** | `EverythingFileListProvider` 构造函数新增 `EverythingSdkLock` 参数，`EverythingFileListProviderTests.cs` 中 17 处构造调用需要添加 `new EverythingSdkLock()` |
 | `EverythingTestFixture` | 已包含 | 集合夹具提供 Everything 环境缓存重置和共享 SDK 实例（可选扩展） |
 | `_sdk` 参数改为非空 | 保留可空 | 向后兼容；`_sdk=null` 的后备原生路径提供防御性降级 |
+| `OperationCanceledException` 吞噬 | 需修复 | catch (Exception) 改为 `catch (Exception) when (ex is not OperationCanceledException)`，让取消异常正常传播 |
+
+### 4.7 审计发现的关键遗漏（已修正）
+
+| # | 问题 | 修正 |
+|---|------|------|
+| 1 | `DetectAsync` 未适配 async | 3 处调用改为 `await PingIpcAsync(ct)` / `await DetectFrnCapabilityAsync(ct)` / `await CheckIndexReadyAsync(ct)` |
+| 2 | `WaitForIndexAsync` 后备路径遗漏 | 第 508 行改为 `await CheckIndexReadyAsync(ct)` |
+| 3 | `EverythingFileListProviderTests` 构造破坏 | 17 处添加 `new EverythingSdkLock()` 参数 |
+| 4 | `PollForFileChanges` 缺少 `ResetMax()` | 与 `EnumerateFilesAsync` 一致，在查询前添加 `_sdk.ResetMax()` |
 
 ---
 
@@ -377,13 +387,15 @@ public class ScanCancellationTests : IntegrationTestBase
 | 2 | `IEverythingSdk.cs` | 添加 `GetMax()`、`SetMax()`、`ResetMax()` | +12 行 |
 | 3 | `EverythingSdkWrapper.cs` | 实现 3 个新方法 | +20 行 |
 | 4 | `EverythingSdkLock.cs` | **新建**共享锁类 | +40 行 |
-| 5 | `ServiceRegistration.cs` | 注册 `EverythingSdkLock` 为 Singleton | +1 行 |
-| 6 | `EverythingFileListProvider.cs` | 注入锁 + 添加 `ResetMax()` 调用 + 移除 Dispose 中的锁释放 | ~15 行 |
-| 7 | `EverythingDependencyDetector.cs` | 注入锁 + 4 个方法改造 + 移除 Cleanup | ~120 行 |
-| 8 | `App.xaml.cs` | 移除 `Cleanup()` 调用 | -2 行 |
-| 9 | `EverythingTestCollection.cs` | **新建**测试串行化配置 | +15 行 |
+| 5 | `ServiceRegistration.cs` | 注册 `EverythingSdkLock` 为 Singleton（**步骤 6/7/9 的前置依赖**） | +1 行 |
+| 6 | `EverythingFileListProvider.cs` | 注入锁 + `EnumerateFilesAsync` 开头 `ResetMax()` + `PollForFileChanges` 开头 `ResetMax()` + 移除 `Dispose()` 中的 `_sdkLock.Dispose()` | ~18 行 |
+| 7 | `EverythingDependencyDetector.cs` | 注入锁 + 4 个方法改造 + `DetectAsync` 适配 async + `WaitForIndexAsync` 后备路径适配 + `catch` 改为 `when (ex is not OperationCanceledException)` + 移除 Cleanup | ~130 行 |
+| 8 | `App.xaml.cs` | 移除 `EverythingDependencyDetector.Cleanup()` 调用 | -2 行 |
+| 9 | `EverythingTestCollection.cs` | **新建**测试串行化配置（**依赖步骤 5 完成**） | +50 行 |
 | 10 | 4 个测试文件 | 每个添加 `[Collection("Everything")]` | +4 行 |
-| 11 | 编译 + 运行测试 | `dotnet build` + `dotnet test --filter "FullyQualifiedName~Integration"` | — |
-| 12 | 回归测试 | 完整测试套件 | — |
+| 11 | `EverythingFileListProviderTests.cs` | 17 处构造调用添加 `new EverythingSdkLock()` 参数 | +17 行 |
+| 12 | 编译验证 | `dotnet build` | — |
+| 13 | 集成测试 | `dotnet test --filter "FullyQualifiedName~Integration"` | — |
+| 14 | 回归测试 | 完整测试套件 | — |
 
-**总预计改动**: 约 230 行新增/修改，9 个文件变更，2 个新文件。
+**总预计改动**: 约 300 行新增/修改，12 个文件变更，2 个新文件。
