@@ -394,6 +394,50 @@ public class FileListViewModelTests : IDisposable
         Assert.False(_viewModel.IsGroupedView);
     }
 
+    [Fact]
+    public async Task LoadDataAsync_InShowAllMode_KeepsEverythingFileListNotGroupData()
+    {
+        // 回归测试：勾选"显示所有文件"后点击"刷新扫描"，
+        // LoadDataAsync 不应让分组树选中链路把 CurrentFileList 覆盖为分组数据。
+
+        // Arrange: 缓存含规则命中文件；Everything 全量查询返回 docker 虚拟磁盘大文件
+        _mockCacheRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TestDataFactory.MixedActionCache);
+        _mockConfigService.Setup(c => c.Current).Returns(new UserConfig());
+        _mockFileProvider.Setup(f => f.EnumerateFilesAsync(
+                It.IsAny<EverythingQueryParams>(), It.IsAny<CancellationToken>()))
+            .Returns(() => ToAsyncEnumerable(new[]
+            {
+                new FileItem
+                {
+                    FilePath = @"\\?\C:\Users\Admin\AppData\Local\Docker\wsl\data\ext4.vhdx",
+                    SizeBytes = 50_000_000_000,
+                    LastWriteTime = DateTime.UtcNow,
+                    Extension = ".vhdx",
+                    EverythingSortKey = "ext4.vhdx"
+                }
+            }));
+
+        // 进入全量模式，等待 Everything 数据加载完成
+        _viewModel.IsShowAllFiles = true;
+        await WaitForConditionAsync(() =>
+            _viewModel.CurrentFileList.Any(i => i.FullPath.Contains("ext4.vhdx")));
+        Assert.Contains(_viewModel.CurrentFileList, i => i.FullPath.Contains("ext4.vhdx"));
+
+        // Act: 模拟刷新扫描完成后 MainViewModel 调用 LoadDataAsync
+        await _viewModel.LoadDataAsync();
+
+        // 等待潜在的 fire-and-forget 分组选中链路覆盖列表（bug 场景下条件很快为真）
+        await WaitForConditionAsync(() =>
+            !_viewModel.CurrentFileList.Any(i => i.FullPath.Contains("ext4.vhdx")),
+            timeoutMs: 1000);
+
+        // Assert: 全量模式下刷新数据后，列表仍应显示 Everything 全量数据
+        Assert.True(_viewModel.IsShowAllFiles);
+        Assert.Contains(_viewModel.CurrentFileList, i => i.FullPath.Contains("ext4.vhdx"));
+        Assert.True(_viewModel.HasData);
+    }
+
     // ============================================================
     // 增量刷新测试
     // ============================================================
@@ -545,9 +589,13 @@ public class FileListViewModelTests : IDisposable
         secondGroup.IsSelected = true;
 
         // Assert: SelectedGroup 更新，右侧列表被过滤为该分组的文件
+        // NOTE: SelectedGroup 在 setter 中同步更新，列表由 fire-and-forget 异步填充；
+        // 两个分组的 ItemCount 可能相等，因此必须等待"列表内容确实属于目标组"，
+        // 仅比较数量会在列表切换完成前提前通过（竞态）。
         await WaitForConditionAsync(() =>
             ReferenceEquals(_viewModel.SelectedGroup, secondGroup) &&
-            _viewModel.CurrentFileList.Count == secondGroup.ItemCount);
+            _viewModel.CurrentFileList.Count == secondGroup.ItemCount &&
+            _viewModel.CurrentFileList.All(item => secondGroup.FileCacheKeys.Contains(item.FullPath)));
 
         Assert.Same(secondGroup, _viewModel.SelectedGroup);
         Assert.Equal(secondGroup.ItemCount, _viewModel.CurrentFileList.Count);
@@ -609,6 +657,16 @@ public class FileListViewModelTests : IDisposable
         while (!condition() && DateTime.UtcNow < deadline)
         {
             await Task.Delay(25);
+        }
+    }
+
+    /// <summary>将同步集合包装为 IAsyncEnumerable，用于模拟 IFileListProvider 流式枚举。</summary>
+    private static async IAsyncEnumerable<FileItem> ToAsyncEnumerable(IEnumerable<FileItem> items)
+    {
+        await Task.Yield();
+        foreach (var item in items)
+        {
+            yield return item;
         }
     }
 

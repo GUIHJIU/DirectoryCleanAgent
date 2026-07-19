@@ -12,6 +12,24 @@
         <converters:FilePathToDisplayConverter x:Key="FilePathToDisplayConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:DepthToFontWeightConverter x:Key="DepthToFontWeightConverter" />
+
+        <!-- 透明按钮样式 — 用于 AI 列点击区域，视觉上不可见但支持 Command 绑定 -->
+        <Style x:Key="AiCellButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <!-- ============================================================
@@ -186,13 +204,27 @@
 
                     <DataGrid.ContextMenu>
                         <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                            <MenuItem Header="📋 查看详情"
+                                      Command="{Binding ViewDetailCommand}"
+                                      CommandParameter="{Binding PlacementTarget.SelectedItem,
+                                          RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                            <Separator />
                             <MenuItem Header="🤖 AI 分析此文件"
                                       Command="{Binding RequestAiAnalysisCommand}"
                                       CommandParameter="{Binding PlacementTarget.SelectedItem,
                                           RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                            <Separator />
                             <MenuItem Header="🤖 AI 分析所有勾选文件"
                                       Command="{Binding AnalyzeSelectedFilesCommand}" />
+                            <Separator />
+                            <MenuItem Header="🚫 排除文件"
+                                      Command="{Binding ExcludeFileCommand}"
+                                      CommandParameter="{Binding PlacementTarget.SelectedItem,
+                                          RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                            <Separator />
+                            <MenuItem Header="📂 打开文件所在目录"
+                                      Command="{Binding OpenFileLocationCommand}"
+                                      CommandParameter="{Binding PlacementTarget.SelectedItem,
+                                          RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                         </ContextMenu>
                     </DataGrid.ContextMenu>
 
@@ -294,21 +326,26 @@
                                             Binding="{Binding Extension}"
                                             SortMemberPath="Extension" />
 
-                        <!-- Column 6: AI 状态 -->
+                        <!-- Column 6: AI 状态（可点击触发单文件分析） -->
                         <DataGridTemplateColumn Header="AI" Width="120">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Cursor="Hand"
-                                                ToolTip="{Binding AiExplanation}">
-                                        <TextBlock Text="{Binding AiStatusIcon}"
-                                                   FontSize="13"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,4,0" />
-                                        <TextBlock Text="{Binding AiStatusText}"
-                                                   FontSize="12"
-                                                   Foreground="{StaticResource CardTextSecondaryBrush}"
-                                                   VerticalAlignment="Center" />
-                                    </StackPanel>
+                                    <Button Style="{StaticResource AiCellButtonStyle}"
+                                            Command="{Binding DataContext.RequestAiAnalysisCommand,
+                                                RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip="{Binding AiExplanation}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding AiStatusIcon}"
+                                                       FontSize="13"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,4,0" />
+                                            <TextBlock Text="{Binding AiStatusText}"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource CardTextSecondaryBrush}"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

@@ -1,0 +1,150 @@
+<Window x:Class="DirectoryCleanAgent.Views.FileDetailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="文件详情" Height="480" Width="520"
+        MinHeight="360" MinWidth="400"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource WindowBackgroundBrush}">
+
+    <Window.Resources>
+        <Style x:Key="DetailSectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,16,0,4" />
+            <Setter Property="Foreground" Value="{StaticResource CardTitleForegroundBrush}" />
+        </Style>
+        <Style x:Key="DetailLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource HintTextForegroundBrush}" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <Style x:Key="DetailValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{StaticResource CardTextPrimaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Window.Resources>
+
+    <ScrollViewer Padding="20,12" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <!-- ========================================================
+                 文件基本信息
+            ======================================================== -->
+            <TextBlock Text="📁 基本属性" Style="{StaticResource DetailSectionTitle}" />
+            <Border CornerRadius="4" Padding="12" Margin="0,4,0,0"
+                    Background="{StaticResource TreeViewBackgroundBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="文件名" Style="{StaticResource DetailLabel}" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding FilePath}" Style="{StaticResource DetailValue}"
+                               ToolTip="{Binding FullPath}" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="完整路径" Style="{StaticResource DetailLabel}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FullPath}"
+                               Style="{StaticResource DetailValue}" ToolTip="{Binding FullPath}"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="大小" Style="{StaticResource DetailLabel}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SizeText}" Style="{StaticResource DetailValue}" />
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="修改日期" Style="{StaticResource DetailLabel}" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding LastWriteTimeText}" Style="{StaticResource DetailValue}" />
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="类型" Style="{StaticResource DetailLabel}" />
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Extension}" Style="{StaticResource DetailValue}" />
+                </Grid>
+            </Border>
+
+            <!-- ========================================================
+                 规则裁决与决策
+            ======================================================== -->
+            <TextBlock Text="⚖️ 规则裁决与决策" Style="{StaticResource DetailSectionTitle}" />
+            <Border CornerRadius="4" Padding="12" Margin="0,4,0,0"
+                    Background="{StaticResource TreeViewBackgroundBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="语义标签" Style="{StaticResource DetailLabel}" />
+                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Text="{Binding SemanticCategoryIcon}" FontSize="14"
+                                   VerticalAlignment="Center" Margin="0,0,4,0" />
+                        <TextBlock Text="{Binding SemanticCategory}" Style="{StaticResource DetailValue}" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="规则裁决" Style="{StaticResource DetailLabel}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RuleVerdictText}" Style="{StaticResource DetailValue}" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="操作建议" Style="{StaticResource DetailLabel}" />
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                        <Border CornerRadius="3" Padding="6,2" Margin="0,2,0,0"
+                                Background="{Binding FinalActionBackground}">
+                            <TextBlock Text="{Binding FinalActionText}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource CardTextPrimaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ========================================================
+                 AI 分析结果
+            ======================================================== -->
+            <TextBlock Text="🤖 AI 分析" Style="{StaticResource DetailSectionTitle}" />
+            <Border CornerRadius="4" Padding="12" Margin="0,4,0,0"
+                    Background="{StaticResource TreeViewBackgroundBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="AI 标签" Style="{StaticResource DetailLabel}" />
+                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Text="{Binding AiStatusIcon}" FontSize="14"
+                                   VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding AiStatusText}" Style="{StaticResource DetailValue}" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="置信度" Style="{StaticResource DetailLabel}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding AiConfidenceText}" Style="{StaticResource DetailValue}" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="说明" Style="{StaticResource DetailLabel}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AiExplanationText}" Style="{StaticResource DetailValue}"
+                               TextWrapping="WrapWithOverflow" />
+                </Grid>
+            </Border>
+
+            <!-- 关闭按钮 -->
+            <Button Content="关闭" HorizontalAlignment="Right"
+                    Width="80" Height="32" Margin="0,16,0,0"
+                    Style="{StaticResource ActionBarButtonStyle}"
+                    Click="OnCloseClick" />
+        </StackPanel>
+    </ScrollViewer>
+</Window>

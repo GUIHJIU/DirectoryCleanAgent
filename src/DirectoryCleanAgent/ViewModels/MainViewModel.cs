@@ -337,18 +337,15 @@ public class MainViewModel : ViewModelBase
             // 转换到就绪状态
             _appStateService.TransitionTo(AppState.Ready);
 
-            // C2: 异步加载文件列表数据（不阻塞 UI 线程）
-            _ = Task.Run(async () =>
+            // C2: 异步加载文件列表数据（内部 I/O 为异步，不会阻塞 UI 线程）
+            try
             {
-                try
-                {
-                    await _fileListViewModel.LoadDataAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "文件列表初始加载失败");
-                }
-            });
+                await _fileListViewModel.LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "文件列表初始加载失败");
+            }
 
             _logger.LogMethodExit("初始化完成");
         }
@@ -730,6 +727,9 @@ public class MainViewModel : ViewModelBase
             // 缓存结果供后续导出使用
             _cachedSimulationResult = result;
 
+            // 记录扫描上下文，供"显示所有文件"模式使用
+            _fileListViewModel.SetLastScanContext(queryParams.Volumes, queryParams.PathFilter);
+
             // 静默触发自动 AI 分析（不阻塞主流程）
             _ = Task.Run(async () =>
             {
@@ -1005,6 +1005,10 @@ public class MainViewModel : ViewModelBase
 
             _cachedSimulationResult = result;
 
+            // 记录扫描上下文，供"显示所有文件"模式使用
+            // 必须在 SimulateAsync 成功后立即设置，避免后续异常导致上下文丢失
+            _fileListViewModel.SetLastScanContext(queryParams.Volumes, queryParams.PathFilter);
+
             // 更新仪表板
             UpdateDashboardFromSimulation(result);
 
@@ -1013,18 +1017,15 @@ public class MainViewModel : ViewModelBase
             StatusInfo.LastScanTime = DateTime.Now;
             OnPropertyChanged(nameof(StatusInfo));
 
-            // 异步刷新文件列表
-            _ = Task.Run(async () =>
+            // 异步刷新文件列表（内部 I/O 为异步，不会阻塞 UI 线程）
+            try
             {
-                try
-                {
-                    await _fileListViewModel.LoadDataAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "文件列表刷新失败");
-                }
-            });
+                await _fileListViewModel.LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "文件列表刷新失败");
+            }
 
             _logger.LogInformation("刷新扫描完成: 处理={Total}, 可释放={Freed}字节",
                 result.TotalProcessedCount, result.TotalFreedBytes);
@@ -1320,7 +1321,8 @@ public class MainViewModel : ViewModelBase
 
     /// <summary>
     /// 执行 B1→B2→B3 流式管道，收集匹配指定 FinalAction 的候选文件。
-    /// 流式遍历 Everything 文件索引，经规则引擎评估、决策引擎仲裁后过滤目标文件。
+    /// 优先读取决策缓存（需版本匹配），缓存命中则直接返回，避免全量扫描。
+    /// 缓存未命中或读取失败时降级为全量扫描（兜底），并将所有规则命中文件写入缓存。
     /// 每 100 个文件通过 Dispatcher 向 UI 线程报告一次进度。
     /// </summary>
     /// <param name="targetAction">目标 FinalAction（AutoDelete 或 SuggestDelete）</param>
@@ -1329,17 +1331,60 @@ public class MainViewModel : ViewModelBase
     private async Task<List<FileDecisionCache>> CollectCandidatesAsync(
         FinalAction targetAction, CancellationToken ct)
     {
+        // 在方法开始时捕获配置快照，全流程（缓存读取 + 兜底扫描）使用同一快照
         var config = _configService.Current;
+
+        // ========================================================
+        // 阶段1: 缓存优先读取
+        // ========================================================
+        try
+        {
+            // 刷新写入队列，确保 AI 分析结果（或其他异步写入）可见
+            await _cacheRepo.FlushAsync(ct).ConfigureAwait(false);
+
+            var cached = await _cacheRepo.GetByActionAndVersionAsync(
+                targetAction, config.RuleCacheVersion, ct).ConfigureAwait(false);
+
+            if (cached.Count > 0)
+            {
+                _logger.LogInformation(
+                    "[缓存命中] CollectCandidatesAsync({Action}) 从缓存返回 {Count} 条, CacheVersion={Version}",
+                    targetAction, cached.Count, config.RuleCacheVersion);
+                return cached.ToList();
+            }
+
+            // 区分"版本匹配但无条目"和"版本过期"：
+            // GetByActionAndVersionAsync 的 SQL 已同时过滤 action 和 version，
+            // 返回空 = 该 action 在此版本下无记录（可能真的没有此类型的文件，也可能版本过期了）。
+            _logger.LogInformation(
+                "[缓存未命中] CollectCandidatesAsync({Action}) 缓存为空或版本过期 (CacheVersion={Version}), 开始全量扫描",
+                targetAction, config.RuleCacheVersion);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "[缓存读取异常] CollectCandidatesAsync({Action}) GetByActionAndVersionAsync 失败, 降级为全量扫描",
+                targetAction);
+            // 缓存读取异常时降级为全量扫描，不抛异常到上层
+        }
+
+        // ========================================================
+        // 阶段2: 全量扫描（兜底）
+        // ========================================================
+        // 使用 FileListViewModel 记录的扫描上下文（优先上次扫描的 volumes + pathFilter），
+        // 确保降级扫描的范围与刷新扫描一致（特别是 AskDirectoryEveryTime 模式下的 PathFilter）。
+        // MaxResults 仍使用方法入口处捕获的 config 快照以保持一致性。
+        var (volumes, pathFilter) = _fileListViewModel.GetEffectiveScope();
         var queryParams = new EverythingQueryParams
         {
-            Volumes = config.IncludedVolumes.Count > 0
-                ? config.IncludedVolumes
-                : new List<string> { "C:" },
+            Volumes = volumes,
+            PathFilter = pathFilter,
             MaxResults = config.MaxScanFiles > 0 ? config.MaxScanFiles : null
         };
 
         var candidates = new List<FileDecisionCache>();
         var processedCount = 0;
+        var upsertedCount = 0;
 
         await foreach (var file in _fileListProvider.EnumerateFilesAsync(queryParams, ct))
         {
@@ -1372,6 +1417,10 @@ public class MainViewModel : ViewModelBase
             // B3: 决策引擎仲裁（规则 + 用户策略 + AI 标签 → FinalAction）
             var arbitrated = _decisionEngine.Arbitrate(cache, config.AIEnabled, config.AITrustLevel);
 
+            // 写入所有规则命中的文件到缓存，不限 FinalAction
+            _cacheRepo.Upsert(arbitrated);
+            upsertedCount++;
+
             if (arbitrated.FinalAction == targetAction)
             {
                 candidates.Add(arbitrated);
@@ -1399,6 +1448,21 @@ public class MainViewModel : ViewModelBase
                     });
                 }
             }
+        }
+
+        // 全量扫描结束后刷新写入队列，确保缓存持久化
+        try
+        {
+            await _cacheRepo.FlushAsync(ct).ConfigureAwait(false);
+            _logger.LogInformation(
+                "[缓存写入] CollectCandidatesAsync 全量扫描完成: 处理={Processed}, 写入缓存={Upserted}, 候选={Candidates}",
+                processedCount, upsertedCount, candidates.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "[缓存写入] CollectCandidatesAsync FlushAsync 失败（非致命），候选文件已就绪");
+            // 缓存写入失败记录 Warning 日志，不阻塞候选文件返回
         }
 
         return candidates;
@@ -1468,30 +1532,44 @@ public class MainViewModel : ViewModelBase
     // AI 分析事件回调
     // ============================================================
 
-    private void OnAiProgressChanged(object? sender, AiAnalysisProgress progress)
+    private async void OnAiProgressChanged(object? sender, AiAnalysisProgress progress)
     {
-        Application.Current?.Dispatcher.Invoke(() =>
+        try
         {
-            AiProgressText = $"AI 分析中… {progress.CompletedCount}/{progress.TotalCount}";
-            IsAiAnalyzing = progress.CompletedCount < progress.TotalCount;
-        });
+            await Application.Current!.Dispatcher.InvokeAsync(() =>
+            {
+                AiProgressText = $"AI 分析中… {progress.CompletedCount}/{progress.TotalCount}";
+                IsAiAnalyzing = progress.CompletedCount < progress.TotalCount;
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI 进度更新事件处理异常");
+        }
     }
 
-    private void OnAiAnalysisCompleted(object? sender, AiAnalysisCompletedEventArgs e)
+    private async void OnAiAnalysisCompleted(object? sender, AiAnalysisCompletedEventArgs e)
     {
-        Application.Current?.Dispatcher.Invoke(() =>
+        try
         {
-            IsAiAnalyzing = false;
-            AiProgressText = e.WasCancelled
-                ? "AI 分析已取消"
-                : $"AI 分析完成：成功 {e.SuccessCount} 个"
-                  + (e.FailedCount > 0 ? $"，失败 {e.FailedCount} 个" : "");
-        });
+            await Application.Current!.Dispatcher.InvokeAsync(() =>
+            {
+                IsAiAnalyzing = false;
+                AiProgressText = e.WasCancelled
+                    ? "AI 分析已取消"
+                    : $"AI 分析完成：成功 {e.SuccessCount} 个"
+                      + (e.FailedCount > 0 ? $"，失败 {e.FailedCount} 个" : "");
 
-        // 应用在后台/最小化时弹出 Windows Toast
-        if (Application.Current?.MainWindow?.IsActive != true)
+                // 应用在后台/最小化时弹出 Windows Toast
+                if (Application.Current?.MainWindow?.IsActive != true)
+                {
+                    ShowAiAnalysisToast(e.SuccessCount, e.FailedCount, e.WasCancelled);
+                }
+            });
+        }
+        catch (Exception ex)
         {
-            ShowAiAnalysisToast(e.SuccessCount, e.FailedCount, e.WasCancelled);
+            _logger.LogError(ex, "AI 分析完成事件处理异常");
         }
     }
 

@@ -16,6 +16,7 @@
     <SolidColorBrush x:Key="TopBarBorderBrush" Color="#E0E0E0" />
 
     <!-- 仪表板卡片 -->
+    <SolidColorBrush x:Key="CardTitleForegroundBrush" Color="#1A1A1A" />
     <SolidColorBrush x:Key="CardTextPrimaryBrush" Color="#1A1A1A" />
     <SolidColorBrush x:Key="CardTextSecondaryBrush" Color="#666666" />
 

@@ -15,6 +15,7 @@ using DirectoryCleanAgent.AI;
 using DirectoryCleanAgent.AI.Models;
 using DirectoryCleanAgent.Services;
 using DirectoryCleanAgent.ViewModels.Base;
+using DirectoryCleanAgent.Views;
 
 namespace DirectoryCleanAgent.ViewModels;
 
@@ -48,6 +49,29 @@ public class FileListViewModel : ViewModelBase, IDisposable
 
     private CancellationTokenSource? _currentLoadCts;
     private readonly ConcurrentDictionary<string, FileChangeType> _pendingFileChanges = new();
+    // ============================================================
+    // 最后一次扫描的上下文（用于"显示所有文件"模式下的过滤）
+    // ============================================================
+
+    /// <summary>最后一次扫描使用的卷列表</summary>
+    private IReadOnlyList<string>? _lastScanVolumes;
+
+    /// <summary>最后一次扫描使用的路径过滤器（AskDirectoryEveryTime 模式）</summary>
+    private string? _lastScanPathFilter;
+
+    /// <summary>
+    /// 由 MainViewModel 在每次扫描完成后调用，记录本次扫描的上下文。
+    /// 这些值在"显示所有文件"模式下用于构建带过滤条件的 EverythingQueryParams。
+    /// </summary>
+    public void SetLastScanContext(IReadOnlyList<string>? volumes, string? pathFilter)
+    {
+        // 防御性拷贝：避免外部修改 config.IncludedVolumes 时影响已存储的上下文
+        _lastScanVolumes = volumes?.ToList().AsReadOnly();
+        _lastScanPathFilter = pathFilter;
+        _logger.LogDebug("已更新最后扫描上下文: Volumes={VolCount}, PathFilter={Path}",
+            volumes?.Count ?? 0, pathFilter ?? "(无)");
+    }
+
     private Timer? _throttleTimer;
     private readonly IAiAnalysisCoordinator _aiCoordinator;
     private bool _disposed;
@@ -340,6 +364,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
     public RelayCommand<FileListItem> RequestAiAnalysisCommand { get; }
     public RelayCommand AnalyzeSelectedFilesCommand { get; }
     public RelayCommand CancelAiAnalysisCommand { get; }
+    public RelayCommand<FileListItem> OpenFileLocationCommand { get; }
 
     // ============================================================
     // 构造函数
@@ -376,6 +401,7 @@ public class FileListViewModel : ViewModelBase, IDisposable
         RequestAiAnalysisCommand = new RelayCommand<FileListItem>(ExecuteRequestAiAnalysis);
         AnalyzeSelectedFilesCommand = new RelayCommand(async () => await ExecuteAnalyzeSelectedFilesAsync());
         CancelAiAnalysisCommand = new RelayCommand(ExecuteCancelAiAnalysis);
+        OpenFileLocationCommand = new RelayCommand<FileListItem>(ExecuteOpenFileLocation);
 
         // 订阅 Everything 文件变更事件（增量刷新）
         _fileProvider.FileChanged += OnFileChanged;
@@ -422,19 +448,29 @@ public class FileListViewModel : ViewModelBase, IDisposable
                 .Where(e => e.FinalAction != FinalAction.Protected)
                 .ToList();
 
-            // 3. 构建分组树（内部已通过 RunOnUIThreadAsync 保护 UI 集合操作）
-            await RebuildGroupTreeAsync(linkedCts.Token);
-
-            // 4. 更新 UI 绑定状态
-            await RunOnUIThreadAsync(() =>
+            if (IsShowAllFiles)
             {
-                HasData = _allActionableCache.Count > 0;
-                IsEmpty = !HasData;
-                if (IsEmpty)
+                // 3a. "显示所有文件"模式：刷新全量平面列表，不重建分组树，
+                // 避免分组选中链路覆盖 CurrentFileList（与 OnAiAnalysisCompleted 的模式区分一致）。
+                // 分组树延迟到用户取消勾选时由 HandleShowAllToggleAsync 重建。
+                await LoadAllFilesFromEverythingAsync(linkedCts.Token);
+            }
+            else
+            {
+                // 3b. 构建分组树（内部已通过 RunOnUIThreadAsync 保护 UI 集合操作）
+                await RebuildGroupTreeAsync(linkedCts.Token);
+
+                // 4. 更新 UI 绑定状态
+                await RunOnUIThreadAsync(() =>
                 {
-                    EmptyMessage = "暂无文件数据，请先执行磁盘扫描";
-                }
-            });
+                    HasData = _allActionableCache.Count > 0;
+                    IsEmpty = !HasData;
+                    if (IsEmpty)
+                    {
+                        EmptyMessage = "暂无文件数据，请先执行磁盘扫描";
+                    }
+                });
+            }
 
             _logger.LogInformation("文件列表数据加载完成: 可操作={Actionable}, 总计={Total}",
                 _allActionableCache.Count, allEntries.Count);
@@ -1029,11 +1065,14 @@ public class FileListViewModel : ViewModelBase, IDisposable
             if (IsShowAllFiles)
             {
                 // 显示所有文件模式: 向 Everything 发起排序查询
+                var (volumes, pathFilter) = GetEffectiveScope();
                 var queryParams = new EverythingQueryParams
                 {
                     SortType = sortType,
                     SortDescending = descending,
-                    MaxResults = 10000 // 限制全量模式下的最大结果数
+                    MaxResults = 10000, // 限制全量模式下的最大结果数
+                    Volumes = volumes,
+                    PathFilter = pathFilter
                 };
 
                 var sortedFiles = new List<FileItem>();
@@ -1164,12 +1203,15 @@ public class FileListViewModel : ViewModelBase, IDisposable
         await RunOnUIThreadAsync(() => IsLoading = true);
         try
         {
-            // 构建查询参数（带当前排序设置）
+            // 构建查询参数（带当前排序设置 + 卷/路径过滤）
+            var (volumes, pathFilter) = GetEffectiveScope();
             var queryParams = new EverythingQueryParams
             {
                 SortType = CurrentSortColumn ?? EverythingSortType.Name,
                 SortDescending = IsSortDescending,
-                MaxResults = 10000 // 全量模式最大 10000 条
+                MaxResults = 10000, // 全量模式最大 10000 条
+                Volumes = volumes,
+                PathFilter = pathFilter
             };
 
             var files = new List<FileItem>();
@@ -1205,7 +1247,34 @@ public class FileListViewModel : ViewModelBase, IDisposable
                 return item;
             }).ToList();
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            // 回填已有缓存中的 AI 分析信息（跨模式共享 _allActionableCache）
+            if (_allActionableCache.Count > 0)
+            {
+                var aiCacheLookup = _allActionableCache
+                    .Where(c => !string.IsNullOrEmpty(c.AiLabel))
+                    .ToDictionary(c => c.FilePath, c => c, StringComparer.OrdinalIgnoreCase);
+
+                if (aiCacheLookup.Count > 0)
+                {
+                    foreach (var item in items)
+                    {
+                        if (aiCacheLookup.TryGetValue(item.CacheKey, out var cached))
+                        {
+                            item.AiLabel = cached.AiLabel;
+                            item.AiConfidence = cached.AiConfidence;
+                            item.AiExplanation = cached.AiExplanation;
+                            item.SemanticCategory = _labelLocalizer.LocalizeFromString(cached.SemanticCategory);
+                            item.SemanticCategoryIcon = GetSemanticCategoryIcon(cached.SemanticCategory);
+                            item.FinalAction = cached.FinalAction;
+                            item.FinalActionText = GetFinalActionText(cached.FinalAction);
+                            item.UpdateAiDisplay();
+                        }
+                    }
+                    _logger.LogDebug("已为 {Count} 个文件回填 AI 缓存信息", aiCacheLookup.Count);
+                }
+            }
+
+            await RunOnUIThreadAsync(() =>
             {
                 CurrentFileList.Clear();
                 foreach (var item in items)
@@ -1438,25 +1507,115 @@ public class FileListViewModel : ViewModelBase, IDisposable
         await LoadDataAsync();
     }
 
-    private void ExecuteExcludeFile(FileListItem? item)
+    private async void ExecuteExcludeFile(FileListItem? item)
     {
         if (item == null) return;
         _logger.LogInformation("排除文件: {Path}", item.FullPath);
-        // TODO: C4 阶段实现排除管理器集成
-        MessageBox.Show($"文件已排除: {item.FilePath}", "排除文件", MessageBoxButton.OK, MessageBoxImage.Information);
+
+        try
+        {
+            // 1. 获取父目录（去除 \\?\ 前缀）
+            string cleanPath = item.FullPath.StartsWith(@"\\?\")
+                ? item.FullPath[4..]
+                : item.FullPath;
+            string? parentDir = System.IO.Path.GetDirectoryName(cleanPath);
+            if (string.IsNullOrEmpty(parentDir))
+            {
+                _logger.LogWarning("无法获取文件父目录: {Path}", cleanPath);
+                return;
+            }
+
+            // 2. 确认对话框
+            var result = MessageBox.Show(
+                $"确定要排除以下目录吗？\n\n{parentDir}\n\n该目录下的所有文件将不再出现在清理建议中。",
+                "排除文件",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            // 3. 添加到排除列表
+            var config = _configService.Current;
+            var normalizedDir = parentDir.ToLowerInvariant();
+
+            if (config.UserExcludedDirs.Contains(normalizedDir, StringComparer.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("目录已在排除列表中: {Dir}", parentDir);
+                return;
+            }
+
+            config.UserExcludedDirs.Add(normalizedDir);
+
+            // 4. 保存配置（触发 ConfigChanged → ExclusionManager.Reload）
+            await _configService.SaveAsync();
+            _logger.LogInformation("已排除目录并保存配置: {Dir}", parentDir);
+
+            // 5. 刷新视图：重新加载数据以反映排除变更
+            await LoadDataAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "排除文件失败: {Path}", item.FullPath);
+            MessageBox.Show($"排除文件失败: {ex.Message}", "错误",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExecuteViewDetail(FileListItem? item)
     {
         if (item == null) return;
         _logger.LogDebug("查看详情: {Path}", item.FullPath);
-        // TODO: C3 阶段实现详情面板/弹窗
-        var aiInfo = item.AiExplanation != null ? $"\nAI 分析: {item.AiExplanation}" : "\nAI 分析: 尚未分析";
-        MessageBox.Show(
-            $"文件: {item.FilePath}\n完整路径: {item.FullPath}\n大小: {item.SizeText}\n修改日期: {item.LastWriteTimeText}\n语义标签: {item.SemanticCategory}\n操作建议: {item.FinalActionText}{aiInfo}",
-            "文件详情",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+
+        // 尝试从缓存中获取匹配的规则名称，用于更精确的规则裁决展示
+        string? ruleVerdictText = null;
+        var cache = _allActionableCache.FirstOrDefault(c => c.FilePath == item.CacheKey);
+        if (cache != null)
+        {
+            ruleVerdictText = cache.RuleVerdict switch
+            {
+                RuleVerdict.Forbid => "硬禁止规则 — 系统关键目录，绝对不可触碰",
+                RuleVerdict.AutoDelete => "硬自动删除规则 — 确认安全的系统临时文件",
+                RuleVerdict.Exclude => "用户排除规则 — 用户手动添加的排除项",
+                RuleVerdict.Protect => "保护规则 — 自动检测的开发环境（Docker/WSL/虚拟机等）",
+                RuleVerdict.SuggestDelete => "启发式建议删除 — 匹配清理模式",
+                RuleVerdict.SuggestKeep => "启发式建议保留 — 匹配保留模式",
+                RuleVerdict.Keep => "默认保留 — 未命中任何规则",
+                _ => null
+            };
+        }
+
+        var detailWindow = new FileDetailWindow(item, ruleVerdictText)
+        {
+            Owner = Application.Current.MainWindow
+        };
+        detailWindow.ShowDialog();
+    }
+
+    private void ExecuteOpenFileLocation(FileListItem? item)
+    {
+        if (item == null) return;
+
+        string path = item.FullPath;
+        // 去除 \\?\ 前缀，explorer.exe 需要常规路径
+        if (path.StartsWith(@"\\?\"))
+            path = path[4..];
+
+        if (!File.Exists(path) && !Directory.Exists(path))
+        {
+            MessageBox.Show($"文件不存在: {path}", "无法定位",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"无法打开文件目录: {ex.Message}", "错误",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExecuteToggleFileCheck(FileListItem? item)
@@ -1468,6 +1627,13 @@ public class FileListViewModel : ViewModelBase, IDisposable
     private async void ExecuteRequestAiAnalysis(FileListItem? item)
     {
         if (item == null) return;
+
+        // 防止重复请求：已经在分析中的文件不重复触发
+        if (item.AiLabel == "analyzing")
+        {
+            _logger.LogDebug("文件已在分析中，跳过重复请求: {Path}", item.FullPath);
+            return;
+        }
 
         _logger.LogInformation("请求 AI 分析: {Path}", item.FullPath);
 
@@ -1528,30 +1694,98 @@ public class FileListViewModel : ViewModelBase, IDisposable
 
             _logger.LogInformation("批量 AI 分析: 选中 {Count} 个文件", selectedItems.Count);
 
-            // 从缓存中查找对应的 FileDecisionCache
-            var cacheEntries = _allActionableCache
-                .Where(c => selectedItems.Any(s => s.CacheKey == c.FilePath))
+            var config = _configService.Current;
+            var aiEnabled = config.AIEnabled;
+            var aiTrustLevel = config.AITrustLevel;
+
+            // 1. 分离已缓存和未缓存的文件
+            var cacheLookup = _allActionableCache
+                .ToDictionary(c => c.FilePath, StringComparer.OrdinalIgnoreCase);
+
+            var cacheEntries = new List<FileDecisionCache>();
+            var uncachedPaths = new List<FileListItem>();
+
+            foreach (var selected in selectedItems)
+            {
+                if (cacheLookup.TryGetValue(selected.CacheKey, out var existing))
+                {
+                    cacheEntries.Add(existing);
+                }
+                else
+                {
+                    uncachedPaths.Add(selected);
+                }
+            }
+
+            // 2. 对未缓存文件后台运行规则引擎 + 决策引擎
+            if (uncachedPaths.Count > 0)
+            {
+                _logger.LogInformation("批量 AI 分析: {Count} 个文件不在缓存中，实时运行规则引擎",
+                    uncachedPaths.Count);
+
+                foreach (var listItem in uncachedPaths)
+                {
+                    try
+                    {
+                        // B2: 规则引擎裁决（纯 CPU，无 I/O）
+                        var fileItem = new FileItem
+                        {
+                            FilePath = listItem.FullPath,
+                            SizeBytes = listItem.SizeBytes,
+                            LastWriteTime = listItem.LastWriteTime,
+                            Extension = listItem.Extension ?? "",
+                            EverythingSortKey = listItem.EverythingSortKey ?? string.Empty
+                        };
+                        var ruleResult = _ruleEngine.Evaluate(fileItem, config);
+
+                        // 构建临时缓存供决策引擎仲裁
+                        var tempCache = new FileDecisionCache
+                        {
+                            FilePath = listItem.FullPath,
+                            SizeBytes = listItem.SizeBytes,
+                            LastWriteTime = listItem.LastWriteTime,
+                            RuleVerdict = ruleResult.Verdict,
+                            SemanticCategory = ruleResult.SemanticCategory,
+                            FinalAction = FinalAction.ManualReview, // 占位，Arbitrate 重新赋值
+                            CacheVersion = config.RuleCacheVersion
+                        };
+
+                        // B3: 决策引擎仲裁
+                        var arbitrated = _decisionEngine.Arbitrate(tempCache, aiEnabled, aiTrustLevel);
+
+                        // 入队写入数据库（非阻塞）
+                        _cacheRepo.Upsert(arbitrated);
+                        cacheEntries.Add(arbitrated);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "实时规则引擎评估失败（跳过该文件）: {Path}", listItem.FullPath);
+                    }
+                }
+
+                _logger.LogInformation("已为 {Count} 个未缓存文件生成决策记录并入队", cacheEntries.Count);
+            }
+
+            // 3. 过滤已分析文件（内部管道已有此逻辑，此处提前过滤减少数据传输）
+            var toAnalyze = cacheEntries
+                .Where(c => string.IsNullOrEmpty(c.AiLabel))
                 .ToList();
 
-            if (cacheEntries.Count == 0)
+            if (toAnalyze.Count == 0)
             {
-                _logger.LogWarning("未在缓存中找到勾选文件的决策记录");
+                _logger.LogInformation("所有选中文件已有 AI 分析结果，无需重新分析");
                 return;
             }
 
-            // 标记所有选中行为 analyzing 状态
+            // 4. 标记所有选中行为 analyzing 状态
             foreach (var item in selectedItems)
             {
                 item.AiLabel = "analyzing";
                 item.UpdateAiDisplay();
             }
 
-            // 调用协调器批量分析
-            // 注意：分析完成后，AiAnalysisCoordinator 触发 AnalysisCompleted 事件，
-            // FileListViewModel.OnAiAnalysisCompleted 负责完整的 UI 刷新流程
-            // （FlushAsync 确保 DB 持久化 + LoadDataAsync 重建列表），
-            // 因此这里不需要手动回写结果到 UI 行，避免与 LoadDataAsync 的竞态条件
-            await _aiCoordinator.AnalyzeBatchAsync(cacheEntries, CancellationToken.None);
+            // 5. 调用协调器批量分析
+            await _aiCoordinator.AnalyzeBatchAsync(toAnalyze, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -1628,17 +1862,62 @@ public class FileListViewModel : ViewModelBase, IDisposable
             });
 
             // 强制刷新批量写入队列，确保 AI 结果已持久化到数据库
-            // 必须在 LoadDataAsync 之前调用：ApplyResultToCache 使用非阻塞 Upsert
-            // （入队到 500ms 定时刷新队列），若不刷新则 LoadDataAsync 会读到旧数据
             await _cacheRepo.FlushAsync();
 
-            // 刷新文件列表（AI 标签变更可能改变分组归属）
-            await LoadDataAsync();
+            // 分组视图模式：全量重建列表（AI 标签变更可能改变分组归属）
+            // 显示所有文件模式：仅增量刷新 AI 展示状态（避免视图切换和重新查询 Everything）
+            if (!IsShowAllFiles)
+            {
+                await LoadDataAsync();
+            }
+            else
+            {
+                await RefreshAiDisplayOnlyAsync();
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI 分析完成事件处理异常");
         }
+    }
+
+    /// <summary>
+    /// 仅刷新 AI 展示状态（不重建分组树、不重新查询 Everything）。
+    /// 用于"显示所有文件"模式下 AI 分析完成后的增量更新。
+    /// </summary>
+    private async Task RefreshAiDisplayOnlyAsync()
+    {
+        // 收集所有正在分析的行路径
+        var analyzingPaths = CurrentFileList
+            .Where(f => f.AiLabel == "analyzing")
+            .Select(f => f.CacheKey)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (analyzingPaths.Count == 0) return;
+
+        // 从缓存批量读取最新结果
+        var allCaches = await _cacheRepo.GetAllAsync();
+        var cacheLookup = allCaches
+            .Where(c => analyzingPaths.Contains(c.FilePath))
+            .ToDictionary(c => c.FilePath, StringComparer.OrdinalIgnoreCase);
+
+        await RunOnUIThreadAsync(() =>
+        {
+            foreach (var item in CurrentFileList)
+            {
+                if (cacheLookup.TryGetValue(item.CacheKey, out var cache))
+                {
+                    item.AiLabel = cache.AiLabel;
+                    item.AiConfidence = cache.AiConfidence;
+                    item.AiExplanation = cache.AiExplanation;
+                    item.SemanticCategory = _labelLocalizer.LocalizeFromString(cache.SemanticCategory);
+                    item.SemanticCategoryIcon = GetSemanticCategoryIcon(cache.SemanticCategory);
+                    item.FinalAction = cache.FinalAction;
+                    item.FinalActionText = GetFinalActionText(cache.FinalAction);
+                    item.UpdateAiDisplay();
+                }
+            }
+        });
     }
 
     // ============================================================
@@ -1684,6 +1963,20 @@ public class FileListViewModel : ViewModelBase, IDisposable
         return size < 10
             ? $"{size:F1} {units[unitIndex]}"
             : $"{size:F0} {units[unitIndex]}";
+    }
+
+    /// <summary>
+    /// 获取当前有效的扫描范围（卷列表 + 路径过滤器）。
+    /// 优先使用最后一次扫描的上下文，回退到配置文件中的 IncludedVolumes。
+    /// </summary>
+    public (IReadOnlyList<string> Volumes, string? PathFilter) GetEffectiveScope()
+    {
+        var config = _configService.Current;
+        var volumes = _lastScanVolumes
+            ?? (config.IncludedVolumes.Count > 0
+                ? config.IncludedVolumes.ToList().AsReadOnly()
+                : new List<string> { "C:" });
+        return (volumes, _lastScanPathFilter);
     }
 
     // ============================================================

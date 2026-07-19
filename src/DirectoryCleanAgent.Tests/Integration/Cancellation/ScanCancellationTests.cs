@@ -19,6 +19,7 @@ namespace DirectoryCleanAgent.Tests.Integration.Cancellation;
 /// 扫描阶段取消操作测试
 /// 验证 CancellationToken 在 IFileListProvider.EnumerateFilesAsync 中的正确传播
 /// </summary>
+[Collection("Everything")]
 public class ScanCancellationTests : IntegrationTestBase
 {
     private readonly IServiceProvider _serviceProvider;

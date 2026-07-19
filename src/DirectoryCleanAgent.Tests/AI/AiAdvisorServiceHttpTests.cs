@@ -105,8 +105,9 @@ public class AiAdvisorServiceHttpTests : IDisposable
     [Fact]
     public async Task AnalyzeFileAsync_Http200_ReturnsSuccessResult()
     {
-        // AiAdvisorService 将原始 HTTP body 传给 ParseResponse，直接返回 AiModelResponse JSON
-        var responseJson = AiTestDataFactory.ValidApiResponseJson("safe", 0.95, "临时文件");
+        // HTTP 响应体是完整的 Chat Completions 格式，模型输出在 choices[0].message.content 中
+        var modelOutput = AiTestDataFactory.ValidApiResponseJson("safe", 0.95, "临时文件");
+        var responseJson = AiTestDataFactory.ChatCompletionResponseJson(modelOutput);
         var service = CreateService(HttpStatusCode.OK, responseJson);
 
         // 创建临时文件供 AnalyzeFileAsync 检查文件存在性
@@ -240,7 +241,8 @@ public class AiAdvisorServiceHttpTests : IDisposable
     public async Task BuildHttpRequest_IncludesAuthorizationHeader()
     {
         string? authHeader = null;
-        var responseJson = AiTestDataFactory.ValidApiResponseJson();
+        var modelOutput = AiTestDataFactory.ValidApiResponseJson();
+        var responseJson = AiTestDataFactory.ChatCompletionResponseJson(modelOutput);
         var service = CreateService(HttpStatusCode.OK, responseJson,
             requestValidator: req =>
             {
@@ -262,7 +264,8 @@ public class AiAdvisorServiceHttpTests : IDisposable
     public async Task BuildHttpRequest_IncludesJsonContentType()
     {
         string? contentType = null;
-        var responseJson = AiTestDataFactory.ValidApiResponseJson();
+        var modelOutput = AiTestDataFactory.ValidApiResponseJson();
+        var responseJson = AiTestDataFactory.ChatCompletionResponseJson(modelOutput);
         var service = CreateService(HttpStatusCode.OK, responseJson,
             requestValidator: req =>
             {

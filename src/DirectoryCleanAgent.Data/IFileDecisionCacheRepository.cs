@@ -39,6 +39,15 @@ public interface IFileDecisionCacheRepository
     Task<IReadOnlyList<FileDecisionCache>> GetByVersionAsync(
         int cacheVersion, CancellationToken ct = default);
 
+    /// <summary>
+    /// 按 FinalAction + CacheVersion 组合查询缓存记录。
+    /// 用于快速判断缓存是否有效且包含目标操作的文件：
+    ///   空结果 = 缓存空 或 版本过期，需全量扫描
+    ///   非空结果 = 缓存命中，直接返回
+    /// </summary>
+    Task<IReadOnlyList<FileDecisionCache>> GetByActionAndVersionAsync(
+        FinalAction action, int cacheVersion, CancellationToken ct = default);
+
     /// <summary>清空整张缓存表（规则版本变更时调用），立即执行不入队</summary>
     Task ClearAsync(CancellationToken ct = default);
 

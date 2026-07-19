@@ -111,7 +111,20 @@ public sealed class BatchWriteQueue<T> : IBatchWriteQueue<T>
         if (IsDisposed && _queue.IsEmpty)
             return;
 
-        await FlushCoreAsync(ct).ConfigureAwait(false);
+        // 获取锁以确保与自动定时刷新互斥：
+        // 若自动刷新正在执行 DB 事务，FlushAsync 必须等待其完成。
+        // 否则调用方在 FlushAsync 返回后立即读取 DB 可能读到旧数据
+        // （自动刷新事务尚未提交的竞态条件）。
+        await _flushLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            // 锁内队列可能已被自动刷新清空，此时 FlushCoreAsync 为空操作
+            await FlushCoreAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _flushLock.Release();
+        }
     }
 
     /// <summary>后台轮询循环：每 500ms 检查一次是否需要刷新</summary>

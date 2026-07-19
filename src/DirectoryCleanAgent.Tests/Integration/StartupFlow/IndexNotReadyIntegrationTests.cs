@@ -19,6 +19,7 @@ namespace DirectoryCleanAgent.Tests.Integration.StartupFlow;
 /// 索引未就绪处理策略集成测试
 /// 验证三种索引等待策略: (1)直接等待 (2)后台等待 (3)跳过警告
 /// </summary>
+[Collection("Everything")]
 public class IndexNotReadyIntegrationTests : IntegrationTestBase
 {
     private readonly IServiceProvider _serviceProvider;

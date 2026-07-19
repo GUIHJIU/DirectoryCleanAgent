@@ -390,10 +390,12 @@ public sealed class AiAnalysisCoordinator : IAiAnalysisCoordinator, IDisposable
 
     private void OnAnalysisCompleted(AiAnalysisCompletedEventArgs args)
     {
-        ThreadPool.QueueUserWorkItem(_ =>
-        {
-            AnalysisCompleted?.Invoke(this, args);
-        });
+        // 直接同步触发事件，不使用 ThreadPool.QueueUserWorkItem。
+        // 原因：两个订阅者（FileListViewModel、MainViewModel）的处理器均为 async void，
+        // 第一个 await 即会 yield，不会阻塞调用方。
+        // 直接调用消除了 ThreadPool 调度延迟，避免与 BatchWriteQueue 自动定时刷新
+        // 之间的竞态条件（详见 BatchWriteQueue.FlushAsync 的锁修复）。
+        AnalysisCompleted?.Invoke(this, args);
     }
 
     // ============================================================

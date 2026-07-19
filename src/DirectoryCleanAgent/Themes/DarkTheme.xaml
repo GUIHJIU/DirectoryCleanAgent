@@ -16,6 +16,7 @@
     <SolidColorBrush x:Key="TopBarBorderBrush" Color="#3D3D3D" />
 
     <!-- 仪表板卡片（深色下使用深色半透明背景，覆盖 FinalActionToColorConverter 的默认色） -->
+    <SolidColorBrush x:Key="CardTitleForegroundBrush" Color="#E0E0E0" />
     <SolidColorBrush x:Key="CardTextPrimaryBrush" Color="#E0E0E0" />
     <SolidColorBrush x:Key="CardTextSecondaryBrush" Color="#999999" />
 
