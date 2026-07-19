@@ -124,7 +124,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act
         var results = await CollectAsync(
@@ -162,7 +162,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act
         var results = await CollectAsync(
@@ -171,6 +171,41 @@ public class EverythingFileListProviderTests
         // Assert: 目录被跳过，仅产出 2 个文件
         Assert.Equal(2, results.Count);
         Assert.DoesNotContain(results, r => r.FilePath.Contains("folder"));
+    }
+
+    [Fact]
+    public async Task EnumerateFilesAsync_FolderWithZeroSize_SkipsDirectory()
+    {
+        // 回归测试：Everything 开启"索引文件夹大小"后，目录的 size 不再是 -1
+        // （空目录返回 0），仅靠 size < 0 判断会把空目录当作文件混入规则管道。
+        // 必须以 IsFolderResult 作为权威判断。
+
+        // Arrange: 第 2 条是空目录（IsFolderResult = true，size = 0）
+        var paths = new[] { @"C:\file.tmp", @"C:\EmptyFolder", @"C:\file2.tmp" };
+        var sizes = new long[] { 100, 0, 300 };
+        var frns = new long[] { 1001, 1002, 1003 };
+        var dates = new long[] { TestFileTime, TestFileTime, TestFileTime };
+        var volumes = new uint[] { 0xA8B31C4D, 0xA8B31C4D, 0xA8B31C4D };
+
+        var mockSdk = CreateMockSdkWithResults(paths, sizes, frns, dates, volumes);
+        mockSdk.Setup(s => s.IsFolderResult(1)).Returns(true);
+
+        var mockConfig = CreateMockConfigService();
+        var mockTombstone = new Mock<ITombstoneCache>();
+        mockTombstone.Setup(t => t.IsTombstoned(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<long?>()))
+            .Returns(false);
+        var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
+
+        var provider = new EverythingFileListProvider(
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
+
+        // Act
+        var results = await CollectAsync(
+            provider.EnumerateFilesAsync(new EverythingQueryParams(), CancellationToken.None));
+
+        // Assert: 空目录被跳过，仅产出 2 个文件
+        Assert.Equal(2, results.Count);
+        Assert.DoesNotContain(results, r => r.FilePath.Contains("EmptyFolder"));
     }
 
     // ================================================================
@@ -201,7 +236,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act
         var results = await CollectAsync(
@@ -241,7 +276,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act: 仅返回 C:\Temp\ 下的文件
         var queryParams = new EverythingQueryParams
@@ -278,7 +313,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act: 仅扫描 C 盘
         var queryParams = new EverythingQueryParams
@@ -317,7 +352,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act: 限制最多 10 条
         var queryParams = new EverythingQueryParams { MaxResults = 10 };
@@ -352,7 +387,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act: 收集 5 条后取消
         using var cts = new CancellationTokenSource();
@@ -390,7 +425,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<EverythingSdkException>(async () =>
@@ -414,7 +449,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<EverythingSdkException>(async () =>
@@ -448,7 +483,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act
         var results = await CollectAsync(
@@ -475,7 +510,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act: 请求按大小降序排列
         var queryParams = new EverythingQueryParams
@@ -512,7 +547,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act
         var results = await CollectAsync(
@@ -540,7 +575,7 @@ public class EverythingFileListProviderTests
         var mockTombstone = new Mock<ITombstoneCache>();
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act
         var result = await provider.IsIndexingAsync(CancellationToken.None);
@@ -572,7 +607,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act
         var results = await CollectAsync(
@@ -610,7 +645,7 @@ public class EverythingFileListProviderTests
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
 
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act
         var results = await CollectAsync(
@@ -635,7 +670,7 @@ public class EverythingFileListProviderTests
         var mockTombstone = new Mock<ITombstoneCache>();
         var mockLogger = new Mock<ILogger<EverythingFileListProvider>>();
         var provider = new EverythingFileListProvider(
-            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object);
+            mockLogger.Object, mockConfig.Object, mockTombstone.Object, mockSdk.Object, new EverythingSdkLock());
 
         // Act & Assert: 多次释放不抛异常
         provider.Dispose();
