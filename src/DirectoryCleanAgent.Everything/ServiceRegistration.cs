@@ -25,6 +25,9 @@ public static class ServiceRegistration
     /// <returns>服务集合（链式调用）</returns>
     public static IServiceCollection AddEverythingServices(this IServiceCollection services)
     {
+        // Task 1: Everything SDK 全局状态共享锁
+        services.AddSingleton<EverythingSdkLock>();
+
         // A2: 依赖检测器（同时注册接口和具体类型）
         services.AddSingleton<EverythingDependencyDetector>();
         services.AddSingleton<IEverythingDetector>(sp => sp.GetRequiredService<EverythingDependencyDetector>());
