@@ -161,6 +161,16 @@ internal static partial class EverythingNative
     internal static extern bool Everything_GetResultSize(uint index, out long lpSize);
 
     /// <summary>
+    /// 判断指定索引结果是否为文件夹。
+    /// 原生签名: BOOL Everything_IsFolderResult(DWORD index)
+    /// 目录判断的权威依据——当 Everything 开启"索引文件夹大小"后，
+    /// 目录的 Size 不再是 -1，仅靠 Size 符号无法区分文件与目录。
+    /// </summary>
+    [DllImport(DllName)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool Everything_IsFolderResult(uint index);
+
+    /// <summary>
     /// 获取指定索引结果的文件引用号（File Reference Number, FRN）。
     /// 原生签名: BOOL Everything_GetResultFileReferenceNumber(DWORD index, LARGE_INTEGER *lpFRN)
     /// FRN 是 NTFS 文件系统上的物理文件标识，与 VolumeGuid 组合可唯一标识文件。
@@ -246,6 +256,13 @@ internal static partial class EverythingNative
     /// </summary>
     [DllImport(DllName)]
     internal static extern void Everything_SetMax(uint max);
+
+    /// <summary>
+    /// 获取当前设置的最大结果数。
+    /// 返回 0 表示无限制。
+    /// </summary>
+    [DllImport(DllName)]
+    internal static extern uint Everything_GetMax();
 
     /// <summary>
     /// 设置结果偏移量（0-based），用于后续查询跳过前 N 条结果。

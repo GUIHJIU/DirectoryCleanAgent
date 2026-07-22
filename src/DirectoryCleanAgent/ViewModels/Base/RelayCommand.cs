@@ -67,9 +67,22 @@ public class RelayCommand<T> : ICommand
         remove => CommandManager.RequerySuggested -= value;
     }
 
-    public bool CanExecute(object? parameter) => _canExecute((T?)parameter);
+    public bool CanExecute(object? parameter)
+    {
+        // WPF DataGrid 虚拟化期间可能传入 MS.Internal.NamedObject 等内部占位对象，
+        // 此时参数不是有效的 T 类型，安全返回 false 阻止命令执行。
+        if (parameter is not T and not null)
+            return false;
+        return _canExecute((T?)parameter);
+    }
 
-    public void Execute(object? parameter) => _execute((T?)parameter);
+    public void Execute(object? parameter)
+    {
+        // 同 CanExecute：非 T 类型的参数静默忽略
+        if (parameter is not T and not null)
+            return;
+        _execute((T?)parameter);
+    }
 
     /// <summary>
     /// 手动触发 CanExecuteChanged。

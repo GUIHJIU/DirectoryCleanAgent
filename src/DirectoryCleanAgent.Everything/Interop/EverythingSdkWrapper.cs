@@ -129,6 +129,13 @@ internal sealed class EverythingSdkWrapper : IEverythingSdk
     }
 
     /// <inheritdoc/>
+    public bool IsFolderResult(uint index)
+    {
+        ThrowIfDisposed();
+        return EverythingNative.Everything_IsFolderResult(index);
+    }
+
+    /// <inheritdoc/>
     public long GetResultDateModified(uint index)
     {
         ThrowIfDisposed();
@@ -184,6 +191,31 @@ internal sealed class EverythingSdkWrapper : IEverythingSdk
     {
         ThrowIfDisposed();
         EverythingNative.Everything_SetRequestFlags(flags);
+    }
+
+    // ================================================================
+    // 结果限制
+    // ================================================================
+
+    /// <inheritdoc/>
+    public uint GetMax()
+    {
+        ThrowIfDisposed();
+        return EverythingNative.Everything_GetMax();
+    }
+
+    /// <inheritdoc/>
+    public void SetMax(uint max)
+    {
+        ThrowIfDisposed();
+        EverythingNative.Everything_SetMax(max);
+    }
+
+    /// <inheritdoc/>
+    public void ResetMax()
+    {
+        ThrowIfDisposed();
+        EverythingNative.Everything_SetMax(0);
     }
 
     // ================================================================

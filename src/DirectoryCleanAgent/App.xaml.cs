@@ -870,9 +870,6 @@ public partial class App : System.Windows.Application
         // 释放托盘资源
         CleanupTrayIcon();
 
-        // 释放 Everything SDK
-        EverythingDependencyDetector.Cleanup();
-
         // 显式刷新数据层批量写入队列，确保审计日志和删除记录不丢失
         // （虽然 DI 容器的 Dispose 链会触发 BatchWriteQueue.Dispose → final Flush，
         //   但显式调用更健壮：避免容器释放顺序问题导致 flush 失败）

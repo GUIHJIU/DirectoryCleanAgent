@@ -40,12 +40,15 @@ public class EverythingDependencyDetector : IEverythingDetector
 
     private readonly ILogger<EverythingDependencyDetector> _logger;
     private readonly IEverythingSdk? _sdk;
+    private readonly EverythingSdkLock _sdkLock;
 
     public EverythingDependencyDetector(
         ILogger<EverythingDependencyDetector> logger,
+        EverythingSdkLock sdkLock,
         IEverythingSdk? sdk = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _sdkLock = sdkLock ?? throw new ArgumentNullException(nameof(sdkLock));
         _sdk = sdk;
     }
 
@@ -121,7 +124,7 @@ public class EverythingDependencyDetector : IEverythingDetector
             // ---- 步骤 2：IPC 通信验证（SDK 2.0 通过执行一次搜索来验证）----
             ct.ThrowIfCancellationRequested();
             _logger.LogInformation("[检测 2/5] 验证 Everything IPC 通信...");
-            bool ipcOk = PingIpc();
+            bool ipcOk = await PingIpcAsync(ct);
             if (!ipcOk)
             {
                 const string msg = "Everything IPC 通信失败。" +
@@ -169,7 +172,7 @@ public class EverythingDependencyDetector : IEverythingDetector
             // ---- 步骤 4：FRN 能力探测 ----
             ct.ThrowIfCancellationRequested();
             _logger.LogInformation("[检测 4/5] 探测 FRN（File Reference Number）能力...");
-            bool frnAvailable = DetectFrnCapability();
+            bool frnAvailable = await DetectFrnCapabilityAsync(ct);
             if (!frnAvailable)
             {
                 _logger.LogWarning(
@@ -187,7 +190,7 @@ public class EverythingDependencyDetector : IEverythingDetector
             // ---- 步骤 5：索引就绪检测 ----
             ct.ThrowIfCancellationRequested();
             _logger.LogInformation("[检测 5/5] 检查 Everything 索引就绪状态...");
-            bool isIndexing = !CheckIndexReady();
+            bool isIndexing = !await CheckIndexReadyAsync(ct);
             if (isIndexing)
             {
                 _logger.LogWarning("[检测 5/5] Everything 正在构建索引 — 当前结果可能不完整");
@@ -368,25 +371,52 @@ public class EverythingDependencyDetector : IEverythingDetector
     /// <summary>
     /// 通过执行一次轻量搜索来验证 Everything IPC 通信是否正常。
     /// SDK 2.0 无显式连接步骤，直接通过搜索验证通信。
+    /// 在 _sdkLock 保护下执行。
     /// </summary>
-    internal static bool PingIpc()
+    private async Task<bool> PingIpcAsync(CancellationToken ct)
     {
+        await _sdkLock.WaitAsync(ct).ConfigureAwait(false);
+        uint prevMax = 0;
         try
         {
-            EverythingNative.Everything_SetSearch(IpcProbeFilePath);
-            EverythingNative.Everything_SetMax(1);
+            if (_sdk != null)
+            {
+                prevMax = _sdk.GetMax();
+                _sdk.SetMax(1);
+                _sdk.SetSearch(IpcProbeFilePath);
 
-            if (!EverythingNative.Everything_Query(true))
-                return false;
+                if (!_sdk.Query(true))
+                    return false;
 
-            uint error = EverythingNative.Everything_GetLastError();
-            uint count = EverythingNative.Everything_GetNumResults();
+                uint error = _sdk.GetLastError();
+                uint count = _sdk.GetNumResults();
 
-            return error == EverythingNative.ERROR_OK && count > 0;
+                _sdk.SetMax(prevMax);
+                return error == EverythingNative.ERROR_OK && count > 0;
+            }
+            else
+            {
+                prevMax = EverythingNative.Everything_GetMax();
+                EverythingNative.Everything_SetMax(1);
+                EverythingNative.Everything_SetSearch(IpcProbeFilePath);
+
+                if (!EverythingNative.Everything_Query(true))
+                    return false;
+
+                uint error = EverythingNative.Everything_GetLastError();
+                uint count = EverythingNative.Everything_GetNumResults();
+
+                EverythingNative.Everything_SetMax(prevMax);
+                return error == EverythingNative.ERROR_OK && count > 0;
+            }
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return false;
+        }
+        finally
+        {
+            _sdkLock.Release();
         }
     }
 
@@ -397,13 +427,25 @@ public class EverythingDependencyDetector : IEverythingDetector
     /// <summary>
     /// 检查 Everything 版本是否满足最低要求（≥ 1.4.1）。
     /// SDK 2.0 使用独立的版本字段函数。
+    /// 只读操作，无需获取锁。
     /// </summary>
-    internal static (bool ok, int major, int minor, int rev, int build) CheckVersion()
+    private (bool ok, int major, int minor, int rev, int build) CheckVersion()
     {
-        int major = (int)EverythingNative.Everything_GetMajorVersion();
-        int minor = (int)EverythingNative.Everything_GetMinorVersion();
-        int revision = (int)EverythingNative.Everything_GetRevision();
-        int build = (int)EverythingNative.Everything_GetBuildNumber();
+        int major, minor, revision, build;
+        if (_sdk != null)
+        {
+            major = (int)_sdk.GetMajorVersion();
+            minor = (int)_sdk.GetMinorVersion();
+            revision = (int)_sdk.GetRevision();
+            build = (int)_sdk.GetBuildNumber();
+        }
+        else
+        {
+            major = (int)EverythingNative.Everything_GetMajorVersion();
+            minor = (int)EverythingNative.Everything_GetMinorVersion();
+            revision = (int)EverythingNative.Everything_GetRevision();
+            build = (int)EverythingNative.Everything_GetBuildNumber();
+        }
 
         bool ok = major > RequiredMajor ||
                   (major == RequiredMajor && minor > RequiredMinor) ||
@@ -418,38 +460,75 @@ public class EverythingDependencyDetector : IEverythingDetector
 
     /// <summary>
     /// 探测 Everything 是否支持返回文件引用号（File Reference Number）。
+    /// 在 _sdkLock 保护下执行。
     /// </summary>
-    internal static bool DetectFrnCapability()
+    private async Task<bool> DetectFrnCapabilityAsync(CancellationToken ct)
     {
+        await _sdkLock.WaitAsync(ct).ConfigureAwait(false);
+        uint prevMax = 0;
         try
         {
-            // 先查 explorer.exe，若不在索引中则查任意文件
-            EverythingNative.Everything_SetSearch(IpcProbeFilePath);
-            EverythingNative.Everything_SetMax(1);
-
-            if (!EverythingNative.Everything_Query(true) ||
-                EverythingNative.Everything_GetNumResults() == 0)
+            if (_sdk != null)
             {
-                // 无过滤搜索任意文件
-                EverythingNative.Everything_SetSearch(string.Empty);
+                prevMax = _sdk.GetMax();
+                _sdk.SetMax(1);
+                _sdk.SetSearch(IpcProbeFilePath);
+
+                if (!_sdk.Query(true) || _sdk.GetNumResults() == 0)
+                {
+                    // 无过滤搜索任意文件
+                    _sdk.SetSearch(string.Empty);
+                    _sdk.SetMax(1);
+
+                    if (!_sdk.Query(true) || _sdk.GetNumResults() == 0)
+                    {
+                        _sdk.SetMax(prevMax);
+                        return false;
+                    }
+                }
+
+                long frn = _sdk.GetResultFileReferenceNumber(0);
+                uint error = _sdk.GetLastError();
+
+                _sdk.SetMax(prevMax);
+                return frn > 0 && error == EverythingNative.ERROR_OK;
+            }
+            else
+            {
+                prevMax = EverythingNative.Everything_GetMax();
                 EverythingNative.Everything_SetMax(1);
+                EverythingNative.Everything_SetSearch(IpcProbeFilePath);
 
                 if (!EverythingNative.Everything_Query(true) ||
                     EverythingNative.Everything_GetNumResults() == 0)
                 {
-                    return false;
+                    // 无过滤搜索任意文件
+                    EverythingNative.Everything_SetSearch(string.Empty);
+                    EverythingNative.Everything_SetMax(1);
+
+                    if (!EverythingNative.Everything_Query(true) ||
+                        EverythingNative.Everything_GetNumResults() == 0)
+                    {
+                        EverythingNative.Everything_SetMax(prevMax);
+                        return false;
+                    }
                 }
+
+                long nativeFrn = 0;
+                EverythingNative.Everything_GetResultFileReferenceNumber(0, out nativeFrn);
+                uint error = EverythingNative.Everything_GetLastError();
+
+                EverythingNative.Everything_SetMax(prevMax);
+                return nativeFrn > 0 && error == EverythingNative.ERROR_OK;
             }
-
-            long frn = 0;
-            EverythingNative.Everything_GetResultFileReferenceNumber(0, out frn);
-            uint error = EverythingNative.Everything_GetLastError();
-
-            return frn > 0 && error == EverythingNative.ERROR_OK;
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return false;
+        }
+        finally
+        {
+            _sdkLock.Release();
         }
     }
 
@@ -460,23 +539,52 @@ public class EverythingDependencyDetector : IEverythingDetector
     /// <summary>
     /// 检查 Everything 索引是否就绪。
     /// 要求 DB 已加载且能成功执行一次查询。
+    /// 在 _sdkLock 保护下执行。
     /// </summary>
-    internal static bool CheckIndexReady()
+    private async Task<bool> CheckIndexReadyAsync(CancellationToken ct)
     {
+        await _sdkLock.WaitAsync(ct).ConfigureAwait(false);
+        uint prevMax = 0;
         try
         {
-            if (!EverythingNative.Everything_IsDBLoaded())
-                return false;
+            // IsDBLoaded 是只读操作，优先检查
+            if (_sdk != null)
+            {
+                if (!_sdk.IsDBLoaded())
+                    return false;
 
-            EverythingNative.Everything_SetSearch(IpcProbeFilePath);
-            EverythingNative.Everything_SetMax(1);
+                prevMax = _sdk.GetMax();
+                _sdk.SetMax(1);
+                _sdk.SetSearch(IpcProbeFilePath);
 
-            return EverythingNative.Everything_Query(true)
-                   && EverythingNative.Everything_GetNumResults() > 0;
+                bool ok = _sdk.Query(true) && _sdk.GetNumResults() > 0;
+
+                _sdk.SetMax(prevMax);
+                return ok;
+            }
+            else
+            {
+                if (!EverythingNative.Everything_IsDBLoaded())
+                    return false;
+
+                prevMax = EverythingNative.Everything_GetMax();
+                EverythingNative.Everything_SetMax(1);
+                EverythingNative.Everything_SetSearch(IpcProbeFilePath);
+
+                bool ok = EverythingNative.Everything_Query(true)
+                       && EverythingNative.Everything_GetNumResults() > 0;
+
+                EverythingNative.Everything_SetMax(prevMax);
+                return ok;
+            }
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return false;
+        }
+        finally
+        {
+            _sdkLock.Release();
         }
     }
 
@@ -505,7 +613,7 @@ public class EverythingDependencyDetector : IEverythingDetector
 
             bool indexReady = useSdk
                 ? _sdk!.IsDBLoaded()
-                : CheckIndexReady();
+                : await CheckIndexReadyAsync(ct);
 
             if (indexReady)
             {
@@ -526,22 +634,4 @@ public class EverythingDependencyDetector : IEverythingDetector
         return false;
     }
 
-    // ================================================================
-    // 资源释放
-    // ================================================================
-
-    /// <summary>
-    /// 释放 Everything SDK 内部资源。
-    /// </summary>
-    public static void Cleanup()
-    {
-        try
-        {
-            EverythingNative.Everything_CleanUp();
-        }
-        catch (Exception)
-        {
-            // 资源清理失败不应影响正常退出流程
-        }
-    }
 }

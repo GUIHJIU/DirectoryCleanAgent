@@ -170,6 +170,33 @@ public sealed class FileDecisionCacheRepository : IFileDecisionCacheRepository, 
     }
 
     /// <inheritdoc/>
+    public async Task<IReadOnlyList<FileDecisionCache>> GetByActionAndVersionAsync(
+        FinalAction action, int cacheVersion, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT file_path, size_bytes, last_write_time, rule_verdict, semantic_category,
+                   ai_label, ai_confidence, ai_explanation, final_action, user_decision, cache_version
+            FROM FileDecisionCache
+            WHERE final_action = @action AND cache_version = @version
+            """;
+
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct).ConfigureAwait(false);
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@action", (int)action);
+        cmd.Parameters.AddWithValue("@version", cacheVersion);
+
+        var results = new List<FileDecisionCache>();
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            results.Add(MapFromReader(reader));
+        }
+
+        return results.AsReadOnly();
+    }
+
+    /// <inheritdoc/>
     public async Task ClearAsync(CancellationToken ct = default)
     {
         // 清空操作不进入队列：先刷新队列确保所有待写入数据落盘，再执行 DELETE

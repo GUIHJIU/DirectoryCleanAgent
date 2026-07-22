@@ -1,0 +1,2 @@
+https://api.deepseek.com/chat/completions
+sk-b6f64d73ffaa48dda58e59a418ab04fd

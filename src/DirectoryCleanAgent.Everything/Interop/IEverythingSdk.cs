@@ -80,6 +80,12 @@ public interface IEverythingSdk : IDisposable
     /// <summary>获取指定索引结果的文件大小（字节），目录返回 -1</summary>
     long GetResultSize(uint index);
 
+    /// <summary>
+    /// 判断指定索引结果是否为文件夹。
+    /// 目录判断的权威依据——开启"索引文件夹大小"后目录 Size 可能 ≥ 0。
+    /// </summary>
+    bool IsFolderResult(uint index);
+
     /// <summary>获取指定索引结果的文件修改日期（FILETIME）</summary>
     long GetResultDateModified(uint index);
 
@@ -98,4 +104,17 @@ public interface IEverythingSdk : IDisposable
 
     /// <summary>设置请求字段标志位（按位或组合）</summary>
     void SetRequestFlags(uint flags);
+
+    // ================================================================
+    // 结果限制
+    // ================================================================
+
+    /// <summary>获取当前设置的最大结果数（0 表示无限制）</summary>
+    uint GetMax();
+
+    /// <summary>设置最大结果数（0 表示无限制）</summary>
+    void SetMax(uint max);
+
+    /// <summary>重置为无限制（等价于 SetMax(0)）</summary>
+    void ResetMax() => SetMax(0);
 }

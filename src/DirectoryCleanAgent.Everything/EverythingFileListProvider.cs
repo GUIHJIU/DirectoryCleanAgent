@@ -61,7 +61,7 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
     /// Everything SDK 使用全局进程状态（搜索表达式、排序参数等是全局的），
     /// 因此同一时刻只允许一个操作访问 SDK。
     /// </summary>
-    private readonly SemaphoreSlim _sdkLock = new(1, 1);
+    private readonly EverythingSdkLock _sdkLock;
 
     /// <summary>文件变更轮询定时器，在 ThreadPool 线程上触发回调。由 StartChangePolling() 创建。</summary>
     private Timer? _changePollTimer;
@@ -90,16 +90,19 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
     /// <param name="configService">配置服务（读取 FRN_AVAILABLE 标记）</param>
     /// <param name="tombstoneCache">墓碑内存缓存（启动时已加载）</param>
     /// <param name="sdk">Everything SDK 抽象（生产环境为 EverythingSdkWrapper）</param>
+    /// <param name="sdkLock">Everything SDK 全局状态共享锁</param>
     public EverythingFileListProvider(
         ILogger<EverythingFileListProvider> logger,
         IConfigService configService,
         ITombstoneCache tombstoneCache,
-        IEverythingSdk sdk)
+        IEverythingSdk sdk,
+        EverythingSdkLock sdkLock)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         _tombstoneCache = tombstoneCache ?? throw new ArgumentNullException(nameof(tombstoneCache));
         _sdk = sdk ?? throw new ArgumentNullException(nameof(sdk));
+        _sdkLock = sdkLock ?? throw new ArgumentNullException(nameof(sdkLock));
 
         _lastPollTimeUtc = DateTime.UtcNow;
 
@@ -186,6 +189,9 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
 
         try
         {
+            // 清除前序操作可能设置的 Max 限制，确保当前查询返回完整结果集
+            _sdk.ResetMax();
+
             // 设置需要获取的全部字段（减少 Everything 内部不必要的数据传输）
             // FRN/VolumeSerial 仅在检测确认可用时才请求，避免不兼容 SDK 版本触发 AccessViolationException
             uint requestFlags = EverythingNative.REQUEST_FILE_NAME |
@@ -199,8 +205,11 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
             }
             _sdk.SetRequestFlags(requestFlags);
 
-            // 设置搜索表达式（空字符串 = 匹配全部文件）
-            _sdk.SetSearch(queryParams.SearchExpression ?? string.Empty);
+            // 构建搜索表达式（含路径过滤下推）。
+            // 空 SearchExpression = 匹配全部文件；PathFilter 下推到 Everything 端，
+            // 避免返回全系统文件后再在 C# 侧过滤导致 MaxResults 上限被无关条目消耗。
+            string searchExpression = BuildSearchExpression(queryParams);
+            _sdk.SetSearch(searchExpression);
 
             // 设置原生排序（0 = Everything 默认排序）
             if (mappedSort != 0)
@@ -304,7 +313,16 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
                     }
                 }
 
-                // --- e. 获取文件大小，跳过目录 ---
+                // --- e. 跳过目录，获取文件大小 ---
+                // IsFolderResult 是权威判断：Everything 开启"索引文件夹大小"后
+                // 目录 Size ≥ 0（空目录为 0），仅靠 Size 符号无法区分文件与目录；
+                // Size < 0 兜底覆盖未开启该选项时的旧行为（目录返回 -1）。
+                if (_sdk.IsFolderResult(i))
+                {
+                    filesSkippedAsDirectory++;
+                    continue;
+                }
+
                 long sizeBytes = _sdk.GetResultSize(i);
 
                 if (sizeBytes < 0)
@@ -472,6 +490,9 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
         string timeQuery = $"dm:>{_lastPollTimeUtc.ToString(EverythingDateTimeFormat)}";
         _lastPollTimeUtc = currentPollTime;
 
+        // 清除前序操作可能设置的 Max 限制，确保轮询查询返回所有变更文件
+        _sdk.ResetMax();
+
         _sdk.SetRequestFlags(EverythingNative.REQUEST_PATH);
         _sdk.SetSearch(timeQuery);
 
@@ -541,6 +562,52 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
     }
 
     // ================================================================
+    // 搜索表达式构建
+    // ================================================================
+
+    /// <summary>
+    /// 构建 Everything 搜索表达式，将 PathFilter 下推到 Everything 端。
+    /// </summary>
+    /// <remarks>
+    /// Everything 搜索语法中，直接包含路径（如 <c>"C:\Users\AppData\"</c>）即可将结果
+    /// 限制在该目录下。将 PathFilter 下推到 Everything 端可避免返回全系统文件后在 C# 侧
+    /// 过滤，导致 MaxResults 上限被无关条目消耗而遗漏目标目录中的实际文件。
+    ///
+    /// PathFilter 的去标准化：内部 PathFilter 使用 \\?\ 扩展前缀格式，
+    /// 需通过 Denormalize 还原为常规 Windows 路径格式后传递给 Everything。
+    /// </remarks>
+    /// <param name="queryParams">查询参数（含 SearchExpression 和可选 PathFilter）</param>
+    /// <returns>合并路径过滤后的 Everything 搜索表达式</returns>
+    private static string BuildSearchExpression(EverythingQueryParams queryParams)
+    {
+        string search = queryParams.SearchExpression ?? string.Empty;
+
+        if (queryParams.PathFilter is not null)
+        {
+            // 去除 \\?\ 前缀，还原为 Everything 可识别的常规路径格式
+            string normalPath = PathNormalizer.Denormalize(queryParams.PathFilter);
+
+            // 确保尾部带 \ 以精确匹配目录下的内容，
+            // 避免 C:\AppData 错误匹配 C:\AppDataBackup\file
+            if (!normalPath.EndsWith('\\'))
+            {
+                normalPath += '\\';
+            }
+
+            // 用双引号包裹路径，防止路径中的空格或特殊字符（&、|、(、) 等）
+            // 被 Everything 解析为搜索运算符
+            string quotedPath = $"\"{normalPath}\"";
+
+            // 路径优先，搜索词紧随其后（Everything 空格分隔语法）
+            search = string.IsNullOrEmpty(search)
+                ? quotedPath
+                : $"{quotedPath} {search}";
+        }
+
+        return search;
+    }
+
+    // ================================================================
     // IDisposable
     // ================================================================
 
@@ -564,15 +631,6 @@ public sealed class EverythingFileListProvider : IFileListProvider, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "释放变更轮询定时器时发生异常");
-        }
-
-        try
-        {
-            _sdkLock.Dispose();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "释放 SDK 信号量时发生异常");
         }
 
         _logger.LogMethodExit("EverythingFileListProvider 已释放");

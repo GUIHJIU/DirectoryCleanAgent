@@ -255,7 +255,7 @@
                 <ProgressBar Grid.Column="5"
                              Style="{StaticResource StatusBarProgressBarStyle}"
                              Width="120"
-                             Value="{Binding OperationProgress.Percentage}"
+                             Value="{Binding OperationProgress.Percentage, Mode=OneWay}"
                              Visibility="{Binding IsOperating, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                 <!-- 取消按钮（操作进行中显示） -->

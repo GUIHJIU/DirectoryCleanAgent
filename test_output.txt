@@ -1,0 +1,271 @@
+﻿生成启动时间为 2026/7/19 21:47:51。
+E:\WORKSPACE\C#\directoryCleanAgent\src\DirectoryCleanAgent.Tests\bin\Release\net8.0-windows\DirectoryCleanAgent.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行
+VSTest 版本 17.14.1 (x64)
+
+正在启动测试执行，请稍候...
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.07]   Discovering: DirectoryCleanAgent.Tests
+[xUnit.net 00:00:00.18]   Discovered:  DirectoryCleanAgent.Tests
+[xUnit.net 00:00:00.18]   Starting:    DirectoryCleanAgent.Tests
+  已通过 DirectoryCleanAgent.Tests.Integration.StartupFlow.AppStartupIntegrationTests.StartupFlow_LoggingFactory_CreatesDebugLogger [56 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.NonAdminMode.NonAdminModeIntegrationTests.NonAdminMode_AppMode_ReadOnly_WhenNotAdmin [66 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.Cancellation.DecisionCancellationTests.DecideAndSnapshotAsync_CancelBeforeStart_NoHashing [69 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.NonAdminMode.NonAdminModeIntegrationTests.NonAdminMode_WarningBanner_Displayed [6 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.QuarantineIntegrationTests.QuarantineManager_DeleteSingleFile_RemovesFromDisk [76 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.NonAdminMode.NonAdminModeIntegrationTests.NonAdminMode_DeleteOperation_Disabled [4 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.ScanRuleEvaluateIntegrationTests.RuleEngine_Evaluate_WithExcludedDir_ReturnsExclude [89 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.DecisionSnapshotIntegrationTests.DecideAndSnapshotAsync_Sha256Hash_MatchesExpected [86 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.ScanRuleEvaluateIntegrationTests.RuleEngine_Evaluate_System32Dll_ReturnsForbid [19 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.ScanRuleEvaluateIntegrationTests.DecisionEngine_Arbitrate_WithAI_SuggestDelete_Risky_MediumTrust_DowngradesToManualReview [9 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.ScanRuleEvaluateIntegrationTests.RuleEngine_Evaluate_TempFileInWindowsTemp_ReturnsAutoDelete [19 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.Cancellation.ExecutionCancellationTests.WaitForIndexAsync_CancelDuringPolling_Throws [174 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.DecisionSnapshotIntegrationTests.DecideAndSnapshotAsync_AllProtected_EmptyEntries [134 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.RollbackIntegrationTests.RollbackAsync_Quarantine_RestoresFileToOriginalPath [377 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.RollbackIntegrationTests.GetRollbackHistory_AfterDelete_ReturnsBatchInfo [54 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.QuarantineIntegrationTests.QuarantineManager_GetStats_ReturnsCorrectCount [397 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.QuarantineIntegrationTests.QuarantineManager_ExpiredCleanup_RemovesExpiredFiles [31 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.QuarantineIntegrationTests.QuarantineManager_BypassLargeFile_ReturnsTrue [7 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.RollbackIntegrationTests.RollbackAsync_HashMismatch_RejectsRestore [120 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.StartupFlow.IndexNotReadyIntegrationTests.WaitForIndex_Progress_ReportsCorrectly [555 ms]
+  已通过 DirectoryCleanAgent.Tests.Operations.BackupManagerTests.RollbackAsync_Integration_PathConflict_ShouldUseSuffix [565 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.StartupFlow.IndexNotReadyIntegrationTests.StartupFlow_IndexNotReady_YellowBannerState [13 ms]
+  已通过 DirectoryCleanAgent.Tests.Operations.BackupManagerTests.RollbackAsync_Integration_HashMismatch_ShouldReject [14 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.RollbackIntegrationTests.VerifyHashes_AfterDelete_ReportsCorrectCounts [125 ms]
+  已通过 DirectoryCleanAgent.Tests.Operations.BackupManagerTests.RollbackAsync_Integration_QuarantineRestore_Success [170 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.Cancellation.ExecutionCancellationTests.ExecuteAsync_CancelDuringDelete_ReturnsPartialResult [703 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.QuarantineIntegrationTests.QuarantineManager_ListFiles_ReturnsSortedEntries [507 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.ScanRuleEvaluateIntegrationTests.DecideAndSnapshotAsync_WithProgress_ReportsCorrectly [885 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.ScanRuleEvaluateIntegrationTests.DecisionEngine_Arbitrate_WithAI_Forbid_AnyTrust_ReturnsProtected [6 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.ScanRuleEvaluateIntegrationTests.DecisionEngine_Arbitrate_WithoutAI_SuggestDelete_ReturnsSuggestDelete [6 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.QuarantineIntegrationTests.QuarantineManager_FileName_RoundTrip [16 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.Cancellation.ExecutionCancellationTests.ExecuteAsync_CancelBeforeStart_NoFilesDeleted [180 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.DecisionSnapshotIntegrationTests.DecideAndSnapshotAsync_CancelledDuringHash_Throws [879 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.Cancellation.ExecutionCancellationTests.RollbackAsync_CancelDuringRestore_ReturnsPartialResult [51 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.DecisionSnapshotIntegrationTests.DecisionSnapshot_IsImmutable_AfterCreation [42 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.DecisionSnapshotIntegrationTests.DecisionSnapshot_ToCompactJson_ValidFormat [37 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.Cancellation.DecisionCancellationTests.DecideAndSnapshotAsync_CancelDuringHash_StopsAndThrows [1 s]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_RealFiles_DeletionRecordInserted [1 s]
+  已通过 DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate.DecisionSnapshotIntegrationTests.DecideAndSnapshotAsync_RealFiles_GeneratesSnapshot [439 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.RollbackIntegrationTests.RollbackAsync_RecycleBin_RestoresFromRecycleBin [1 s]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.RollbackIntegrationTests.RollbackAsync_AfterRollback_TombstoneCleared [33 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.RollbackIntegrationTests.RollbackAsync_PathConflict_AddsRestoredSuffix [28 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_RealFiles_RecycleBin_DeletesSuccessfully [1 s]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_RealFiles_PermanentDelete_DeletesSuccessfully [366 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_RealFiles_TombstoneInserted [885 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_RecycleBinCapacity_PreCheck [480 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_WithProgress_ReportsDeletionProgress [670 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_RealFiles_AuditLogWritten [895 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.StartupFlow.IndexNotReadyIntegrationTests.IsIndexingAsync_DelegatesToNative_ReturnsBool [5 s]
+  已通过 DirectoryCleanAgent.Tests.Integration.StartupFlow.IndexNotReadyIntegrationTests.WaitForIndex_Timeout_ReturnsFalse [112 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_RealFiles_Quarantine_BackupCreated [491 ms]
+  已通过 DirectoryCleanAgent.Tests.Integration.ExecuteAndRollback.DeleteExecuteIntegrationTests.ExecuteAsync_FileLocked_DowngradedToManualReview [1 s]
+Fatal error. System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that other memory is corrupt.
+Repeat 2 times:
+--------------------------------
+   at DirectoryCleanAgent.Everything.Interop.EverythingNative.Everything_GetNumResults()
+--------------------------------
+   at DirectoryCleanAgent.Everything.Interop.EverythingSdkWrapper.GetNumResults()
+   at DirectoryCleanAgent.Everything.EverythingFileListProvider+<EnumerateFilesAsync>d__17.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]](System.__Canon ByRef)
+   at DirectoryCleanAgent.Everything.EverythingFileListProvider+<EnumerateFilesAsync>d__17.System.Collections.Generic.IAsyncEnumerator<DirectoryCleanAgent.Core.DTOs.FileItem>.MoveNextAsync()
+   at DirectoryCleanAgent.Tests.Integration.Cancellation.ScanCancellationTests+<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[DirectoryCleanAgent.Tests.Integration.Cancellation.ScanCancellationTests+<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3, DirectoryCleanAgent.Tests, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]](<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start[[DirectoryCleanAgent.Tests.Integration.Cancellation.ScanCancellationTests+<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3, DirectoryCleanAgent.Tests, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]](<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3 ByRef)
+   at DirectoryCleanAgent.Tests.Integration.Cancellation.ScanCancellationTests.EnumerateFilesAsync_CancelDuringStream_StopsMidway()
+   at System.RuntimeMethodHandle.InvokeMethod(System.Object, Void**, System.Signature, Boolean)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(System.Object, System.Reflection.BindingFlags)
+   at System.Reflection.MethodBase.Invoke(System.Object, System.Object[])
+   at Xunit.Sdk.TestInvoker`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].CallTestMethod(System.Object)
+   at Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0+<<InvokeTestMethodAsync>b__1>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0+<<InvokeTestMethodAsync>b__1>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<<InvokeTestMethodAsync>b__1>d<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start[[Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0+<<InvokeTestMethodAsync>b__1>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<<InvokeTestMethodAsync>b__1>d<System.__Canon> ByRef)
+   at Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].<InvokeTestMethodAsync>b__1()
+   at Xunit.Sdk.ExecutionTimer+<AggregateAsync>d__4.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.ExecutionTimer+<AggregateAsync>d__4, xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<AggregateAsync>d__4 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start[[Xunit.Sdk.ExecutionTimer+<AggregateAsync>d__4, xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<AggregateAsync>d__4 ByRef)
+   at Xunit.Sdk.ExecutionTimer.AggregateAsync(System.Func`1<System.Threading.Tasks.Task>)
+   at Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].<InvokeTestMethodAsync>b__0()
+   at Xunit.Sdk.ExceptionAggregator+<RunAsync>d__9.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__9, xunit.core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__9 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__9, xunit.core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__9 ByRef)
+   at Xunit.Sdk.ExceptionAggregator.RunAsync(System.Func`1<System.Threading.Tasks.Task>)
+   at Xunit.Sdk.TestInvoker`1+<InvokeTestMethodAsync>d__46[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestInvoker`1+<InvokeTestMethodAsync>d__46[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<InvokeTestMethodAsync>d__46<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestInvoker`1+<InvokeTestMethodAsync>d__46[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<InvokeTestMethodAsync>d__46<System.__Canon> ByRef)
+   at Xunit.Sdk.TestInvoker`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].InvokeTestMethodAsync(System.Object)
+   at Xunit.Sdk.XunitTestInvoker.InvokeTestMethodAsync(System.Object)
+   at Xunit.Sdk.TestInvoker`1+<<RunAsync>b__45_0>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestInvoker`1+<<RunAsync>b__45_0>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<<RunAsync>b__45_0>d<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestInvoker`1+<<RunAsync>b__45_0>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<<RunAsync>b__45_0>d<System.__Canon> ByRef)
+   at Xunit.Sdk.TestInvoker`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].<RunAsync>b__45_0()
+   at Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__10`1<System.Decimal> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__10`1<System.Decimal> ByRef)
+   at Xunit.Sdk.ExceptionAggregator.RunAsync[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]](System.Func`1<System.Threading.Tasks.Task`1<System.Decimal>>)
+   at Xunit.Sdk.TestInvoker`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunAsync()
+   at Xunit.Sdk.XunitTestRunner.InvokeTestMethodAsync(Xunit.Sdk.ExceptionAggregator)
+   at Xunit.Sdk.XunitTestRunner+<InvokeTestAsync>d__4.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.XunitTestRunner+<InvokeTestAsync>d__4, xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<InvokeTestAsync>d__4 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.XunitTestRunner+<InvokeTestAsync>d__4, xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<InvokeTestAsync>d__4 ByRef)
+   at Xunit.Sdk.XunitTestRunner.InvokeTestAsync(Xunit.Sdk.ExceptionAggregator)
+   at Xunit.Sdk.TestRunner`1+<>c__DisplayClass43_0[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].<RunAsync>b__0()
+   at Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__10`1<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__10`1<System.__Canon> ByRef)
+   at Xunit.Sdk.ExceptionAggregator.RunAsync[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]](System.Func`1<System.Threading.Tasks.Task`1<System.__Canon>>)
+   at Xunit.Sdk.TestRunner`1+<RunAsync>d__43[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestRunner`1+<RunAsync>d__43[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__43<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestRunner`1+<RunAsync>d__43[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__43<System.__Canon> ByRef)
+   at Xunit.Sdk.TestRunner`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunAsync()
+   at Xunit.Sdk.XunitTestCaseRunner.RunTestAsync()
+   at Xunit.Sdk.TestCaseRunner`1+<RunAsync>d__19[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestCaseRunner`1+<RunAsync>d__19[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__19<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestCaseRunner`1+<RunAsync>d__19[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__19<System.__Canon> ByRef)
+   at Xunit.Sdk.TestCaseRunner`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunAsync()
+   at Xunit.Sdk.XunitTestCase.RunAsync(Xunit.Abstractions.IMessageSink, Xunit.Sdk.IMessageBus, System.Object[], Xunit.Sdk.ExceptionAggregator, System.Threading.CancellationTokenSource)
+   at Xunit.Sdk.XunitTestMethodRunner.RunTestCaseAsync(Xunit.Sdk.IXunitTestCase)
+   at Xunit.Sdk.TestMethodRunner`1+<RunTestCasesAsync>d__32[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestMethodRunner`1+<RunTestCasesAsync>d__32[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunTestCasesAsync>d__32<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestMethodRunner`1+<RunTestCasesAsync>d__32[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunTestCasesAsync>d__32<System.__Canon> ByRef)
+   at Xunit.Sdk.TestMethodRunner`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunTestCasesAsync()
+   at Xunit.Sdk.TestMethodRunner`1+<RunAsync>d__31[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestMethodRunner`1+<RunAsync>d__31[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__31<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestMethodRunner`1+<RunAsync>d__31[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__31<System.__Canon> ByRef)
+   at Xunit.Sdk.TestMethodRunner`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunAsync()
+   at Xunit.Sdk.XunitTestClassRunner.RunTestMethodAsync(Xunit.Abstractions.ITestMethod, Xunit.Abstractions.IReflectionMethodInfo, System.Collections.Generic.IEnumerable`1<Xunit.Sdk.IXunitTestCase>, System.Object[])
+   at Xunit.Sdk.TestClassRunner`1+<RunTestMethodsAsync>d__38[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestClassRunner`1+<RunTestMethodsAsync>d__38[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunTestMethodsAsync>d__38<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestClassRunner`1+<RunTestMethodsAsync>d__38[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunTestMethodsAsync>d__38<System.__Canon> ByRef)
+   at Xunit.Sdk.TestClassRunner`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunTestMethodsAsync()
+   at Xunit.Sdk.TestClassRunner`1+<RunAsync>d__37[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestClassRunner`1+<RunAsync>d__37[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__37<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestClassRunner`1+<RunAsync>d__37[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__37<System.__Canon> ByRef)
+   at Xunit.Sdk.TestClassRunner`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunAsync()
+   at Xunit.Sdk.XunitTestCollectionRunner.RunTestClassAsync(Xunit.Abstractions.ITestClass, Xunit.Abstractions.IReflectionTypeInfo, System.Collections.Generic.IEnumerable`1<Xunit.Sdk.IXunitTestCase>)
+   at Xunit.Sdk.TestCollectionRunner`1+<RunTestClassesAsync>d__28[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestCollectionRunner`1+<RunTestClassesAsync>d__28[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunTestClassesAsync>d__28<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestCollectionRunner`1+<RunTestClassesAsync>d__28[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunTestClassesAsync>d__28<System.__Canon> ByRef)
+   at Xunit.Sdk.TestCollectionRunner`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunTestClassesAsync()
+   at Xunit.Sdk.TestCollectionRunner`1+<RunAsync>d__27[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestCollectionRunner`1+<RunAsync>d__27[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__27<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestCollectionRunner`1+<RunAsync>d__27[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__27<System.__Canon> ByRef)
+   at Xunit.Sdk.TestCollectionRunner`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].RunAsync()
+   at Xunit.Sdk.XunitTestAssemblyRunner+<RunTestCollectionAsync>d__18.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.XunitTestAssemblyRunner+<RunTestCollectionAsync>d__18, xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunTestCollectionAsync>d__18 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.XunitTestAssemblyRunner+<RunTestCollectionAsync>d__18, xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunTestCollectionAsync>d__18 ByRef)
+   at Xunit.Sdk.XunitTestAssemblyRunner.RunTestCollectionAsync(Xunit.Sdk.IMessageBus, Xunit.Abstractions.ITestCollection, System.Collections.Generic.IEnumerable`1<Xunit.Sdk.IXunitTestCase>, System.Threading.CancellationTokenSource)
+   at Xunit.Sdk.XunitTestAssemblyRunner+<>c__DisplayClass16_2.<RunTestCollectionsAsync>b__2()
+   at System.Threading.Tasks.Task`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].InnerInvoke()
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(System.Threading.Thread, System.Threading.ExecutionContext, System.Threading.ContextCallback, System.Object)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(System.Threading.Tasks.Task ByRef, System.Threading.Thread)
+   at System.Threading.ThreadPoolWorkQueue.Dispatch()
+   at System.Threading.PortableThreadPool+WorkerThread.WorkerThreadStart()
+dotnet : 活动的测试运行已中止。原因: 测试主机进程崩溃 : Fatal error. System.AccessViolationException: Attempted to read or write protected m
+emory. This is often an indication that other memory is corrupt.
+At line:1 char:302
++ ... tch {} } }; dotnet test "src/DirectoryCleanAgent.Tests/DirectoryClean ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (活动的测试运行已中止。原因: ...ory is corrupt.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Repeat 2 times:
+--------------------------------
+   at DirectoryCleanAgent.Everything.Interop.EverythingNative.Everything_GetNumResults()
+--------------------------------
+   at DirectoryCleanAgent.Everything.Interop.EverythingSdkWrapper.GetNumResults()
+   at DirectoryCleanAgent.Everything.EverythingFileListProvider+<EnumerateFilesAsync>d__17.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[System.__Canon, System.Private.CoreLib, Version=8.0
+.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]](System.__Canon ByRef)
+   at DirectoryCleanAgent.Everything.EverythingFileListProvider+<EnumerateFilesAsync>d__17.System.Collections.Generic.I
+AsyncEnumerator<DirectoryCleanAgent.Core.DTOs.FileItem>.MoveNextAsync()
+   at DirectoryCleanAgent.Tests.Integration.Cancellation.ScanCancellationTests+<EnumerateFilesAsync_CancelDuringStream_
+StopsMidway>d__3.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[DirectoryCleanAgent.Tests.Integration.Cancellation.
+ScanCancellationTests+<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3, DirectoryCleanAgent.Tests, Version=1.0.
+0.0, Culture=neutral, PublicKeyToken=null]](<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start[[DirectoryCleanAgent.Tests.Integration.Cancellation.
+ScanCancellationTests+<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3, DirectoryCleanAgent.Tests, Version=1.0.
+0.0, Culture=neutral, PublicKeyToken=null]](<EnumerateFilesAsync_CancelDuringStream_StopsMidway>d__3 ByRef)
+   at DirectoryCleanAgent.Tests.Integration.Cancellation.ScanCancellationTests.EnumerateFilesAsync_CancelDuringStream_S
+topsMidway()
+   at System.RuntimeMethodHandle.InvokeMethod(System.Object, Void**, System.Signature, Boolean)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(System.Object, System.Reflection.BindingFlags)
+   at System.Reflection.MethodBase.Invoke(System.Object, System.Object[])
+   at Xunit.Sdk.TestInvoker`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken
+=7cec85d7bea7798e]].CallTestMethod(System.Object)
+   at Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0+<<InvokeTestMethodAsync>b__1>d[[System.__Canon, System.Private.Core
+Lib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0+<<Inv
+okeTestMethodAsync>b__1>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7ce
+c85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<<InvokeTe
+stMethodAsync>b__1>d<System.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start[[Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0+<<Inv
+okeTestMethodAsync>b__1>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7ce
+c85d7bea7798e]], xunit.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<<InvokeTe
+stMethodAsync>b__1>d<System.__Canon> ByRef)
+   at Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=n
+eutral, PublicKeyToken=7cec85d7bea7798e]].<InvokeTestMethodAsync>b__1()
+   at Xunit.Sdk.ExecutionTimer+<AggregateAsync>d__4.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.ExecutionTimer+<AggregateAsync>d__4, xuni
+t.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<AggregateAsync>d__4 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start[[Xunit.Sdk.ExecutionTimer+<AggregateAsync>d__4, xuni
+t.execution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<AggregateAsync>d__4 ByRef)
+   at Xunit.Sdk.ExecutionTimer.AggregateAsync(System.Func`1<System.Threading.Tasks.Task>)
+   at Xunit.Sdk.TestInvoker`1+<>c__DisplayClass46_0[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=n
+eutral, PublicKeyToken=7cec85d7bea7798e]].<InvokeTestMethodAsync>b__0()
+   at Xunit.Sdk.ExceptionAggregator+<RunAsync>d__9.MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__9, xunit
+.core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__9 ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__9, xunit
+.core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__9 ByRef)
+   at Xunit.Sdk.ExceptionAggregator.RunAsync(System.Func`1<System.Threading.Tasks.Task>)
+   at Xunit.Sdk.TestInvoker`1+<InvokeTestMethodAsync>d__46[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Cu
+lture=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestInvoker`1+<InvokeTestMethodAsync>d__4
+6[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.e
+xecution.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<InvokeTestMethodAsync>d__46<Syste
+m.__Canon> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0
+, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestInvoker`1+<InvokeTestMethodAsync>d__46[[Syste
+m.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution
+.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<InvokeTestMethodAsync>d__46<System.__Cano
+n> ByRef)
+   at Xunit.Sdk.TestInvoker`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken
+=7cec85d7bea7798e]].InvokeTestMethodAsync(System.Object)
+   at Xunit.Sdk.XunitTestInvoker.InvokeTestMethodAsync(System.Object)
+   at Xunit.Sdk.TestInvoker`1+<<RunAsync>b__45_0>d[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=ne
+utral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.TestInvoker`1+<<RunAsync>b__45_0>d[[Syste
+m.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution
+.dotnet, Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<<RunAsync>b__45_0>d<System.__Canon> ByRef
+)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0
+, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.TestInvoker`1+<<RunAsync>b__45_0>d[[System.__Cano
+n, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.execution.dotnet,
+ Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<<RunAsync>b__45_0>d<System.__Canon> ByRef)
+   at Xunit.Sdk.TestInvoker`1[[System.__Canon, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken
+=7cec85d7bea7798e]].<RunAsync>b__45_0()
+   at Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture
+=neutral, PublicKeyToken=7cec85d7bea7798e]].MoveNext()
+   at System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[Sy
+stem.Decimal, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], xunit.core, 
+Version=2.9.0.0, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c]](<RunAsync>d__10`1<System.Decimal> ByRef)
+   at System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1[[System.Decimal, System.Private.CoreLib, Version=8.0.0.0
+, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]].Start[[Xunit.Sdk.ExceptionAggregator+<RunAsync>d__10`1[[System.Dec
+imal, System.Private.CoreLib, Version=8.0.0.0
+
+测试运行已中止。
+测试总数: 未知
+     通过数: 52
+总时间: 17.7316 秒
+     1>项目“E:\WORKSPACE\C#\directoryCleanAgent\src\DirectoryCleanAgent.Tests\DirectoryCleanAgent.Tests.csproj”在节点 1 上(VSTest 个目标)。
+     1>_VSTestConsole:
+         MSB4181: “VSTestTask”任务返回了 false，但未记录错误。
+     1>已完成生成项目“E:\WORKSPACE\C#\directoryCleanAgent\src\DirectoryCleanAgent.Tests\DirectoryCleanAgent.Tests.csproj”(VSTest 个目标)的操作 - 失败。
+
+生成失败。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:18.40

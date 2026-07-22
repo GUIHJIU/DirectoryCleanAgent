@@ -489,8 +489,13 @@ public sealed class AiAdvisorService : IAiAdvisorService, IDisposable
             if (responseContent == null)
                 return null;
 
-            // 解析响应 JSON
-            return _promptBuilder.ParseResponse(responseContent);
+            // 从 Chat Completions 响应体中提取模型实际输出的文本
+            var modelOutput = ExtractModelOutput(responseContent);
+            if (modelOutput == null)
+                return null;
+
+            // 解析模型输出的 JSON
+            return _promptBuilder.ParseResponse(modelOutput);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
                                                 ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
@@ -512,7 +517,11 @@ public sealed class AiAdvisorService : IAiAdvisorService, IDisposable
                     systemPrompt, userPrompt, ct);
 
                 if (retryContent != null)
-                    return _promptBuilder.ParseResponse(retryContent);
+                {
+                    var retryOutput = ExtractModelOutput(retryContent);
+                    if (retryOutput != null)
+                        return _promptBuilder.ParseResponse(retryOutput);
+                }
             }
             catch (Exception retryEx)
             {
@@ -534,6 +543,43 @@ public sealed class AiAdvisorService : IAiAdvisorService, IDisposable
             // HttpClient 超时（Timeout 设置所致）
             _logger.LogWarning("AI API 调用超时（{Timeout}秒）", ApiTimeout.TotalSeconds);
             _circuitBreaker.RecordFailure();
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 从 Chat Completions API 原始响应体中提取模型实际输出的文本内容。
+    /// 原始响应是完整的 Chat Completions JSON（含 id/choices/error 等字段），
+    /// 模型真正的输出在 choices[0].message.content 中。
+    /// </summary>
+    /// <param name="rawResponseBody">API 返回的原始 JSON 响应体</param>
+    /// <returns>模型输出的文本内容；提取失败或响应包含 error 时返回 null</returns>
+    private string? ExtractModelOutput(string rawResponseBody)
+    {
+        try
+        {
+            var completion = JsonSerializer.Deserialize<AiChatCompletionResponse>(rawResponseBody);
+
+            if (completion?.Error != null)
+            {
+                _logger.LogWarning("AI API 返回错误: {Type} — {Message}",
+                    completion.Error.Type, completion.Error.Message);
+                return null;
+            }
+
+            var content = completion?.ExtractContent();
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                _logger.LogWarning("AI API 响应中无有效内容（choices 为空或 message.content 缺失）");
+                return null;
+            }
+
+            return content;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "AI API 响应体反序列化失败（Chat Completions 格式不匹配）");
             return null;
         }
     }

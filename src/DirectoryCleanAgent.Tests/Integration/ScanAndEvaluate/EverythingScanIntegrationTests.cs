@@ -22,6 +22,7 @@ namespace DirectoryCleanAgent.Tests.Integration.ScanAndEvaluate;
 /// Everything 真实扫描集成测试
 /// 验证 EverythingFileListProvider 的流式枚举和参数下推功能
 /// </summary>
+[Collection("Everything")]
 public class EverythingScanIntegrationTests : IntegrationTestBase
 {
     private readonly IServiceProvider _serviceProvider;

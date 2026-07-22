@@ -19,6 +19,7 @@ namespace DirectoryCleanAgent.Tests.Integration.StartupFlow;
 /// Everything 5步启动检测集成测试
 /// 验证 EverythingDependencyDetector 的每一步检测逻辑
 /// </summary>
+[Collection("Everything")]
 public class EverythingDetectionIntegrationTests : IntegrationTestBase
 {
     private readonly IServiceProvider _serviceProvider;
